@@ -2,6 +2,16 @@
 <resources>
     <string name="app_name">DD1 Launcher</string>
     <string name="powered_by_winlator">Powered by Winlator 11.1</string>
+    <string name="dd1_home">Home</string>
+    <string name="dd1_home_title">Darkest Dungeon</string>
+    <string name="dd1_home_subtitle">Android launcher · Winlator runtime</string>
+    <string name="dd1_status_ready">Game files and runtime profile are ready</string>
+    <string name="dd1_status_runtime_preparing">Preparing the runtime</string>
+    <string name="dd1_status_game_missing">Owned game files were not found</string>
+    <string name="dd1_status_profile_missing">Create the runtime profile to continue</string>
+    <string name="dd1_play">Play</string>
+    <string name="dd1_create_profile">Create profile</string>
+    <string name="dd1_runtime_profiles">Runtime profiles</string>
     <string name="run">Run</string>
     <string name="edit">Edit</string>
     <string name="remove">Remove</string>

@@ -9,9 +9,12 @@ This project is not affiliated with Red Hook Studios or Valve Corporation.
 ## Current development flow
 
 1. Put an owned game installation in the app's `files/game` directory.
-2. Create the first container. It is named `Darkest Dungeon` automatically.
-3. Press the container's play button. The launcher mounts the game directory and
-   starts `__build/x64_Debug/Darkest.exe` when present.
+2. Open the DD1 home screen and create the runtime profile when prompted.
+3. Press `Play`. The launcher mounts the game directory and starts
+   `__build/x64_Debug/Darkest.exe` when present.
+
+The DD1 home screen owns the normal launch flow. Winlator's container, input, and
+runtime settings remain available as advanced screens.
 
 The manual file placement is temporary. A legal import/download flow will replace
 it before a public release.

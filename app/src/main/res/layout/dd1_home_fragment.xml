@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="32dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:text="@string/dd1_home_title"
+            android:textColor="?attr/colorPrimaryText"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/dd1_home_subtitle"
+            android:textColor="?attr/colorSecondaryText"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/TVStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:background="?attr/colorSecondarySurface"
+            android:gravity="center"
+            android:padding="24dp"
+            android:textColor="?attr/colorPrimaryText"
+            android:textSize="18sp" />
+
+        <Button
+            android:id="@+id/BTPrimaryAction"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="24dp"
+            android:text="@string/dd1_play" />
+
+        <Button
+            android:id="@+id/BTRuntimeProfiles"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/dd1_runtime_profiles"
+            android:textColor="?attr/colorPrimaryText" />
+    </LinearLayout>
+</ScrollView>
