@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.Window;
 import android.view.WindowManager;
 import io.github.dd1android.launcher.runtime.LaunchConfig;
+import io.github.dd1android.launcher.runtime.GameRunner;
 import io.github.dd1android.launcher.xserver.XServerRunner;
 import java.io.File;
 
@@ -26,10 +27,12 @@ public final class GameActivity extends Activity {
         getWindow().setFlags(
                 WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setContentView(new GameSurface(this));
         LaunchConfig config = pendingConfig;
         int width = config == null ? 1280 : config.width();
         int height = config == null ? 720 : config.height();
+        setContentView(new GameSurface(this, width, height, surface -> {
+            if (config != null) new GameRunner(this).launch(config, surface);
+        }));
         XServerRunner.start(new File(getFilesDir(), "runtime/x11").getAbsolutePath(), width, height);
     }
 

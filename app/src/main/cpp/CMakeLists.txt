@@ -11,6 +11,9 @@ add_library(dd1xserver SHARED
 target_include_directories(dd1xserver PRIVATE xserver)
 target_link_libraries(dd1xserver log android jnigraphics)
 
+add_library(dd1runtime SHARED dd1_runtime.c)
+target_link_libraries(dd1runtime log android EGL GLESv2)
+
 if(ANDROID_ABI STREQUAL "arm64-v8a")
     set(NOGIT ON CACHE BOOL "" FORCE)
     set(ARM_DYNAREC ON CACHE BOOL "" FORCE)
