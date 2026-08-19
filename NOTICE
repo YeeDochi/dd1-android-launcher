@@ -5,4 +5,10 @@ This project is not affiliated with Red Hook Studios or Valve Corporation.
 It does not include or distribute Darkest Dungeon, DLC, or Steam content.
 Users must supply files downloaded from an account that owns the game.
 
-Third-party notices will be expanded as runtime components are incorporated.
+The X11 server and connector are adapted from RimDroid commit
+4057dacf0bece1b379e77b292262fe2820af7131:
+https://github.com/udarmolota/rimdroid
+
+RimDroid is licensed under GPL-3.0. Its X server is derived from Winlator and
+identified there as LGPL-2.1. Local package names and Android collection types
+were changed for this project.

@@ -6,6 +6,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
+            android:name=".game.GameActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:screenOrientation="landscape" />
+        <activity
             android:name=".LauncherActivity"
             android:exported="true">
             <intent-filter>
