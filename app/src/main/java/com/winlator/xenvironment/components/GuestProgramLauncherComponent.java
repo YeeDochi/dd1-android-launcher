@@ -20,11 +20,13 @@ import com.winlator.xconnector.UnixSocketConfig;
 import com.winlator.xenvironment.EnvironmentComponent;
 import com.winlator.xenvironment.RootFS;
 
+
 import java.io.File;
 import java.util.List;
 
 public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private String guestExecutable;
+    private File guestWorkingDir;
     private static int pid = -1;
     private EnvVars envVars;
     private String box64Preset = Box64Preset.CONSERVATIVE;
@@ -67,6 +69,12 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         this.guestExecutable = guestExecutable;
     }
 
+    // Wine takes its initial working directory from the process it runs in, which
+    // is how the game finds the data next to its install root.
+    public void setGuestWorkingDir(File guestWorkingDir) {
+        this.guestWorkingDir = guestWorkingDir;
+    }
+
     public EnvVars getEnvVars() {
         return envVars;
     }
@@ -107,7 +115,8 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
 
         String command = rootDir+"/usr/local/bin/box64 "+guestExecutable;
 
-        return ProcessHelper.exec(command, envVars, rootDir, (status) -> {
+        return ProcessHelper.exec(command, envVars,
+            guestWorkingDir != null ? guestWorkingDir : rootDir, (status) -> {
             synchronized (lock) {
                 pid = -1;
             }

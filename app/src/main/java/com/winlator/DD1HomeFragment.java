@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.text.TextUtils;
+import android.text.method.ScrollingMovementMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,6 +46,8 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 
 import java.io.File;
+
+import java.util.Locale;
 
 public class DD1HomeFragment extends Fragment {
     private final Handler handler = new Handler();
@@ -176,6 +179,10 @@ public class DD1HomeFragment extends Fragment {
     void renderInstallSnapshot(DD1InstallSnapshot snapshot) {
         installSnapshot = snapshot;
         if (rootView == null) return;
+        if (snapshot.phase == DD1InstallPhase.READY) {
+            refresh();
+            return;
+        }
         if (DD1Game.findExecutable(requireContext().getFilesDir()) != null) {
             rootView.findViewById(R.id.LLSteamInstall).setVisibility(View.GONE);
             return;
@@ -212,8 +219,9 @@ public class DD1HomeFragment extends Fragment {
             progress.setIndeterminate(snapshot.totalBytes <= 0);
             if (snapshot.totalBytes > 0)
                 progress.setProgress((int)Math.min(1000, snapshot.downloadedBytes * 1000 / snapshot.totalBytes));
-            ((TextView)rootView.findViewById(R.id.TVDownloadFile)).setText(snapshot.currentFile);
-            ((TextView)rootView.findViewById(R.id.TVInstallLog)).setText(TextUtils.join("\n", snapshot.logLines));
+            ((TextView)rootView.findViewById(R.id.TVDownloadFile))
+                .setText(progressSummary(snapshot) + "\n" + snapshot.currentFile);
+            setLog(TextUtils.join("\n", snapshot.logLines));
         }
         else if (snapshot.phase == DD1InstallPhase.NOT_OWNED) {
             show(R.id.BTSteamSignOut);
@@ -222,11 +230,44 @@ public class DD1HomeFragment extends Fragment {
             show(R.id.TVInstallLog, R.id.BTSteamSignOut);
             if (installService != null && installService.canDownload()) show(R.id.BTRetryDownload);
             else show(R.id.BTSteamLogin);
-            ((TextView)rootView.findViewById(R.id.TVInstallLog)).setText(TextUtils.join("\n", snapshot.logLines));
+            setLog(TextUtils.join("\n", snapshot.logLines));
         }
-        else if (snapshot.phase == DD1InstallPhase.READY) {
-            refresh();
+    }
+
+    // Fixed-height log with its own scroller: without this the growing text
+    // pushes the rest of the pane around on every update.
+    private void setLog(String text) {
+        TextView log = rootView.findViewById(R.id.TVInstallLog);
+        if (log.getMovementMethod() == null) log.setMovementMethod(new ScrollingMovementMethod());
+        log.setText(text);
+        log.post(() -> {
+            int overflow = log.getLayout() == null ? 0
+                : log.getLayout().getLineBottom(log.getLineCount() - 1)
+                    - (log.getHeight() - log.getPaddingTop() - log.getPaddingBottom());
+            log.scrollTo(0, Math.max(0, overflow));
+        });
+    }
+
+    static String progressSummary(DD1InstallSnapshot snapshot) {
+        StringBuilder text = new StringBuilder();
+        if (snapshot.totalBytes > 0) {
+            text.append(String.format(Locale.US, "%.1f%% \u00b7 %s / %s",
+                snapshot.downloadedBytes * 100.0 / snapshot.totalBytes,
+                bytes(snapshot.downloadedBytes), bytes(snapshot.totalBytes)));
         }
+        else text.append(bytes(snapshot.downloadedBytes));
+        if (snapshot.bytesPerSecond > 0)
+            text.append(" \u00b7 ").append(bytes(snapshot.bytesPerSecond)).append("/s");
+        return text.toString();
+    }
+
+    private static String bytes(long value) {
+        if (value >= 1024L * 1024L * 1024L)
+            return String.format(Locale.US, "%.2f GB", value / (1024.0 * 1024.0 * 1024.0));
+        if (value >= 1024L * 1024L)
+            return String.format(Locale.US, "%.1f MB", value / (1024.0 * 1024.0));
+        if (value >= 1024L) return String.format(Locale.US, "%.0f KB", value / 1024.0);
+        return value + " B";
     }
 
     private void show(int... ids) {
@@ -268,6 +309,9 @@ public class DD1HomeFragment extends Fragment {
         Intent intent = new Intent(activity, XServerDisplayActivity.class);
         intent.putExtra("container_id", container.id);
         intent.putExtra("exec_path", executable.getPath());
+        // The game reads its data relative to the install root, not the folder
+        // holding Darkest.exe, so it exits at once when started from win64.
+        intent.putExtra("work_dir", gameDir.getPath());
         activity.startActivity(intent);
     }
 }

@@ -79,18 +79,26 @@ public final class DD1InstallService extends Service {
     }
 
     public void startQr() {
+        keepAlive(R.string.dd1_install_signing_in);
         steam.startQr();
     }
 
     public void startCredentials(String account, String password) {
+        keepAlive(R.string.dd1_install_signing_in);
         steam.startCredentials(account, password);
+    }
+
+    // Steam Mobile approval sends the user to another app; without a started
+    // foreground service the unbind on onStop() would destroy the session.
+    private void keepAlive(int message) {
+        startService(new Intent(this, DD1InstallService.class));
+        startForeground(1, notification(getString(message)));
     }
 
     public synchronized void download() {
         if (!ownsGame || downloader != null) return;
         cancelled = false;
-        startService(new Intent(this, DD1InstallService.class));
-        startForeground(1, notification(getString(R.string.dd1_install_downloading)));
+        keepAlive(R.string.dd1_install_downloading);
         publish(downloadSnapshot(0, 0, 0, "Starting download", null));
         worker.execute(this::runDownload);
     }
@@ -128,7 +136,7 @@ public final class DD1InstallService extends Service {
         staging.mkdirs();
         try {
             downloader = new DepotDownloader(steam.client(), steam.licenses(), false,
-                false, 8, 4, 1, true);
+                false, 2, 1, 1, true);
             downloader.addListener(new ProgressListener(failure));
             downloader.add(new AppItem(DD1SteamEvents.APP_ID, false, staging.getAbsolutePath(),
                 "public", "", false, "windows", false, "64", false, "english",
@@ -175,8 +183,18 @@ public final class DD1InstallService extends Service {
         else if (value.phase == DD1InstallPhase.SIGNED_OUT || value.phase == DD1InstallPhase.NOT_OWNED)
             ownsGame = false;
         snapshot = value;
+        if (isIdle(value.phase)) {
+            stopForeground(true);
+            stopSelf();
+        }
         Listener observer = listener;
         if (observer != null) main.post(() -> observer.onSnapshot(value));
+    }
+
+    private static boolean isIdle(DD1InstallPhase phase) {
+        return phase == DD1InstallPhase.SIGNED_OUT || phase == DD1InstallPhase.NOT_OWNED
+            || phase == DD1InstallPhase.READY_TO_INSTALL || phase == DD1InstallPhase.READY
+            || phase == DD1InstallPhase.ERROR;
     }
 
     private Notification notification(String text) {

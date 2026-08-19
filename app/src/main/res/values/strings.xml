@@ -14,8 +14,9 @@
     <string name="dd1_create_profile">Create profile</string>
     <string name="dd1_install_channel">Game download</string>
     <string name="dd1_install_downloading">Downloading Darkest Dungeon</string>
+    <string name="dd1_install_signing_in">Signing in to Steam</string>
     <string name="dd1_steam_qr">Steam sign-in QR code</string>
-    <string name="dd1_steam_login">Sign in with Steam</string>
+    <string name="dd1_steam_login">QR sign-in using another device</string>
     <string name="dd1_steam_account">Steam account</string>
     <string name="dd1_steam_password">Steam password</string>
     <string name="dd1_steam_credentials">Sign in with account and password</string>

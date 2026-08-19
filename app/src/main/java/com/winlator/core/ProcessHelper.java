@@ -66,7 +66,8 @@ public abstract class ProcessHelper {
         int pid = -1;
         try {
             ProcessBuilder processBuilder = (new ProcessBuilder(splitCommand(command))).directory(workingDir);
-            if (debugCallbacks.isEmpty()) processBuilder.redirectOutput(new File("/dev/null")).redirectErrorStream(true);
+            boolean capture = !debugCallbacks.isEmpty() || MainActivity.DEBUG_MODE;
+            if (!capture) processBuilder.redirectOutput(new File("/dev/null")).redirectErrorStream(true);
 
             Map<String, String> environment = processBuilder.environment();
             for (String name : envVars) environment.put(name, envVars.get(name));
@@ -77,14 +78,17 @@ public abstract class ProcessHelper {
             pid = pidField.getInt(process);
             pidField.setAccessible(false);
 
-            if (!debugCallbacks.isEmpty()) {
+            if (capture) {
                 createDebugThread(process.getInputStream());
                 createDebugThread(process.getErrorStream());
             }
 
             if (terminationCallback != null) createWaitForThread(process, terminationCallback);
         }
-        catch (Exception e) {}
+        catch (Exception e) {
+            android.util.Log.e("ProcessHelper", "exec failed: " + command, e);
+        }
+        if (MainActivity.DEBUG_MODE) android.util.Log.i("ProcessHelper", "exec pid=" + pid + " cmd=" + command);
         return pid;
     }
 

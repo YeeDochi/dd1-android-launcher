@@ -222,6 +222,11 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                 if (intent.hasExtra("exec_path")) win32AppWorkarounds.applyStartupWorkarounds(FileUtils.getName(intent.getStringExtra("exec_path")));
             }
 
+            if (!GraphicsDrivers.isVortekRendererSupported()) {
+                graphicsDriver = GraphicsDrivers.VORTEK+","+GraphicsDrivers.VIRGL;
+                dxwrapper = DXWrappers.WINED3D;
+            }
+
             this.graphicsDriver = GraphicsDrivers.parseIdentifiers(graphicsDriver);
             this.graphicsDriverConfig = GraphicsDrivers.parseConfigs(graphicsDriver, graphicsDriverConfig);
             this.dxwrapper = DXWrappers.parseIdentifier(dxwrapper);
@@ -490,6 +495,8 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             String desktopName = shortcut != null || getIntent().hasExtra("exec_path") ? "nogui" : "shell";
             String guestExecutable = "wine explorer /desktop="+desktopName+","+xServer.screenInfo+" "+getWineStartCommand();
             guestProgramLauncherComponent.setGuestExecutable(guestExecutable);
+            String workDir = getIntent().getStringExtra("work_dir");
+            if (workDir != null) guestProgramLauncherComponent.setGuestWorkingDir(new File(workDir));
 
             envVars.putAll(container.getEnvVars());
             if (shortcut != null) envVars.putAll(shortcut.getExtra("envVars"));
@@ -523,7 +530,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             environment.addComponent(pulseAudioComponent);
         }
 
-        if (graphicsDriver[0].equals(GraphicsDrivers.VORTEK)) {
+        if (graphicsDriver[0].equals(GraphicsDrivers.VORTEK) && GraphicsDrivers.isVortekRendererSupported()) {
             VortekRendererComponent.Options options = VortekRendererComponent.Options.fromKeyValueSet(this, graphicsDriverConfig[0]);
             VortekRendererComponent vortekRendererComponent = new VortekRendererComponent(xServer, UnixSocketConfig.create(rootPath, UnixSocketConfig.VORTEK_SERVER_PATH), options);
             environment.addComponent(vortekRendererComponent);
@@ -953,14 +960,17 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         }
 
         if (execPath != null) {
-            String execDir = FileUtils.getDirname(execPath);
-            String filename = FileUtils.getName(execPath);
+            String workDir = getIntent().getStringExtra("work_dir");
+            String execDir = workDir != null
+                ? WineUtils.unixToDOSPath(workDir, container) : FileUtils.getDirname(execPath);
+            String filename = workDir != null ? relativeTo(execDir, execPath) : FileUtils.getName(execPath);
             int dotIndex, spaceIndex;
             if ((dotIndex = filename.lastIndexOf(".")) != -1 && (spaceIndex = filename.indexOf(" ", dotIndex)) != -1) {
                 execArgs = filename.substring(spaceIndex+1)+execArgs;
                 filename = filename.substring(0, spaceIndex);
             }
-            cmdArgs = "/dir "+StringUtils.escapeDOSPath(execDir)+" \""+filename+"\""+execArgs;
+            cmdArgs = "/dir "+StringUtils.escapeSpaces(stripTrailingSeparator(execDir))
+                +" "+StringUtils.escapeSpaces(filename)+execArgs;
         }
 
         if (cmdArgs.isEmpty()) cmdArgs = "/dir C:\\windows \"wfm.exe\"";
@@ -969,7 +979,22 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             cmdArgs += " "+overrideEnvVars.get("EXTRA_EXEC_ARGS");
             overrideEnvVars.remove("EXTRA_EXEC_ARGS");
         }
-        return "C:\\windows\\winhandler.exe "+cmdArgs;
+        // winhandler.exe aborts with "Invalid handle." on this device, so run the
+        // executable directly and let the process working directory stand in for /dir.
+        return execPath != null ? execPath : "C:\\windows\\winhandler.exe "+cmdArgs;
+    }
+
+    // winhandler joins /dir and the executable with a separator, so a drive root
+    // like "G:\\" would produce a doubled one.
+    static String stripTrailingSeparator(String dir) {
+        return dir.length() > 2 && dir.endsWith("\\") ? dir.substring(0, dir.length()-1) : dir;
+    }
+
+    // winhandler resolves the executable against its /dir argument.
+    static String relativeTo(String dir, String path) {
+        if (!path.startsWith(dir)) return path;
+        String relative = path.substring(dir.length());
+        return relative.startsWith("\\") ? relative.substring(1) : relative;
     }
 
     public XServer getXServer() {

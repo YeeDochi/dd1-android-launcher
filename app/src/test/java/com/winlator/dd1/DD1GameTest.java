@@ -29,7 +29,7 @@ public class DD1GameTest {
     @Test
     public void reportsFirstMissingRequiredDirectory() throws Exception {
         File gameDir = Files.createTempDirectory("dd1-invalid").toFile();
-        File executable = new File(gameDir, "__build/x64_Debug/Darkest.exe");
+        File executable = new File(gameDir, "_windows/win64/Darkest.exe");
         executable.getParentFile().mkdirs();
         executable.createNewFile();
 
@@ -37,7 +37,7 @@ public class DD1GameTest {
     }
 
     private static File createValidGame(File gameDir) throws Exception {
-        File executable = new File(gameDir, "__build/x64_Debug/Darkest.exe");
+        File executable = new File(gameDir, "_windows/win64/Darkest.exe");
         executable.getParentFile().mkdirs();
         executable.createNewFile();
         for (String path : new String[]{"audio", "campaign", "dungeons", "heroes", "shared"})

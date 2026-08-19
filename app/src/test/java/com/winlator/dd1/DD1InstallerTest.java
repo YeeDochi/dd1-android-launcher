@@ -26,14 +26,14 @@ public class DD1InstallerTest {
     public void validStagingReplacesInstalledGame() throws Exception {
         File files = Files.createTempDirectory("dd1-valid-install").toFile();
         File staging = new File(files, "staging/game");
-        File executable = new File(staging, "__build/x64_Debug/Darkest.exe");
+        File executable = new File(staging, "_windows/win64/Darkest.exe");
         executable.getParentFile().mkdirs();
         executable.createNewFile();
         for (String path : Arrays.asList("audio", "campaign", "dungeons", "heroes", "shared"))
             new File(staging, path).mkdirs();
 
         assertTrue(DD1Installer.activate(files).success);
-        assertTrue(new File(files, "game/__build/x64_Debug/Darkest.exe").isFile());
+        assertTrue(new File(files, "game/_windows/win64/Darkest.exe").isFile());
         assertFalse(staging.exists());
     }
 }

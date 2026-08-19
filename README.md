@@ -19,7 +19,8 @@ This project is not affiliated with Red Hook Studios or Valve Corporation.
    invalid downloads never replace the active installation.
 4. The launcher creates its single internal runtime profile automatically.
    Press `Play` to mount the game directory and start
-   `__build/x64_Debug/Darkest.exe`.
+   `_windows/win64/Darkest.exe` or the compatible no-Steam executable when
+   present.
 
 The DD1 home screen owns the launch flow. Winlator's container and runtime
 settings are internal implementation details and are not exposed to users.

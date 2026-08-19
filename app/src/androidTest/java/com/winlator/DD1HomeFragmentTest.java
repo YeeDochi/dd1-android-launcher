@@ -1,6 +1,7 @@
 package com.winlator;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import android.view.View;
 
@@ -32,6 +33,8 @@ public class DD1HomeFragmentTest {
                 assertEquals(View.VISIBLE, activity.findViewById(R.id.ETSteamAccount).getVisibility());
                 assertEquals(View.VISIBLE, activity.findViewById(R.id.ETSteamPassword).getVisibility());
                 assertEquals(View.VISIBLE, activity.findViewById(R.id.BTSteamCredentials).getVisibility());
+                assertTrue(activity.findViewById(R.id.ETSteamAccount).getTop() <
+                    activity.findViewById(R.id.BTSteamLogin).getTop());
                 assertEquals(View.GONE, activity.findViewById(R.id.BTPrimaryAction).getVisibility());
 
                 home.renderInstallSnapshot(snapshot(DD1InstallPhase.READY_TO_INSTALL));

@@ -131,7 +131,7 @@ git commit -m "build: add JavaSteam depot dependencies"
 
 @Test public void rejectsPayloadMissingRequiredDirectory() throws Exception {
     File game = Files.createTempDirectory("dd1-invalid").toFile();
-    File exe = new File(game, "__build/x64_Debug/Darkest.exe");
+    File exe = new File(game, "_windows/win64/Darkest.exe");
     exe.getParentFile().mkdirs();
     exe.createNewFile();
     assertEquals("audio", DD1Game.validate(game).missingPath);
@@ -342,13 +342,13 @@ git commit -m "feat: authenticate Steam owner with QR"
 @Test public void validStagingReplacesInstalledGame() throws Exception {
     File files = Files.createTempDirectory("dd1-valid-install").toFile();
     File staging = new File(files, "staging/game");
-    File exe = new File(staging, "__build/x64_Debug/Darkest.exe");
+    File exe = new File(staging, "_windows/win64/Darkest.exe");
     exe.getParentFile().mkdirs();
     exe.createNewFile();
     for (String path : Arrays.asList("audio", "campaign", "dungeons", "heroes", "shared"))
         new File(staging, path).mkdirs();
     assertTrue(DD1Installer.activate(files).success);
-    assertTrue(new File(files, "game/__build/x64_Debug/Darkest.exe").isFile());
+    assertTrue(new File(files, "game/_windows/win64/Darkest.exe").isFile());
     assertFalse(new File(files, "staging/game").exists());
 }
 ```

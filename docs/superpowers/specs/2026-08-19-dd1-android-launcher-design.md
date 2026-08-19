@@ -80,14 +80,14 @@ Use `javasteam-depotdownloader:1.8.0` with its Android installation directory se
 - Pause only at a file boundary. Retry resumes from verified files and cached chunks.
 - Cancel preserves resumable cache but removes partial files that fail their expected checksum.
 
-Validation requires a regular `__build/x64_Debug/Darkest.exe`; the `audio`, `campaign`, `dungeons`, `heroes`, and `shared` directories; and every selected depot manifest. Paths containing traversal segments or escaping symlinks are rejected. The first failed requirement is shown in the UI and written to the log.
+Validation requires a regular Steam Windows executable under `_windows` or `_windowsnosteam`; the `audio`, `campaign`, `dungeons`, `heroes`, and `shared` directories; and every selected depot manifest. Paths containing traversal segments or escaping symlinks are rejected. The first failed requirement is shown in the UI and written to the log.
 
 ## Runtime integration
 
 The launcher keeps one internal Winlator profile and exposes no generic container, profile, or per-game setting menus.
 
 - Mount `files/game` as drive `G:`.
-- Launch `G:\__build\x64_Debug\Darkest.exe` through Wine and Box64.
+- Launch the detected `G:\_windows\win64\Darkest.exe` or compatible no-Steam executable through Wine and Box64.
 - Use the launcher-selected graphics and audio defaults; device-specific fallback remains automatic.
 - Map the Wine user save directory to `files/saves` so replacing the game payload cannot remove progress.
 - Write each launch to a timestamped runtime log and retain the latest five sessions.
