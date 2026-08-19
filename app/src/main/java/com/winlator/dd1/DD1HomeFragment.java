@@ -170,7 +170,7 @@ public class DD1HomeFragment extends Fragment {
             return;
         }
         setInstallPanelVisible(false);
-        rootView.findViewById(R.id.PBChecking).setVisibility(View.GONE);
+        rootView.findViewById(R.id.FLChecking).setVisibility(View.GONE);
         rootView.findViewById(R.id.TVInstallLog).setVisibility(View.VISIBLE);
         applySignInControls(installSnapshot == null
             ? DD1InstallPhase.SIGNED_OUT : installSnapshot.phase);
@@ -212,7 +212,7 @@ public class DD1HomeFragment extends Fragment {
         setInstallPanelVisible(pane == DD1RightPane.SIGN_IN || pane == DD1RightPane.INSTALL);
         rootView.findViewById(R.id.TVInstallLog)
             .setVisibility(pane == DD1RightPane.LOG ? View.VISIBLE : View.GONE);
-        rootView.findViewById(R.id.PBChecking)
+        rootView.findViewById(R.id.FLChecking)
             .setVisibility(pane == DD1RightPane.CHECKING ? View.VISIBLE : View.GONE);
 
         if (snapshot.phase == DD1InstallPhase.READY) {
