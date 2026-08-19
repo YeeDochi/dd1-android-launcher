@@ -12,11 +12,11 @@ public class DD1GameTest {
     @Test
     public void findsDarkestExecutableInOwnedGameFiles() throws Exception {
         File filesDir = Files.createTempDirectory("dd1-game").toFile();
-        File executable = new File(filesDir, "game/__build/x64_Debug/Darkest.exe");
-        executable.getParentFile().mkdirs();
-        executable.createNewFile();
+        File gameDir = new File(filesDir, "game");
+        File executable = createValidGame(gameDir);
 
         assertEquals(executable, DD1Game.findExecutable(filesDir));
+        assertEquals(true, DD1Game.validate(gameDir).valid);
     }
 
     @Test
@@ -24,5 +24,24 @@ public class DD1GameTest {
         File filesDir = Files.createTempDirectory("dd1-missing").toFile();
 
         assertNull(DD1Game.findExecutable(filesDir));
+    }
+
+    @Test
+    public void reportsFirstMissingRequiredDirectory() throws Exception {
+        File gameDir = Files.createTempDirectory("dd1-invalid").toFile();
+        File executable = new File(gameDir, "__build/x64_Debug/Darkest.exe");
+        executable.getParentFile().mkdirs();
+        executable.createNewFile();
+
+        assertEquals("audio", DD1Game.validate(gameDir).missingPath);
+    }
+
+    private static File createValidGame(File gameDir) throws Exception {
+        File executable = new File(gameDir, "__build/x64_Debug/Darkest.exe");
+        executable.getParentFile().mkdirs();
+        executable.createNewFile();
+        for (String path : new String[]{"audio", "campaign", "dungeons", "heroes", "shared"})
+            new File(gameDir, path).mkdirs();
+        return executable;
     }
 }
