@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DD1 Android Launcher</string>
+    <string name="payload_missing">게임 파일: 없음</string>
+    <string name="runtime_not_ready">런타임: 준비되지 않음</string>
+    <string name="launch_not_started">마지막 실행: 없음</string>
+</resources>

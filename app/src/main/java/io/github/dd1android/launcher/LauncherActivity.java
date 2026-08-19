@@ -1,0 +1,12 @@
+package io.github.dd1android.launcher;
+
+import android.app.Activity;
+import android.os.Bundle;
+
+public final class LauncherActivity extends Activity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_launcher);
+    }
+}
