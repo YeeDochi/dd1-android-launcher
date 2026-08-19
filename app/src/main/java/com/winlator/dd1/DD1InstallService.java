@@ -43,7 +43,7 @@ public final class DD1InstallService extends Service {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final DD1InstallLog log = new DD1InstallLog(1000);
 
-    private volatile DD1InstallSnapshot snapshot = DD1InstallSnapshot.signedOut();
+    private volatile DD1InstallSnapshot snapshot = DD1InstallSnapshot.restoring();
     private volatile Listener listener;
     private volatile DepotDownloader downloader;
     private volatile CountDownLatch completion;

@@ -63,7 +63,7 @@ public class DD1HomeFragment extends Fragment {
     private boolean profileCreationFailed;
     private DD1InstallService installService;
     private boolean serviceBound;
-    private DD1InstallSnapshot installSnapshot = DD1InstallSnapshot.signedOut();
+    private DD1InstallSnapshot installSnapshot = DD1InstallSnapshot.restoring();
     private final DD1InstallService.Listener installListener = this::renderInstallSnapshot;
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -170,6 +170,7 @@ public class DD1HomeFragment extends Fragment {
             return;
         }
         setInstallPanelVisible(false);
+        rootView.findViewById(R.id.PBChecking).setVisibility(View.GONE);
         rootView.findViewById(R.id.TVInstallLog).setVisibility(View.VISIBLE);
         applySignInControls(installSnapshot == null
             ? DD1InstallPhase.SIGNED_OUT : installSnapshot.phase);
@@ -208,9 +209,11 @@ public class DD1HomeFragment extends Fragment {
 
         boolean installed = DD1Game.findExecutable(requireContext().getFilesDir()) != null;
         DD1RightPane pane = DD1RightPane.from(snapshot.phase, installed);
-        setInstallPanelVisible(pane != DD1RightPane.LOG);
+        setInstallPanelVisible(pane == DD1RightPane.SIGN_IN || pane == DD1RightPane.INSTALL);
         rootView.findViewById(R.id.TVInstallLog)
             .setVisibility(pane == DD1RightPane.LOG ? View.VISIBLE : View.GONE);
+        rootView.findViewById(R.id.PBChecking)
+            .setVisibility(pane == DD1RightPane.CHECKING ? View.VISIBLE : View.GONE);
 
         if (snapshot.phase == DD1InstallPhase.READY) {
             refresh();

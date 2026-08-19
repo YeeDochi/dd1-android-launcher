@@ -248,6 +248,13 @@
                 android:visibility="gone" />
         </LinearLayout>
 
+        <ProgressBar
+            android:id="@+id/PBChecking"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/TVInstallLog"
             android:layout_width="match_parent"

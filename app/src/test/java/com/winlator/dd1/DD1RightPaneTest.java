@@ -6,6 +6,14 @@ import org.junit.Test;
 
 public class DD1RightPaneTest {
     @Test
+    public void restoringAStoredSessionShowsNeitherFormNorLog() {
+        assertEquals(DD1RightPane.CHECKING,
+            DD1RightPane.from(DD1InstallPhase.RESTORING, false));
+        assertEquals(DD1RightPane.CHECKING,
+            DD1RightPane.from(DD1InstallPhase.RESTORING, true));
+    }
+
+    @Test
     public void signInComesFirstEvenWhileTheRuntimeIsStillUnpacking() {
         assertEquals(DD1RightPane.SIGN_IN,
             DD1RightPane.from(DD1InstallPhase.SIGNED_OUT, false));

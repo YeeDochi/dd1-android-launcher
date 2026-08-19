@@ -1,6 +1,7 @@
 package com.winlator.dd1;
 
 public enum DD1InstallPhase {
+    RESTORING,
     SIGNED_OUT,
     AUTHENTICATING,
     NOT_OWNED,

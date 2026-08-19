@@ -7,7 +7,7 @@ public final class DD1SteamEvents {
     public static final int APP_ID = 262060;
 
     private final DD1InstallLog log = new DD1InstallLog(1000);
-    private DD1InstallSnapshot snapshot = DD1InstallSnapshot.signedOut();
+    private DD1InstallSnapshot snapshot = DD1InstallSnapshot.restoring();
     private List<Integer> ownedDlc = java.util.Collections.emptyList();
 
     public synchronized DD1InstallSnapshot authStarted(String challengeUrl) {

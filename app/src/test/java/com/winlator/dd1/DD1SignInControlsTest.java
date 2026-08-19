@@ -8,6 +8,14 @@ import org.junit.Test;
 
 public class DD1SignInControlsTest {
     @Test
+    public void whileTheSessionIsCheckedNothingIsOffered() {
+        DD1SignInControls controls = DD1SignInControls.from(DD1InstallPhase.RESTORING);
+        assertFalse(controls.showForm);
+        assertFalse(controls.showCancel);
+        assertFalse(controls.showSignOut);
+    }
+
+    @Test
     public void anIdleUserGetsTheSignInForm() {
         DD1SignInControls controls = DD1SignInControls.from(DD1InstallPhase.SIGNED_OUT);
         assertTrue(controls.showForm);

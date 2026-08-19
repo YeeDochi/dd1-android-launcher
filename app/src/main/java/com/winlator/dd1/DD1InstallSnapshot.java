@@ -27,6 +27,11 @@ public final class DD1InstallSnapshot {
         this.logLines = Collections.unmodifiableList(new ArrayList<>(logLines));
     }
 
+    public static DD1InstallSnapshot restoring() {
+        return new DD1InstallSnapshot(DD1InstallPhase.RESTORING, 0, 0, 0,
+            "Checking the Steam session", null, null, java.util.Collections.emptyList());
+    }
+
     public static DD1InstallSnapshot signedOut() {
         return new DD1InstallSnapshot(DD1InstallPhase.SIGNED_OUT, 0, 0, 0,
             "Steam sign-in required", null, null, Collections.emptyList());
