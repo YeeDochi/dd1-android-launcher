@@ -138,9 +138,11 @@ public final class DD1InstallService extends Service {
             downloader = new DepotDownloader(steam.client(), steam.licenses(), false,
                 false, 2, 1, 1, true);
             downloader.addListener(new ProgressListener(failure));
+            // The second-to-last flag is verify: with it set the downloader only
+            // checks the files it allocated and never fetches their contents.
             downloader.add(new AppItem(DD1SteamEvents.APP_ID, false, staging.getAbsolutePath(),
                 "public", "", false, "windows", false, "64", false, "english",
-                false, Collections.emptyList(), Collections.emptyList(), true, false));
+                false, Collections.emptyList(), Collections.emptyList(), false, false));
             downloader.finishAdding();
             completion.await();
             if (cancelled) return;
