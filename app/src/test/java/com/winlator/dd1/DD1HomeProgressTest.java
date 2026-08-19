@@ -1,4 +1,4 @@
-package com.winlator;
+package com.winlator.dd1;
 
 import static org.junit.Assert.assertEquals;
 

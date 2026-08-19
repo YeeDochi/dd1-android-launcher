@@ -1,5 +1,6 @@
-package com.winlator;
+package com.winlator.dd1;
 
+import com.winlator.R;
 import android.app.Application;
 
 public final class DD1Application extends Application {

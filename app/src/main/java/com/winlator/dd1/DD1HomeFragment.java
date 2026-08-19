@@ -1,5 +1,7 @@
-package com.winlator;
+package com.winlator.dd1;
 
+import com.winlator.XServerDisplayActivity;
+import com.winlator.R;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;

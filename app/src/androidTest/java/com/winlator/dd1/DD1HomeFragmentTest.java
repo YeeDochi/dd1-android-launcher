@@ -1,5 +1,6 @@
-package com.winlator;
+package com.winlator.dd1;
 
+import com.winlator.R;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 

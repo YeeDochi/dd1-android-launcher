@@ -4,7 +4,6 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.winlator.DD1HomeFragment;
 import com.winlator.R;
 
 // The launcher entry point. Winlator's own MainActivity stays untouched so the
