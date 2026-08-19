@@ -1,22 +1,39 @@
-<p align="center">
-	<img src="logo.png" width="376" height="128" alt="Winlator Logo" />
-</p>
+# DD1 Android Launcher
 
-# Winlator
+An Android launcher for running a user-owned Windows copy of Darkest Dungeon
+through Wine and Box64. It is based on Winlator 11.1 and does not contain game,
+DLC, Workshop, or Steam account data.
 
-Winlator is an Android application that lets you to run Windows (x86_64) applications with Wine and Box86/Box64.<br>
-This repository stores the latest updates for the Winlator app source.<br>
-For more information and releases, please visit the main repository: https://github.com/brunodev85/winlator
+This project is not affiliated with Red Hook Studios or Valve Corporation.
 
-# Credits and Third-party apps
+## Current development flow
 
-- GLIBC Patches by [Termux Pacman](https://github.com/termux-pacman/glibc-packages)
-- Wine ([winehq.org](https://www.winehq.org/))
-- Box86/Box64 by [ptitseb](https://github.com/ptitSeb)
-- Mesa (Turnip/Zink/VirGL) ([mesa3d.org](https://www.mesa3d.org))
-- DXVK ([github.com/doitsujin/dxvk](https://github.com/doitsujin/dxvk))
-- VKD3D ([gitlab.winehq.org/wine/vkd3d](https://gitlab.winehq.org/wine/vkd3d))
-- CNC DDraw ([github.com/FunkyFr3sh/cnc-ddraw](https://github.com/FunkyFr3sh/cnc-ddraw))
+1. Put an owned game installation in the app's `files/game` directory.
+2. Create the first container. It is named `Darkest Dungeon` automatically.
+3. Press the container's play button. The launcher mounts the game directory and
+   starts `__build/x64_Debug/Darkest.exe` when present.
 
-Special thanks to all the developers involved in these projects.<br>
-Thank you to all the people who believe in this project.
+The manual file placement is temporary. A legal import/download flow will replace
+it before a public release.
+
+## Build
+
+Android SDK 34, NDK `24.0.8215888`, and CMake 3.22.1 are required.
+
+```sh
+./gradlew assembleDebug
+```
+
+The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+
+## Testing
+
+Waydroid is used for UI and profile-flow checks. Its x86_64 native bridge cannot
+validate Winlator's nested ARM64 root filesystem execution. Game runtime testing
+therefore requires an ARM64 Android device.
+
+## Upstream and licenses
+
+The exact Winlator revisions and third-party attribution are recorded in
+[`NOTICE`](NOTICE). The source remains under the upstream LGPL-2.1 terms in
+[`LICENSE`](LICENSE); bundled components retain their own licenses.

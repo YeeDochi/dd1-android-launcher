@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Winlator</string>
+    <string name="app_name">DD1 Launcher</string>
+    <string name="powered_by_winlator">Powered by Winlator 11.1</string>
     <string name="run">Run</string>
     <string name="edit">Edit</string>
     <string name="remove">Remove</string>

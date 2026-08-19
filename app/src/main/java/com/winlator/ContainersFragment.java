@@ -33,6 +33,7 @@ import com.winlator.contentdialog.StorageInfoDialog;
 import com.winlator.core.PreloaderDialog;
 import com.winlator.xenvironment.RootFS;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -183,6 +184,16 @@ public class ContainersFragment extends Fragment {
             Activity activity = getActivity();
             Intent intent = new Intent(activity, XServerDisplayActivity.class);
             intent.putExtra("container_id", container.id);
+
+            File gameDir = new File(activity.getFilesDir(), "game");
+            File executable = new File(gameDir, "__build/x64_Debug/Darkest.exe");
+            if (executable.isFile()) {
+                if (!container.getDrives().contains(gameDir.getPath())) {
+                    container.setDrives(container.getDrives()+"G:"+gameDir.getPath());
+                    container.saveData();
+                }
+                intent.putExtra("exec_path", executable.getPath());
+            }
             activity.startActivity(intent);
         }
     }
