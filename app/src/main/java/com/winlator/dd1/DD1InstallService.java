@@ -3,6 +3,7 @@ package com.winlator.dd1;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -42,6 +43,8 @@ public final class DD1InstallService extends Service {
     private final LocalBinder binder = new LocalBinder();
     private final Handler main = new Handler(Looper.getMainLooper());
     private volatile boolean deliveryPending;
+    private static final int NO_PROGRESS = Integer.MIN_VALUE;
+    private String lastNotification;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final DD1InstallLog log = new DD1InstallLog(1000);
 
@@ -235,6 +238,7 @@ public final class DD1InstallService extends Service {
             stopForeground(true);
             stopSelf();
         }
+        updateNotification(value);
         deliver(value.phase == DD1InstallPhase.DOWNLOADING);
     }
 
@@ -265,12 +269,35 @@ public final class DD1InstallService extends Service {
     }
 
     private Notification notification(String text) {
-        return new NotificationCompat.Builder(this, CHANNEL)
+        return notification(text, NO_PROGRESS);
+    }
+
+    // A download that runs for an hour is watched from the shade more than from
+    // the screen, so it carries the same bar.
+    private Notification notification(String text, int percent) {
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(getString(R.string.app_name))
             .setContentText(text)
-            .setOngoing(true)
-            .build();
+            .setContentIntent(PendingIntent.getActivity(this, 0,
+                new Intent(this, DD1Activity.class), PendingIntent.FLAG_UPDATE_CURRENT))
+            .setOngoing(true);
+        if (percent != NO_PROGRESS) builder.setProgress(100, Math.max(0, percent), percent < 0);
+        return builder.build();
+    }
+
+    // Redrawing the shade for every chunk is as wasteful as redrawing the
+    // screen, so it only happens when the figure people read actually moves.
+    private void updateNotification(DD1InstallSnapshot value) {
+        if (value.phase != DD1InstallPhase.DOWNLOADING
+                && value.phase != DD1InstallPhase.VERIFYING) return;
+        int percent = value.totalBytes > 0
+            ? (int)(value.downloadedBytes * 100 / value.totalBytes) : -1;
+        String shown = value.message + "|" + percent;
+        if (shown.equals(lastNotification)) return;
+        lastNotification = shown;
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager != null) manager.notify(1, notification(value.message, percent));
     }
 
     private void createNotificationChannel() {
