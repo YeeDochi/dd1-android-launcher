@@ -13,6 +13,8 @@ RimDroid is licensed under GPL-3.0. Its X server is derived from Winlator and
 identified there as LGPL-2.1. Local package names and Android collection types
 were changed for this project.
 
-The ARM64 x86_64 compatibility runner uses RimDroid Box64 fork commit
-262790daf641d153662cef3eaffa4a597f016786:
-https://github.com/udarmolota/rimdroid-box64
+The compressed Linux runtime is assembled from Winlator 11.1 assets:
+- winlator commit fb66541b93a4eb3ee585a433b4c7b20544d58e40
+- winlator-app commit c2f4ad4534f4637b543a9a3b085e28f50cf6d01c
+It contains the ARM64 root filesystem without Wine, Box64 0.4.0, and VirGL
+23.1.9. Each component remains under its upstream free-software license.

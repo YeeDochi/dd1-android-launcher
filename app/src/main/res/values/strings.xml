@@ -6,6 +6,8 @@
     <string name="storage_unavailable">게임 파일: 저장소 오류</string>
     <string name="runtime_not_ready">런타임: 준비되지 않음</string>
     <string name="runtime_ready">런타임: 준비됨</string>
+    <string name="runtime_installing">런타임: 설치 중</string>
+    <string name="runtime_failed">런타임: 설치 실패</string>
     <string name="launch_not_started">마지막 실행: 없음</string>
     <string name="launch_game">게임 실행</string>
 </resources>

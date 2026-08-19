@@ -27,6 +27,7 @@ public final class LaunchConfigFactory {
         environment.put("XDG_CACHE_HOME", paths.cache().getAbsolutePath());
         environment.put("BOX64_LOG_FILE", new java.io.File(paths.logs(), "box64.log").getAbsolutePath());
         environment.put("BOX64_DYNACACHE", "1");
+        environment.put("LD_LIBRARY_PATH", runtime.resolve("rootfs/usr/lib").toString());
         environment.put("BOX64_LD_LIBRARY_PATH",
                 game.resolve("_linuxnosteam/lib64") + ":" + runtime.resolve("lib"));
         environment.put("DISPLAY", ":0");
@@ -48,7 +49,7 @@ public final class LaunchConfigFactory {
             case ZINK -> Map.of(
                     "GALLIUM_DRIVER", "zink",
                     "MESA_LOADER_DRIVER_OVERRIDE", "zink",
-                    "BOX64_LIBGL", runtime.resolve("lib/libGL.so.1").toString());
+                    "BOX64_LIBGL", runtime.resolve("rootfs/usr/lib/libGL.so.1").toString());
             case MOBILE_GLUES -> Map.of(
                     "BOX64_LIBGL", runtime.resolve("lib/libmobileglues.so").toString());
             case WAYDROID_MESA -> Map.of();

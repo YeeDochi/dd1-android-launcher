@@ -45,5 +45,7 @@ android {
 }
 
 dependencies {
+    implementation("com.github.luben:zstd-jni:1.5.6-3@aar")
+    implementation("org.apache.commons:commons-compress:1.26.2")
     testImplementation("junit:junit:4.13.2")
 }

@@ -27,8 +27,13 @@ public final class GameRunner {
         try {
             RunnerCommand command = RunnerCommand.forAbi(Build.SUPPORTED_ABIS[0], config);
             List<String> argv = new ArrayList<>();
-            argv.add(new File(context.getApplicationInfo().nativeLibraryDir, "libdd1_runner.so")
-                    .getAbsolutePath());
+            if ("arm64-v8a".equals(Build.SUPPORTED_ABIS[0])) {
+                argv.add(new File(config.workingDirectory().getParent().toFile(),
+                        "runtime/rootfs/usr/local/bin/box64").getAbsolutePath());
+            } else {
+                argv.add(new File(context.getApplicationInfo().nativeLibraryDir,
+                        "libdd1_runner.so").getAbsolutePath());
+            }
             if ("x86_64".equals(Build.SUPPORTED_ABIS[0])) {
                 argv.add(new File(config.workingDirectory().getParent().toFile(),
                         "runtime/waydroid/lib/ld-linux-x86-64.so.2").getAbsolutePath());

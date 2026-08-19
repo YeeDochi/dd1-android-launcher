@@ -1,3 +1,0 @@
-[submodule "runtime/box64"]
-	path = runtime/box64
-	url = https://github.com/udarmolota/rimdroid-box64.git

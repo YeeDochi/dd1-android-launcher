@@ -30,10 +30,10 @@ public final class GameActivity extends Activity {
         LaunchConfig config = pendingConfig;
         int width = config == null ? 1280 : config.width();
         int height = config == null ? 720 : config.height();
-        setContentView(new GameSurface(this, width, height, surface -> {
+        XServerRunner.start(new File(getFilesDir(), "runtime/x11").getAbsolutePath(), width, height);
+        setContentView(new GameSurface(this, XServerRunner.getXServer(), surface -> {
             if (config != null) new GameRunner(this).launch(config, surface);
         }));
-        XServerRunner.start(new File(getFilesDir(), "runtime/x11").getAbsolutePath(), width, height);
     }
 
     @Override
