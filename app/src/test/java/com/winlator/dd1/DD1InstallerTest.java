@@ -28,12 +28,20 @@ public class DD1InstallerTest {
         File staging = new File(files, "staging/game");
         File executable = new File(staging, "_windows/win64/Darkest.exe");
         executable.getParentFile().mkdirs();
-        executable.createNewFile();
+        writeExecutable(executable);
+        DD1Installer.markDownloadComplete(files);
         for (String path : Arrays.asList("audio", "campaign", "dungeons", "heroes", "shared"))
             new File(staging, path).mkdirs();
 
         assertTrue(DD1Installer.activate(files).success);
         assertTrue(new File(files, "game/_windows/win64/Darkest.exe").isFile());
         assertFalse(staging.exists());
+    }
+
+    // Validation reads the PE signature, so fixtures write a real header.
+    private static void writeExecutable(File file) throws Exception {
+        try (java.io.OutputStream out = new java.io.FileOutputStream(file)) {
+            out.write(new byte[] {'M', 'Z', (byte)0x90, 0});
+        }
     }
 }

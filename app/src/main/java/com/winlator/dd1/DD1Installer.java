@@ -5,9 +5,24 @@ import java.io.File;
 public final class DD1Installer {
     private DD1Installer() {}
 
+    private static final String COMPLETE_MARKER = "download-complete";
+
+    // The downloader writes this once it has handed over every depot. Without it
+    // a staging tree is a download that stopped partway, and promoting that gives
+    // the player a broken install that still looks valid.
+    public static void markDownloadComplete(File filesDir) {
+        try {
+            new File(filesDir, "staging").mkdirs();
+            new File(filesDir, "staging/" + COMPLETE_MARKER).createNewFile();
+        }
+        catch (java.io.IOException ignored) {}
+    }
+
     public static Result activate(File filesDir) {
         File stagingRoot = new File(filesDir, "staging");
         File staging = new File(stagingRoot, "game");
+        if (!new File(stagingRoot, COMPLETE_MARKER).isFile())
+            return new Result(false, "Download did not finish");
         DD1Game.Validation validation = DD1Game.validate(staging);
         if (!validation.valid) return new Result(false, "Missing " + validation.missingPath);
 
@@ -21,6 +36,7 @@ public final class DD1Installer {
             return new Result(false, "Unable to activate downloaded game");
         }
         delete(previous);
+        new File(stagingRoot, COMPLETE_MARKER).delete();
         return new Result(true, null);
     }
 

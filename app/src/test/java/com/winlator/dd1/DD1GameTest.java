@@ -31,7 +31,7 @@ public class DD1GameTest {
         File gameDir = Files.createTempDirectory("dd1-invalid").toFile();
         File executable = new File(gameDir, "_windows/win64/Darkest.exe");
         executable.getParentFile().mkdirs();
-        executable.createNewFile();
+        writeExecutable(executable);
 
         assertEquals("audio", DD1Game.validate(gameDir).missingPath);
     }
@@ -39,9 +39,16 @@ public class DD1GameTest {
     private static File createValidGame(File gameDir) throws Exception {
         File executable = new File(gameDir, "_windows/win64/Darkest.exe");
         executable.getParentFile().mkdirs();
-        executable.createNewFile();
+        writeExecutable(executable);
         for (String path : new String[]{"audio", "campaign", "dungeons", "heroes", "shared"})
             new File(gameDir, path).mkdirs();
         return executable;
+    }
+
+    // Validation reads the PE signature, so fixtures write a real header.
+    private static void writeExecutable(File file) throws Exception {
+        try (java.io.OutputStream out = new java.io.FileOutputStream(file)) {
+            out.write(new byte[] {'M', 'Z', (byte)0x90, 0});
+        }
     }
 }

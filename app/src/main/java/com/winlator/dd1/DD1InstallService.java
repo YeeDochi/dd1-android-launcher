@@ -167,6 +167,7 @@ public final class DD1InstallService extends Service {
 
             publish(new DD1InstallSnapshot(DD1InstallPhase.VERIFYING, 0, 0, 0,
                 "Verifying downloaded game", null, null, log.visibleLines()));
+            DD1Installer.markDownloadComplete(getFilesDir());
             DlcInstallFilter.apply(staging, dlcSelection().selected());
             DD1Installer.Result result = DD1Installer.activate(getFilesDir());
             if (!result.success) throw new IllegalStateException(result.error);

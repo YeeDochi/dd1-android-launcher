@@ -21,7 +21,12 @@ public abstract class DD1Game {
     }
 
     public static Validation validate(File gameDir) {
-        if (executable(gameDir) == null) return new Validation(false, EXECUTABLES[1]);
+        File executable = executable(gameDir);
+        if (executable == null) return new Validation(false, EXECUTABLES[1]);
+        // A cancelled download leaves files allocated but empty, and an empty file
+        // is not an executable.
+        if (!startsWithMZ(executable))
+            return new Validation(false, relative(gameDir, executable));
         for (String path : REQUIRED_DIRECTORIES) {
             if (!new File(gameDir, path).isDirectory()) return new Validation(false, path);
         }
@@ -43,6 +48,21 @@ public abstract class DD1Game {
             if (installer.isFile()) return installer;
         }
         return null;
+    }
+
+    private static boolean startsWithMZ(File file) {
+        try (java.io.InputStream input = new java.io.FileInputStream(file)) {
+            return input.read() == 'M' && input.read() == 'Z';
+        }
+        catch (java.io.IOException unreadable) {
+            return false;
+        }
+    }
+
+    private static String relative(File gameDir, File file) {
+        String root = gameDir.getPath();
+        String path = file.getPath();
+        return path.startsWith(root) ? path.substring(root.length() + 1).replace('\\', '/') : path;
     }
 
     private static File executable(File gameDir) {
