@@ -173,8 +173,7 @@ public class DD1HomeFragment extends Fragment {
         rootView.findViewById(R.id.TVInstallLog).setVisibility(View.VISIBLE);
         applySignInControls(installSnapshot == null
             ? DD1InstallPhase.SIGNED_OUT : installSnapshot.phase);
-        rootView.findViewById(R.id.BTDeleteGame).setVisibility(
-            new File(activity.getFilesDir(), "game").isDirectory() ? View.VISIBLE : View.GONE);
+        applyDeleteVisibility();
         primary.setEnabled(state == DD1HomeState.READY || state == DD1HomeState.PROFILE_MISSING);
 
         switch (state) {
@@ -221,15 +220,13 @@ public class DD1HomeFragment extends Fragment {
             return;
         }
         applySignInControls(snapshot.phase);
+        applyDeleteVisibility();
         // Sign-in is a short form and reads better centred; the download screen
         // needs the height for the DLC list.
         ((LinearLayout)rootView.findViewById(R.id.LLSteamInstall)).setGravity(
             pane == DD1RightPane.SIGN_IN ? android.view.Gravity.CENTER_VERTICAL
                 : android.view.Gravity.TOP);
         rootView.findViewById(R.id.BTPrimaryAction).setVisibility(View.GONE);
-        rootView.findViewById(R.id.BTDeleteGame).setVisibility(
-            new File(requireContext().getFilesDir(), "game").isDirectory()
-                ? View.VISIBLE : View.GONE);
         ((TextView)rootView.findViewById(R.id.TVStatus)).setText(snapshot.message);
 
         int[] controls = {R.id.IVSteamQr, R.id.BTSteamLogin, R.id.ETSteamAccount,
@@ -303,6 +300,14 @@ public class DD1HomeFragment extends Fragment {
 
     public void showDlcDialog() {
         withService(service -> DlcDialog.show(requireContext(), service));
+    }
+
+    // Deleting depends only on whether files exist, so it is decided once instead
+    // of in every branch that draws the screen.
+    private void applyDeleteVisibility() {
+        rootView.findViewById(R.id.BTDeleteGame).setVisibility(
+            new File(requireContext().getFilesDir(), "game").isDirectory()
+                ? View.VISIBLE : View.GONE);
     }
 
     private void applySignInControls(DD1InstallPhase phase) {

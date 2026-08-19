@@ -306,7 +306,13 @@ public final class DD1SteamSession implements Closeable {
     // asked for that, so it is not reported as a failure.
     private void fail(Throwable error) {
         if (signingOut || closed) return;
-        publish(events.failed(error.getClass().getSimpleName()));
+        publish(events.failed(reason(error)));
+    }
+
+    private static String reason(Throwable error) {
+        String message = error.getMessage();
+        return message == null || message.isEmpty()
+            ? error.getClass().getSimpleName() : message;
     }
 
     private void publish(DD1InstallSnapshot snapshot) {

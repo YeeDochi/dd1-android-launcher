@@ -3,15 +3,13 @@ package com.winlator.dd1;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-// The downloader reports progress per depot, and its percentage arrives as a
-// fraction in some callbacks and as a percentage in others, so both are read
-// here and the depots are combined into one figure.
+// The downloader reports progress for the depot it is working on, and nothing
+// about the whole job, so that is what is shown. Guessing an overall figure made
+// a resumed download open at 88% and stall there.
 public final class DownloadProgress {
     private final Set<Integer> finished = new LinkedHashSet<>();
-    private final Set<Integer> seen = new LinkedHashSet<>();
-    private int currentDepot = -1;
-    private double currentPercent;
-    private boolean allSeen;
+    private int currentDepot;
+    private double currentPercent = -1;
 
     public static double percent(float reported) {
         double value = reported <= 1.0 ? reported * 100.0 : reported;
@@ -19,52 +17,28 @@ public final class DownloadProgress {
     }
 
     public void onDepotProgress(int depotId, float reported) {
-        seen.add(depotId);
-        currentDepot = depotId;
-        currentPercent = percent(reported);
+        if (depotId > 0 && depotId != currentDepot) {
+            currentDepot = depotId;
+            currentPercent = -1;
+        }
+        if (reported > 0) currentPercent = percent(reported);
     }
 
     public void onDepotFinished(int depotId) {
-        seen.add(depotId);
-        finished.add(depotId);
-        if (depotId == currentDepot) currentPercent = 100.0;
+        if (depotId > 0) finished.add(depotId);
+        currentPercent = -1;
     }
 
-    // Which depot of the ones seen so far is being fetched. The total is only
-    // known as depots arrive, so it grows during the download.
-    public int currentIndex() {
-        int index = 0;
-        for (int depotId : seen) {
-            index++;
-            if (depotId == currentDepot) return index;
-        }
-        return 0;
+    public int currentDepot() {
+        return currentDepot;
     }
 
-    public int depotCount() {
-        return seen.size();
+    public int finishedCount() {
+        return finished.size();
     }
 
-    // Depots arrive one at a time, so the total is a guess until the downloader
-    // says it is done handing them out.
-    public boolean totalKnown() {
-        return allSeen;
-    }
-
-    public void onAllDepotsSeen() {
-        allSeen = true;
-    }
-
-    // Unknown until the first report; the caller shows an indeterminate bar.
-    public double overall() {
-        return combined();
-    }
-
-    // Until a depot has finished there is no way to tell how much of the whole
-    // download one depot represents, so the caller keeps an indeterminate bar.
-    private double combined() {
-        if (finished.isEmpty()) return -1;
-        int depots = finished.size() + (finished.contains(currentDepot) ? 0 : 1);
-        return (finished.size() * 100.0 + (finished.contains(currentDepot) ? 0 : currentPercent)) / depots;
+    // Negative until the current depot has reported something.
+    public double currentPercent() {
+        return currentPercent;
     }
 }

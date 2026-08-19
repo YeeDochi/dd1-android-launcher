@@ -176,7 +176,8 @@ public final class DD1InstallService extends Service {
                 "Ready to play", null, null, log.visibleLines()));
         }
         catch (Throwable error) {
-            if (!cancelled) publish(errorSnapshot(error.getClass().getSimpleName()));
+            if (!cancelled) publish(errorSnapshot(error.getMessage() == null
+                ? error.getClass().getSimpleName() : error.getMessage()));
         }
         finally {
             if (downloader != null) downloader.close();
@@ -246,37 +247,41 @@ public final class DD1InstallService extends Service {
             log.append(message);
             publish(new DD1InstallSnapshot(DD1InstallPhase.DOWNLOADING,
                 snapshot.downloadedBytes, snapshot.totalBytes, 0,
-                message, snapshot.currentFile, null, log.visibleLines()));
+                describe(), snapshot.currentFile, null, log.visibleLines()));
         }
 
         @Override
         public void onFileCompleted(int depotId, String fileName, float percent) {
             log.append(fileName);
             progress.onDepotProgress(depotId, percent);
-            publish(downloadSnapshot(depotId, fileName));
+            publish(downloadSnapshot(describe(), fileName));
         }
 
         @Override
         public void onChunkCompleted(int depotId, float percent, long bytes, long uncompressed) {
             progress.onDepotProgress(depotId, percent);
-            publish(downloadSnapshot(depotId, snapshot.currentFile));
+            publish(downloadSnapshot(describe(), snapshot.currentFile));
         }
 
         @Override
         public void onDepotCompleted(int depotId, long bytes, long uncompressed) {
             log.append("Depot " + depotId + " completed");
             progress.onDepotFinished(depotId);
-            publish(downloadSnapshot(depotId, snapshot.currentFile));
+            publish(downloadSnapshot(describe(), snapshot.currentFile));
         }
 
-        private DD1InstallSnapshot downloadSnapshot(int depotId, String file) {
-            double overall = progress.overall();
+        // The status text comes from the downloader itself, so it says what is
+        // actually happening: allocating, validating or fetching.
+        private DD1InstallSnapshot downloadSnapshot(String message, String file) {
+            double percent = progress.currentPercent();
             return new DD1InstallSnapshot(DD1InstallPhase.DOWNLOADING,
-                overall < 0 ? 0 : (long)(overall * 100), overall < 0 ? 0 : 10000L,
-                progress.currentIndex(), progress.totalKnown()
-                    ? "Part " + progress.currentIndex() + " of " + progress.depotCount()
-                    : "Part " + progress.currentIndex(),
-                file == null ? "" : file, null, log.visibleLines());
+                percent < 0 ? 0 : (long)(percent * 100), percent < 0 ? 0 : 10000L, 0,
+                message, file == null ? "" : file, null, log.visibleLines());
+        }
+
+        // The left box says which part is in hand; the log carries the detail.
+        private String describe() {
+            return "Part " + (progress.finishedCount() + 1);
         }
 
         @Override
