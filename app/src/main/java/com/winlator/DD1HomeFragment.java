@@ -83,7 +83,6 @@ public class DD1HomeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         rootView = view;
-        ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle(R.string.dd1_home_title);
         view.findViewById(R.id.BTAbout).setOnClickListener(v -> new AboutDialog(getContext()).show());
         view.findViewById(R.id.BTSteamLogin).setOnClickListener(v -> withService(DD1InstallService::startQr));
         view.findViewById(R.id.BTSteamCredentials).setOnClickListener(v -> startCredentials());

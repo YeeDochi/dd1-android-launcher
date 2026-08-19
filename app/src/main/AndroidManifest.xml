@@ -20,9 +20,9 @@
         android:isGame="true"
         android:extractNativeLibs="true"
         android:allowAudioPlaybackCapture="true"
-        android:label="@string/app_name">
+        android:label="Darkest Dungeon">
 
-        <activity android:name="com.winlator.MainActivity"
+        <activity android:name="com.winlator.dd1.DD1Activity"
             android:theme="@style/AppThemeDark"
             android:exported="true"
             android:screenOrientation="sensorLandscape"
@@ -32,6 +32,12 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <activity android:name="com.winlator.MainActivity"
+            android:theme="@style/AppThemeDark"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation" />
 
         <activity android:name="com.winlator.XServerDisplayActivity"
             android:exported="false"

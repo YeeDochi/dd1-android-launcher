@@ -33,7 +33,7 @@ import com.winlator.core.PreloaderDialog;
 import com.winlator.xenvironment.RootFSInstaller;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
-    public static final boolean DEBUG_MODE = true;
+    public static final boolean DEBUG_MODE = false; // FIXME change to false
     public static final @IntRange(from = 1, to = 19) byte CONTAINER_PATTERN_COMPRESSION_LEVEL = 9;
     public static final byte PERMISSION_WRITE_EXTERNAL_STORAGE_REQUEST_CODE = 1;
     public static final byte OPEN_FILE_REQUEST_CODE = 2;
@@ -54,7 +54,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         setContentView(R.layout.main_activity);
 
         drawerLayout = findViewById(R.id.DrawerLayout);
-        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
         NavigationView navigationView = findViewById(R.id.NavigationView);
         navigationView.setNavigationItemSelectedListener(this);
 
@@ -73,8 +72,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             navigationView.setCheckedItem(R.id.menu_item_input_controls);
         }
         else {
+            boolean showShortcutsFirst = preferences.getBoolean("show_shortcuts_first", false);
             int selectedMenuItemId = intent.getIntExtra("selected_menu_item_id", 0);
-            int menuItemId = selectedMenuItemId > 0 ? selectedMenuItemId : R.id.menu_item_dd1_home;
+            int menuItemId = selectedMenuItemId > 0 ? selectedMenuItemId : (showShortcutsFirst ? R.id.menu_item_shortcuts : R.id.menu_item_containers);
 
             actionBar.setHomeAsUpIndicator(R.drawable.icon_action_bar_menu);
             onNavigationItemSelected(navigationView.getMenu().findItem(menuItemId));
@@ -132,12 +132,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 BaseFileManagerFragment fileManagerFragment = (BaseFileManagerFragment)currentFragment;
                 if (fileManagerFragment.onBackPressed()) return;
             }
-            else if (currentFragment instanceof DD1HomeFragment) {
+            else if (currentFragment instanceof ContainersFragment) {
                 finish();
             }
         }
 
-        showFragment(new DD1HomeFragment());
+        showFragment(new ContainersFragment());
     }
 
     public void setOpenFileCallback(Callback<Uri> openFileCallback) {
@@ -186,10 +186,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
 
         switch (item.getItemId()) {
-            case R.id.menu_item_dd1_home:
-                showFragment(new DD1HomeFragment());
+            case R.id.menu_item_shortcuts:
+                preferences.edit().putBoolean("show_shortcuts_first", true).apply();
+                showFragment(new ShortcutsFragment());
                 break;
             case R.id.menu_item_containers:
+                preferences.edit().putBoolean("show_shortcuts_first", false).apply();
                 showFragment(new ContainersFragment());
                 break;
             case R.id.menu_item_input_controls:
