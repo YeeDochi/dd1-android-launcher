@@ -25,4 +25,8 @@
     <string name="dd1_delete_game_message">The game and any unfinished download will be removed. Signing in again and downloading roughly 4 GB will be required to play. Saves are kept.</string>
     <string name="dd1_delete_game_failed">Some game files could not be removed</string>
     <string name="dd1_steam_cancel_sign_in">Cancel sign-in</string>
+    <string name="dd1_dlc">Downloadable content</string>
+    <string name="dd1_dlc_none">No DLC found on this account. Sign in first if you have not.</string>
+    <string name="dd1_dlc_hint">Unselected content is removed when the download finishes. Changing this takes effect on the next download.</string>
+    <string name="dd1_menu">Menu</string>
 </resources>

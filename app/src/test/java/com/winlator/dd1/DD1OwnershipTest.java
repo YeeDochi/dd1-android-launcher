@@ -28,19 +28,17 @@ public class DD1OwnershipTest {
     }
 
     @Test
-    public void listsTheDlcThatCameWithTheGamesPackages() {
+    public void gathersAppsFromEveryPackageBecauseDlcShipsSeparately() {
         Map<Integer, List<Integer>> packages = new HashMap<>();
-        packages.put(1, Arrays.asList(262060, 580100, 735730));
-        packages.put(2, Arrays.asList(999));
+        packages.put(1, Arrays.asList(262060));
+        packages.put(2, Arrays.asList(580100));
+        packages.put(3, Arrays.asList(580100, 735730));
 
-        assertEquals(Arrays.asList(580100, 735730), DD1Ownership.dlcAppIds(packages, 262060));
+        assertEquals(Arrays.asList(262060, 580100, 735730), DD1Ownership.ownedAppIds(packages));
     }
 
     @Test
-    public void aPackageWithoutTheGameContributesNoDlc() {
-        Map<Integer, List<Integer>> packages = new HashMap<>();
-        packages.put(1, Arrays.asList(111, 222));
-
-        assertEquals(Collections.emptyList(), DD1Ownership.dlcAppIds(packages, 262060));
+    public void noPackagesMeansNoApps() {
+        assertEquals(Collections.emptyList(), DD1Ownership.ownedAppIds(new HashMap<>()));
     }
 }

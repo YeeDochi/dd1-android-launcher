@@ -36,9 +36,8 @@ public final class DlcSelection {
     // the choice was made still arrives selected.
     public static DlcSelection parse(String stored, Collection<Integer> ownedAppIds) {
         DlcSelection selection = new DlcSelection();
-        for (int appId : ownedAppIds) {
-            if (appId != DD1SteamEvents.APP_ID && !selection.owned.contains(appId))
-                selection.owned.add(appId);
+        for (int appId : NAMES.keySet()) {
+            if (ownedAppIds.contains(appId)) selection.owned.add(appId);
         }
         if (stored != null) {
             for (String piece : stored.split(",")) {

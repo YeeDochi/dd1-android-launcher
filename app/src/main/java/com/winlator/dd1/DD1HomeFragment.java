@@ -21,6 +21,9 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.CheckBox;
+import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -88,6 +91,8 @@ public class DD1HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         rootView = view;
         view.findViewById(R.id.BTAbout).setOnClickListener(v -> new AboutDialog(getContext()).show());
+        view.findViewById(R.id.BTMenu).setOnClickListener(
+            v -> ((DD1Activity)requireActivity()).toggleDrawer());
         view.findViewById(R.id.BTDeleteGame).setOnClickListener(v -> confirmDeleteGame());
         view.findViewById(R.id.BTSignOutAlways)
             .setOnClickListener(v -> withService(DD1InstallService::signOut));
@@ -212,6 +217,11 @@ public class DD1HomeFragment extends Fragment {
             return;
         }
         applySignInControls(snapshot.phase);
+        // Sign-in is a short form and reads better centred; the download screen
+        // needs the height for the DLC list.
+        ((LinearLayout)rootView.findViewById(R.id.LLSteamInstall)).setGravity(
+            pane == DD1RightPane.SIGN_IN ? android.view.Gravity.CENTER_VERTICAL
+                : android.view.Gravity.TOP);
         if (pane == DD1RightPane.LOG) return;
         rootView.findViewById(R.id.BTPrimaryAction).setVisibility(View.GONE);
         ((TextView)rootView.findViewById(R.id.TVStatus)).setText(snapshot.message);
@@ -219,7 +229,8 @@ public class DD1HomeFragment extends Fragment {
         int[] controls = {R.id.IVSteamQr, R.id.BTSteamLogin, R.id.ETSteamAccount,
             R.id.ETSteamPassword, R.id.BTSteamCredentials, R.id.BTDownload,
             R.id.PBDownload, R.id.TVDownloadFile,
-            R.id.BTCancelDownload, R.id.BTRetryDownload, R.id.BTSteamSignOut};
+            R.id.BTCancelDownload, R.id.BTRetryDownload, R.id.BTSteamSignOut,
+            R.id.TVDlcTitle, R.id.LLDlcChoices};
         for (int id : controls) rootView.findViewById(id).setVisibility(View.GONE);
 
         if (snapshot.phase == DD1InstallPhase.SIGNED_OUT) {
@@ -235,6 +246,7 @@ public class DD1HomeFragment extends Fragment {
         }
         else if (snapshot.phase == DD1InstallPhase.READY_TO_INSTALL) {
             show(R.id.BTDownload);
+            renderDlcChoices();
         }
         else if (snapshot.phase == DD1InstallPhase.DOWNLOADING ||
                 snapshot.phase == DD1InstallPhase.VERIFYING) {
@@ -258,6 +270,32 @@ public class DD1HomeFragment extends Fragment {
 
     // Fixed-height log with its own scroller: without this the growing text
     // pushes the rest of the pane around on every update.
+    // The choice belongs next to the download button, not behind a menu.
+    private void renderDlcChoices() {
+        LinearLayout list = rootView.findViewById(R.id.LLDlcChoices);
+        list.removeAllViews();
+        if (installService == null) return;
+        DlcSelection selection = installService.dlcSelection();
+        if (selection.owned().isEmpty()) return;
+
+        for (int appId : selection.owned()) {
+            CheckBox box = new CheckBox(requireContext());
+            box.setText(DlcSelection.nameOf(appId));
+            box.setTextColor(getResources().getColor(android.R.color.white, null));
+            box.setChecked(selection.isSelected(appId));
+            box.setOnCheckedChangeListener((button, checked) -> {
+                selection.setSelected(appId, checked);
+                installService.saveDlcSelection(selection);
+            });
+            list.addView(box);
+        }
+        show(R.id.TVDlcTitle, R.id.LLDlcChoices);
+    }
+
+    public void showDlcDialog() {
+        withService(service -> DlcDialog.show(requireContext(), service));
+    }
+
     private void applySignInControls(DD1InstallPhase phase) {
         DD1SignInControls controls = DD1SignInControls.from(phase);
         rootView.findViewById(R.id.BTCancelSignIn)

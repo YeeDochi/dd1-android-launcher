@@ -53,9 +53,9 @@ public class DlcSelectionTest {
     }
 
     @Test
-    public void theBaseGameIsNeverASelectableExtra() {
+    public void onlyThisGamesContentIsOffered() {
         DlcSelection selection = DlcSelection.parse(null,
-            Arrays.asList(DD1SteamEvents.APP_ID, 580100));
+            Arrays.asList(DD1SteamEvents.APP_ID, 580100, 440));
 
         assertEquals(Arrays.asList(580100), selection.selected());
     }

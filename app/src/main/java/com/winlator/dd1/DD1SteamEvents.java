@@ -8,6 +8,7 @@ public final class DD1SteamEvents {
 
     private final DD1InstallLog log = new DD1InstallLog(1000);
     private DD1InstallSnapshot snapshot = DD1InstallSnapshot.signedOut();
+    private List<Integer> ownedDlc = java.util.Collections.emptyList();
 
     public synchronized DD1InstallSnapshot authStarted(String challengeUrl) {
         log.append("Steam QR authentication started");
@@ -21,7 +22,9 @@ public final class DD1SteamEvents {
 
     public synchronized DD1InstallSnapshot packagesResolved(Map<Integer, List<Integer>> packageApps) {
         boolean owned = DD1Ownership.ownsApp(packageApps, APP_ID);
+        ownedDlc = DD1Ownership.ownedAppIds(packageApps);
         log.append(owned ? "Darkest Dungeon ownership verified" : "Darkest Dungeon is not owned");
+        if (owned) log.append("Owned DLC: " + DlcSelection.parse(null, ownedDlc).owned().size());
         return update(owned ? DD1InstallPhase.READY_TO_INSTALL : DD1InstallPhase.NOT_OWNED,
             owned ? "Ready to download owned game and DLC" : "Darkest Dungeon is not owned by this account", null);
     }
@@ -34,6 +37,10 @@ public final class DD1SteamEvents {
     public synchronized DD1InstallSnapshot signedOut() {
         log.append("Steam session closed");
         return update(DD1InstallPhase.SIGNED_OUT, "Steam sign-in required", null);
+    }
+
+    public synchronized List<Integer> ownedDlc() {
+        return ownedDlc;
     }
 
     public synchronized DD1InstallSnapshot snapshot() {

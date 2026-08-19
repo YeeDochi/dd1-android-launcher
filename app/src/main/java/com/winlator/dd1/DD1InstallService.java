@@ -117,6 +117,22 @@ public final class DD1InstallService extends Service {
         steam.signOut();
     }
 
+    public java.util.List<Integer> ownedDlc() {
+        return steam.ownedDlc();
+    }
+
+    public DlcSelection dlcSelection() {
+        return DlcSelection.parse(preferences().getString("dlc_excluded", null), ownedDlc());
+    }
+
+    public void saveDlcSelection(DlcSelection selection) {
+        preferences().edit().putString("dlc_excluded", selection.serialize()).apply();
+    }
+
+    private android.content.SharedPreferences preferences() {
+        return getSharedPreferences("dd1", MODE_PRIVATE);
+    }
+
     public boolean canDownload() {
         return ownsGame;
     }
@@ -150,6 +166,7 @@ public final class DD1InstallService extends Service {
 
             publish(new DD1InstallSnapshot(DD1InstallPhase.VERIFYING, 0, 0, 0,
                 "Verifying downloaded game", null, null, log.visibleLines()));
+            DlcInstallFilter.apply(staging, dlcSelection().selected());
             DD1Installer.Result result = DD1Installer.activate(getFilesDir());
             if (!result.success) throw new IllegalStateException(result.error);
             log.append("Darkest Dungeon installation ready");

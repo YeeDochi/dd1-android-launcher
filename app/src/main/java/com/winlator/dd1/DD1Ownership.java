@@ -13,14 +13,15 @@ public abstract class DD1Ownership {
         return false;
     }
 
-    // Every other app that ships in a package containing the game is DLC for it.
-    public static List<Integer> dlcAppIds(Map<Integer, List<Integer>> packageApps, int appId) {
+    // DLC arrives in its own package, so ownership is read across all of them
+    // and the caller decides which apps belong to the game.
+    public static List<Integer> ownedAppIds(Map<Integer, List<Integer>> packageApps) {
         List<Integer> result = new ArrayList<>();
         if (packageApps == null) return result;
         for (List<Integer> appIds : packageApps.values()) {
-            if (appIds == null || !appIds.contains(appId)) continue;
-            for (int candidate : appIds) {
-                if (candidate != appId && !result.contains(candidate)) result.add(candidate);
+            if (appIds == null) continue;
+            for (int appId : appIds) {
+                if (!result.contains(appId)) result.add(appId);
             }
         }
         return result;

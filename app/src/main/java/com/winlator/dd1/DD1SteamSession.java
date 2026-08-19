@@ -120,6 +120,10 @@ public final class DD1SteamSession implements Closeable {
         return client;
     }
 
+    public java.util.List<Integer> ownedDlc() {
+        return events.ownedDlc();
+    }
+
     public List<License> licenses() {
         return licenses;
     }
