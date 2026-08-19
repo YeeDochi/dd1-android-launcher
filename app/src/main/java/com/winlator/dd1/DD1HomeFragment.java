@@ -260,8 +260,9 @@ public class DD1HomeFragment extends Fragment {
             progress.setIndeterminate(snapshot.totalBytes <= 0);
             if (snapshot.totalBytes > 0)
                 progress.setProgress((int)Math.min(1000, snapshot.downloadedBytes * 1000 / snapshot.totalBytes));
+            String summary = progressSummary(snapshot);
             ((TextView)rootView.findViewById(R.id.TVDownloadPercent))
-                .setText(progressSummary(snapshot));
+                .setText(summary == null ? getString(R.string.dd1_state_preparing) : summary);
             rootView.findViewById(R.id.SVInstallLog).setVisibility(View.VISIBLE);
         }
         else if (snapshot.phase == DD1InstallPhase.NOT_OWNED) {
@@ -350,7 +351,7 @@ public class DD1HomeFragment extends Fragment {
     private void confirmDeleteGame() {
         Activity activity = getActivity();
         if (activity == null) return;
-        new AlertDialog.Builder(activity)
+        new AlertDialog.Builder(activity, R.style.DD1Dialog)
             .setTitle(R.string.dd1_delete_game)
             .setMessage(R.string.dd1_delete_game_message)
             .setNegativeButton(android.R.string.cancel, null)
@@ -370,8 +371,8 @@ public class DD1HomeFragment extends Fragment {
     static String progressSummary(DD1InstallSnapshot snapshot) {
         // The downloader creates a depot's files before it fetches their
         // contents and reports no progress while it does, so there is nothing
-        // to put a number on yet.
-        if (snapshot.totalBytes <= 0) return "Preparing";
+        // to put a number on yet. The caller names that stage.
+        if (snapshot.totalBytes <= 0) return null;
         return String.format(Locale.US, "%.0f%%",
             snapshot.downloadedBytes * 100.0 / snapshot.totalBytes);
     }

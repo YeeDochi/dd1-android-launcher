@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The app theme is dark but leaves dialogs on AppCompat's light default,
+         which puts a grey title on white. -->
+    <style name="DD1Dialog" parent="Theme.AppCompat.Dialog.Alert" />
+</resources>

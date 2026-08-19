@@ -29,4 +29,17 @@
     <string name="dd1_dlc_none">No DLC found on this account. Sign in first if you have not.</string>
     <string name="dd1_dlc_hint">Unselected content is removed when the download finishes. Changing this takes effect on the next download.</string>
     <string name="dd1_menu">Menu</string>
+    <string name="dd1_language">Language</string>
+    <string name="dd1_state_restoring">Checking the Steam session</string>
+    <string name="dd1_state_sign_in">Steam sign-in required</string>
+    <string name="dd1_state_approve">Approve sign-in with Steam Mobile</string>
+    <string name="dd1_state_ownership">Checking Darkest Dungeon ownership</string>
+    <string name="dd1_state_ready_to_install">Ready to download owned game and DLC</string>
+    <string name="dd1_state_not_owned">Darkest Dungeon is not owned by this account</string>
+    <string name="dd1_state_failed">Steam operation failed</string>
+    <string name="dd1_state_starting">Starting download</string>
+    <string name="dd1_state_part">Part %s</string>
+    <string name="dd1_state_verifying">Verifying downloaded game</string>
+    <string name="dd1_state_ready_to_play">Ready to play</string>
+    <string name="dd1_state_preparing">Preparing</string>
 </resources>

@@ -30,7 +30,7 @@ public final class DlcDialog {
             list.addView(box);
         }
 
-        new AlertDialog.Builder(context)
+        new AlertDialog.Builder(context, R.style.DD1Dialog)
             .setTitle(R.string.dd1_dlc)
             .setView(view)
             .setNegativeButton(android.R.string.cancel, null)

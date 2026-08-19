@@ -63,72 +63,75 @@
             android:textColor="?attr/colorSecondaryText"
             android:textSize="14sp" />
 
-        <TextView
-            android:id="@+id/TVStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:background="?attr/colorSecondarySurface"
-            android:ellipsize="end"
-            android:gravity="center"
-            android:maxLines="3"
-            android:minLines="2"
-            android:padding="10dp"
-            android:textColor="?attr/colorPrimaryText"
-            android:textSize="15sp" />
-
-        <Button
-            android:id="@+id/BTPrimaryAction"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="16dp"
-            android:text="@string/dd1_play" />
-
-        <Button
-            android:id="@+id/BTCancelSignIn"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:layout_marginTop="4dp"
-            android:text="@string/dd1_steam_cancel_sign_in"
-            android:textColor="?attr/colorPrimaryText"
-            android:visibility="gone" />
-
-        <Button
-            android:id="@+id/BTSignOutAlways"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:layout_marginTop="4dp"
-            android:text="@string/dd1_steam_sign_out"
-            android:textColor="?attr/colorSecondaryText"
-            android:visibility="gone" />
-
-        <!-- Pins the secondary actions to the bottom so they line up with the
-             cancel button in the other column. -->
-        <View
+        <!-- The status box and the actions read as one block, so they sit in
+             the middle of what the header leaves. -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
 
-        <Button
-            android:id="@+id/BTDeleteGame"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:layout_marginTop="4dp"
-            android:text="@string/dd1_delete_game"
-            android:textColor="?attr/colorSecondaryText"
-            android:visibility="gone" />
+            <TextView
+                android:id="@+id/TVStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:background="?attr/colorSecondarySurface"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="3"
+                android:minLines="2"
+                android:padding="10dp"
+                android:textColor="?attr/colorPrimaryText"
+                android:textSize="15sp" />
 
-        <Button
-            android:id="@+id/BTAbout"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:layout_marginTop="4dp"
-            android:text="@string/dd1_open_source_info"
-            android:textColor="?attr/colorSecondaryText" />
+            <Button
+                android:id="@+id/BTPrimaryAction"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="16dp"
+                android:text="@string/dd1_play" />
+
+            <Button
+                android:id="@+id/BTCancelSignIn"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginTop="4dp"
+                android:text="@string/dd1_steam_cancel_sign_in"
+                android:textColor="?attr/colorPrimaryText"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/BTSignOutAlways"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginTop="4dp"
+                android:text="@string/dd1_steam_sign_out"
+                android:textColor="?attr/colorSecondaryText"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/BTDeleteGame"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginTop="4dp"
+                android:text="@string/dd1_delete_game"
+                android:textColor="?attr/colorSecondaryText"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/BTAbout"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginTop="4dp"
+                android:text="@string/dd1_open_source_info"
+                android:textColor="?attr/colorSecondaryText" />
+        </LinearLayout>
     </LinearLayout>
 
     <View

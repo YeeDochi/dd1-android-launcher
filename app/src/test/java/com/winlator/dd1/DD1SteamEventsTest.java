@@ -5,12 +5,14 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.Collections;
 
+import com.winlator.R;
+
 import org.junit.Test;
 
 public class DD1SteamEventsTest {
     @Test
     public void ownedPackagesEnableInstallOnlyAfterLoginAndPics() {
-        DD1SteamEvents events = new DD1SteamEvents();
+        DD1SteamEvents events = new DD1SteamEvents(id -> "message " + id);
 
         assertEquals(DD1InstallPhase.AUTHENTICATING, events.authStarted("url").phase);
         assertEquals(DD1InstallPhase.AUTHENTICATING, events.loggedOn().phase);
@@ -20,7 +22,7 @@ public class DD1SteamEventsTest {
 
     @Test
     public void unownedPackagesNeverEnableDownload() {
-        DD1SteamEvents events = new DD1SteamEvents();
+        DD1SteamEvents events = new DD1SteamEvents(id -> "message " + id);
         events.loggedOn();
 
         assertEquals(DD1InstallPhase.NOT_OWNED,
@@ -29,11 +31,11 @@ public class DD1SteamEventsTest {
 
     @Test
     public void errorsDoNotExposeSecretText() {
-        DD1SteamEvents events = new DD1SteamEvents();
+        DD1SteamEvents events = new DD1SteamEvents(id -> "message " + id);
 
         DD1InstallSnapshot snapshot = events.failed("access_token=secret");
 
         assertEquals(DD1InstallPhase.ERROR, snapshot.phase);
-        assertEquals("Steam operation failed", snapshot.message);
+        assertEquals("message " + R.string.dd1_state_failed, snapshot.message);
     }
 }

@@ -48,7 +48,7 @@ public final class DD1SteamSession implements Closeable {
     private final SteamUser user = requireHandler(SteamUser.class);
     private final SteamApps apps = requireHandler(SteamApps.class);
     private final SteamTokenStore tokens;
-    private final DD1SteamEvents events = new DD1SteamEvents();
+    private final DD1SteamEvents events;
     private final Listener listener;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService operations = Executors.newSingleThreadExecutor();
@@ -68,6 +68,7 @@ public final class DD1SteamSession implements Closeable {
     private volatile String credentialPassword;
 
     public DD1SteamSession(Context context, Listener listener) {
+        this.events = new DD1SteamEvents(context::getString);
         tokens = new SteamTokenStore(context);
         this.listener = listener;
         subscriptions.add(callbacks.subscribe(ConnectedCallback.class, ignored -> onConnected()));

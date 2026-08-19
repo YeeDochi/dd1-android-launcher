@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Handler;
@@ -66,6 +67,11 @@ public final class DD1InstallService extends Service {
     }
 
     @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(DD1Locale.wrap(base));
+    }
+
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         return START_NOT_STICKY;
     }
@@ -100,7 +106,7 @@ public final class DD1InstallService extends Service {
         if (!ownsGame || downloader != null) return;
         cancelled = false;
         keepAlive(R.string.dd1_install_downloading);
-        publish(downloadSnapshot(0, 0, 0, "Starting download", null));
+        publish(downloadSnapshot(0, 0, 0, getString(R.string.dd1_state_starting), null));
         worker.execute(this::runDownload);
     }
 
@@ -177,14 +183,14 @@ public final class DD1InstallService extends Service {
             if (failure.get() != null) throw failure.get();
 
             publish(new DD1InstallSnapshot(DD1InstallPhase.VERIFYING, 0, 0, 0,
-                "Verifying downloaded game", null, null, log.visibleLines()));
+                getString(R.string.dd1_state_verifying), null, null, log.visibleLines()));
             DD1Installer.markDownloadComplete(getFilesDir());
             DlcInstallFilter.apply(staging, dlcSelection().selected());
             DD1Installer.Result result = DD1Installer.activate(getFilesDir());
             if (!result.success) throw new IllegalStateException(result.error);
             log.append("Darkest Dungeon installation ready");
             publish(new DD1InstallSnapshot(DD1InstallPhase.READY, 0, 0, 0,
-                "Ready to play", null, null, log.visibleLines()));
+                getString(R.string.dd1_state_ready_to_play), null, null, log.visibleLines()));
         }
         catch (Throwable error) {
             if (!cancelled) publish(errorSnapshot(error.getMessage() == null
@@ -211,7 +217,7 @@ public final class DD1InstallService extends Service {
         if (!ownsGame) return errorSnapshot(detail);
         log.append(detail);
         return new DD1InstallSnapshot(DD1InstallPhase.READY_TO_INSTALL, 0, 0, 0,
-            "Ready to download owned game and DLC", null, null, log.visibleLines());
+            getString(R.string.dd1_state_ready_to_install), null, null, log.visibleLines());
     }
 
     private DD1InstallSnapshot errorSnapshot(String detail) {
@@ -321,7 +327,7 @@ public final class DD1InstallService extends Service {
 
         // The left box says which part is in hand; the log carries the detail.
         private String describe() {
-            return "Part " + progress.part();
+            return getString(R.string.dd1_state_part, progress.part());
         }
 
         @Override

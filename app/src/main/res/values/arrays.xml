@@ -152,4 +152,9 @@
         <item>DMA Buffer</item>
         <item>Native Hardware Buffer</item>
     </string-array>
+    <string-array name="dd1_languages">
+        <item>System default</item>
+        <item>English</item>
+        <item>한국어</item>
+    </string-array>
 </resources>

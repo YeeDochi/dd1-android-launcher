@@ -1,6 +1,7 @@
 package com.winlator.dd1;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import com.winlator.dd1.DD1InstallPhase;
 import com.winlator.dd1.DD1InstallSnapshot;
@@ -16,8 +17,8 @@ public class DD1HomeProgressTest {
     }
 
     @Test
-    public void namesTheAllocatingStageRatherThanShowingABlank() {
-        assertEquals("Preparing", DD1HomeFragment.progressSummary(snapshot(0, 0, 0)));
+    public void leavesTheAllocatingStageForTheCallerToName() {
+        assertNull(DD1HomeFragment.progressSummary(snapshot(0, 0, 0)));
     }
 
     private static DD1InstallSnapshot snapshot(long downloaded, long total, long speed) {

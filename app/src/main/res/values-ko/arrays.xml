@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="dd1_languages">
+        <item>시스템 설정</item>
+        <item>English</item>
+        <item>한국어</item>
+    </string-array>
+</resources>
