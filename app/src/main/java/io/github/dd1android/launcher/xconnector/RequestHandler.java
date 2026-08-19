@@ -1,7 +1,0 @@
-package io.github.dd1android.launcher.xconnector;
-
-import java.io.IOException;
-
-public interface RequestHandler {
-    boolean handleRequest(ConnectedClient client) throws IOException;
-}
