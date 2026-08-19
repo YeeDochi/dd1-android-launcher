@@ -981,7 +981,11 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         }
         // winhandler.exe aborts with "Invalid handle." on this device, so run the
         // executable directly and let the process working directory stand in for /dir.
-        return execPath != null ? execPath : "C:\\windows\\winhandler.exe "+cmdArgs;
+        // ShellExecute (winhandler, start.exe) needs RpcSs, which never starts here,
+        // so hand the executable to cmd.exe, which only uses CreateProcess.
+        return execPath != null
+            ? "C:\\windows\\system32\\cmd.exe /c "+execPath+execArgs
+            : "C:\\windows\\winhandler.exe "+cmdArgs;
     }
 
     // winhandler joins /dir and the executable with a separator, so a drive root
