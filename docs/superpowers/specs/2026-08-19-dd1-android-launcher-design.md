@@ -2,169 +2,139 @@
 
 ## Purpose
 
-Build a GPL-3.0, Darkest Dungeon 1-specific Android client that lets a player authenticate with Steam, download only game and DLC files they own, and run the official Linux x86_64 build locally. The APK and source repository must never contain Darkest Dungeon executables, assets, DLC, credentials, or decrypted Steam content.
+Build a GPL-3.0-or-later Android launcher dedicated to a user-owned Steam copy of Darkest Dungeon 1. The launcher authenticates directly with Steam, downloads only content the signed-in account owns, runs the official Windows build through the embedded Winlator runtime, and synchronizes saves with the PC version through Steam Cloud.
 
-The user experience is intentionally narrower than a general PC emulator: install the APK, sign in, install, and press Play. Runtime, graphics, input, and save paths are selected automatically for Darkest Dungeon.
-
-## Success criteria
-
-The first runnable milestone must:
-
-1. Build and install on Android 11 or later.
-2. Be observable in a Gamescope-hosted Waydroid window during development.
-3. Accept a user-owned local Linux installation through a developer-only ADB import path.
-4. Validate the payload without modifying the source Steam installation.
-5. Launch `_linuxnosteam/darkest.bin.x86_64` without Wine or Termux.
-6. Display the title screen, accept touch input, play audio, create a campaign, complete one combat, and persist the save.
-7. Export one diagnostic archive containing launcher, Box64, renderer, and game logs.
-
-Steam login, on-device Depot download, DLC selection, Workshop, cloud saves, and launcher self-update follow as separate milestones only after the local-payload runtime works.
+The APK and source repository never contain Darkest Dungeon executables, assets, DLC, Steam credentials, or decrypted Steam content. The user experience remains single-game: sign in, install, play.
 
 ## Supported systems
 
 - Minimum target: Android 11, ARM64, 6 GB RAM, Vulkan 1.1, Snapdragon 865-class performance.
-- Development device: Galaxy S25.
-- Development emulator/container: Waydroid x86_64 with Mesa/Radeon.
-- Initial GPU policy: Adreno via Zink/Vulkan; MobileGlues/OpenGL ES is the automatic fallback.
-- Mali and other GPUs are accepted when the fallback works, but are not release blockers for the first ARM64 milestone.
-- The app uses `minSdk 30`, `compileSdk 35`, `targetSdk 35`, NDK `27.0.12077973`, Java 17, and 16 KiB-compatible native linking.
+- Primary development phone: Galaxy S25.
+- UI and installer test environment: Waydroid x86_64 inside a visible Gamescope window.
+- Product runtime: Winlator 11.1 components embedded in the same APK.
+- Waydroid verifies UI, authentication, download, installation, and profile flow. Native ARM64 phones verify actual Wine/Box64 gameplay.
 
-Waydroid is a functional and UI test environment, not a mobile performance benchmark. The project provides an x86_64 development flavor for Waydroid and an ARM64 release flavor for phones.
+## Legal and security boundary
 
-## Legal and licensing boundary
+- Verify ownership of Steam App ID `262060` before offering installation.
+- Download the current public Windows depots and every DLC depot owned by the account. Never synthesize DLC ownership or modify DLC checks.
+- Send authentication data only to Steam endpoints.
+- Prefer Steam Mobile QR approval. Credential login is a fallback and passwords are never persisted.
+- Encrypt the persistent Steam refresh token with an Android Keystore key. Sign-out deletes the token and key material.
+- Store game, saves, logs, and download chunks only in app-private storage.
+- Preserve upstream GPL and third-party notices. The project is not affiliated with Red Hook Studios or Valve.
 
-- Project license: GPL-3.0-or-later.
-- Reused RimDroid GPL code remains attributed in `NOTICE` and source headers.
-- Box64, JavaSteam, DepotDownloader, Mesa, MobileGlues, SDL-related code, and linker helpers retain their upstream licenses and notices.
-- StS2 Launcher/Mod Manager code may be selectively adapted under its MIT license with attribution; it is not a project base or Git fork.
-- No Red Hook, Darkest Dungeon, Steam, FMOD, or DLC binary/data is committed or packaged.
-- The developer import script copies from a path the user supplies and is excluded from release behavior.
-- Steam credentials are sent only to Steam. Persistent refresh tokens, once implemented, are encrypted by Android Keystore.
+## User-visible states
 
-## Architecture
+The home screen is driven by one persistent installer state:
 
-### Android application
+1. `SIGNED_OUT`: no valid Steam session; show QR sign-in and credential fallback.
+2. `AUTHENTICATING`: show QR approval or Steam Guard progress and a cancel action.
+3. `NOT_OWNED`: explain that App ID `262060` is not owned; show sign-out only.
+4. `READY_TO_INSTALL`: show owned base game and DLC summary plus Download.
+5. `DOWNLOADING`: show overall bytes, current file, transfer rate, progress bar, Pause, and a scrollable detailed log.
+6. `VERIFYING`: validate the staging tree and display the file being checked.
+7. `READY`: show Play, Update/Repair, Saves, Logs, and Sign out.
+8. `ERROR`: retain the failed operation log and show Retry and Export Logs.
 
-Use a single standard Android application with Java/Kotlin UI and a native runtime. Do not use Godot, Wine, Termux, a second APK, or an external X server.
+If the game payload is missing, Play is never shown. If a valid payload already exists, Steam sign-in is optional until update, repair, or cloud sync is requested.
 
-The app has four visible states:
-
-1. No payload: explains that an owned copy is required and offers Install/Import.
-2. Installing: shows deterministic byte and file progress.
-3. Ready: provides Play, repair, settings, saves, logs, and later Mods.
-4. Running: full-screen game surface with an optional touch-control overlay and a small exit/settings affordance.
-
-### Payload layout
-
-Store mutable data below app-private storage:
+## Storage layout
 
 ```text
 files/
-  game/                 # official Steam payload
-  runtime/              # extracted, versioned runtime support files
-  saves/                # stable save root, outside game payload
-  mods/                 # installed Workshop/manual mods
-  cache/                 # Steam chunks, thumbnails, Box64 dynacache
-  logs/                  # current and previous launch logs
+  game/                 # validated Windows Steam payload
+  staging/game/         # incomplete or newly downloaded payload
+  saves/                # stable Wine save root shared with cloud sync
+  steam/session/        # non-secret Steam metadata; token remains encrypted
+  cache/steam/          # resumable depot chunks and manifests
+  logs/install/         # authentication and DepotDownloader logs
+  logs/runtime/         # Winlator and game session logs
+  snapshots/saves/      # bounded pre-sync save snapshots
 ```
 
-`game/` is replaceable. Updates must not delete `saves/`, `mods/`, or `logs/`.
+`game/` is replaceable. Updates never remove `saves/`, `logs/`, or save snapshots. A validated staging payload replaces `game/` with a same-filesystem rename. A failed installation leaves the last valid `game/` untouched.
 
-### Runtime process
+## Steam authentication
 
-Use a fresh executable process packaged through Android's native library directory. This avoids executing downloaded code directly from app data and keeps ART state out of the game address space.
+Use JavaSteam `1.8.0` in the Android process.
 
-- ARM64: the packaged runner loads Box64 and maps the downloaded Linux x86_64 executable and libraries.
-- Waydroid x86_64: the packaged x86_64 runner invokes the bundled glibc loader directly and uses the same X11, graphics, audio, input, and logging contracts.
-- Both runners receive only an explicit environment allowlist and absolute app-private paths.
-- The game working directory is `files/game`.
-- The selected executable is `_linuxnosteam/darkest.bin.x86_64`; the Steam API build is not used for the first milestone.
+- Begin with `beginAuthSessionViaQR` and render the returned challenge URL as a QR code.
+- Poll until Steam Mobile approves, the challenge changes, the user cancels, or the session expires.
+- Credential fallback accepts username and password in memory and presents Steam Guard challenges explicitly.
+- Request a persistent session and store only the resulting refresh token through Android Keystore encryption.
+- Reconnect with the refresh token on later launches. Authentication failures return to `SIGNED_OUT`; they are never retried silently.
 
-### Graphics and presentation
+After login, query package/app metadata and licenses. Continue only when the account owns App ID `262060` or an applicable package containing it.
 
-Embed the X server used by the RimDroid/Winlator lineage and present it in a full-screen Android `SurfaceView`.
+## Game and DLC download
 
-- Default ARM64 renderer: desktop OpenGL calls through Zink to Vulkan.
-- Fallback renderer: MobileGlues translates desktop OpenGL to OpenGL ES.
-- Waydroid renderer: Mesa through its host Radeon Vulkan/OpenGL stack.
-- Start at 1280x720 internal resolution. Use integer-safe aspect fitting and black bars; do not stretch.
-- Record renderer selection and fallback cause in logs.
-- If startup reaches no first frame within 20 seconds, terminate cleanly and retry once with the fallback renderer.
+Use `javasteam-depotdownloader:1.8.0` with its Android installation directory set to `files/staging/game` and the platform filter fixed to Windows.
 
-### Input
+- Resolve the current public branch manifests for the base game and owned DLC.
+- Show one Download action for the complete owned installation rather than exposing depot IDs.
+- Run the transfer in an Android foreground service so it survives screen locking and activity recreation.
+- Publish immutable progress snapshots to the home screen: phase, downloaded bytes, total bytes, current relative path, bytes per second, and the latest log lines.
+- Append the complete timestamped stream to `logs/install/<session>.log`; retain the latest five install sessions.
+- Keep at most 1,000 lines in the visible log view while the file log remains complete.
+- Pause only at a file boundary. Retry resumes from verified files and cached chunks.
+- Cancel preserves resumable cache but removes partial files that fail their expected checksum.
 
-Darkest Dungeon is mouse-oriented, so direct touch maps to absolute pointer movement plus left click. Long press maps to right click only where needed. Android Back opens the launcher pause sheet rather than being sent to the game.
+Validation requires a regular Steam Windows executable under `_windows` or `_windowsnosteam`; the `audio`, `campaign`, `dungeons`, `heroes`, and `shared` directories; and every selected depot manifest. Paths containing traversal segments or escaping symlinks are rejected. The first failed requirement is shown in the UI and written to the log.
 
-The first milestone adds only four optional virtual keys: Escape, Space, Up, and Down. A full editable overlay and gamepad remapping are later work after gameplay proves which inputs are actually missing.
+## Runtime integration
 
-### Audio
+The launcher keeps one internal Winlator profile and exposes no generic container, profile, or per-game setting menus.
 
-Keep the official x86_64 FMOD libraries in the downloaded payload. Route their Linux ALSA output through a minimal ALSA-to-AAudio shim. Do not bundle proprietary FMOD Android libraries or SDK files.
+- Mount `files/game` as drive `G:`.
+- Launch the detected `G:\_windows\win64\Darkest.exe` or compatible no-Steam executable through Wine and Box64.
+- Use the launcher-selected graphics and audio defaults; device-specific fallback remains automatic.
+- Map the Wine user save directory to `files/saves` so replacing the game payload cannot remove progress.
+- Write each launch to a timestamped runtime log and retain the latest five sessions.
 
-The audio shim exposes only the functions observed from the downloaded FMOD build. Unsupported calls fail explicitly and are logged. Audio failure must not corrupt saves or leave the runtime process alive.
+## PC save sharing
 
-### Saves
+Use JavaSteam's Steam Cloud handler with App ID `262060`. Synchronization is explicit at safety boundaries:
 
-Set `HOME` and XDG variables to app-private paths so SDL and the game resolve preferences predictably. Discover the actual save path from the first successful run, then bind it to `files/saves/` without rewriting save content.
+1. Before Play, snapshot local saves and compare local and remote file summaries.
+2. If only cloud changed, download cloud files into a staging save directory, validate them, and atomically apply them locally.
+3. If only local changed, upload the changed non-empty save files and commit the batch.
+4. If both changed, require `로컬 유지` or `클라우드 유지`; never choose automatically.
+5. After the game exits, snapshot and upload only when local saves changed during that session.
 
-Every game update and future cloud sync begins with an atomic local save snapshot. Cloud behavior is out of the first implementation plan.
+Each summary contains relative path, byte length, modification time, and SHA-1. A recognizable save tree contains a `profile_<number>` directory with a non-empty `persist.game.json`. Reject absolute paths, traversal, empty replacement sets, files larger than Steam's 100 MiB per-file limit, and unrecognizable save trees. Keep the latest three local snapshots. A cloud error never deletes or overwrites the current local save tree.
 
-### Steam and DLC milestone
-
-Use JavaSteam 1.8.0 and `javasteam-depotdownloader` 1.8.0 in the Android process. The app authenticates with QR/Steam Mobile or Steam Guard, verifies App ID `262060`, resolves the Linux branch manifests, and downloads owned depots into a staging directory. A completed staging tree replaces `game/` only after payload validation succeeds.
-
-DLC ownership and content are derived from Steam metadata and downloaded depots. The launcher does not unlock DLC, edit DLC checks, or synthesize ownership state.
-
-### Workshop and mods milestone
-
-Workshop support follows the StS2 client's user-facing flow but uses DD1's data-mod layout:
-
-- browse/search item metadata;
-- subscribe and download through Steam;
-- validate the mod directory;
-- enable/disable by moving the mod between active and disabled directories;
-- preserve load order;
-- never edit Workshop source content in place.
-
-No DLL patching or Harmony layer is planned unless a specific DD1 mod demonstrably requires it.
-
-### Cloud milestone
-
-Cloud sync is explicit. Before Play, compare local and cloud summaries. When both changed, require Keep Local or Keep Cloud; never choose silently. Reject empty or structurally abnormal uploads and snapshot local saves before each cloud operation.
+Sign-out disables cloud operations but leaves local saves and the installed game intact.
 
 ## Error handling and diagnostics
 
-- Every native launch writes a new timestamped log set.
-- Keep the latest five sessions.
-- Export logs as a ZIP through Android's share sheet.
-- Installation uses staging plus atomic rename and can resume at a file boundary.
-- A failed validation names the first missing or invalid required file.
-- A runtime crash returns to the launcher with exit status, last renderer, and an Export Logs button.
-- The app never retries Steam authentication or destructive save operations silently.
+- Authentication, download, validation, runtime, and cloud operations have distinct error states.
+- Every long operation is cancellable and survives activity recreation.
+- Network loss pauses download or cloud work without corrupting the active payload or saves.
+- Export Logs creates a ZIP through Android's share sheet and excludes passwords, refresh tokens, cookies, and authorization headers.
+- Steam authentication and destructive save choices are never retried or resolved silently.
 
 ## Testing strategy
 
-- Pure JVM tests cover path validation, payload detection, renderer selection, state transitions, and save snapshot rules.
-- Native host tests cover environment construction and ELF header validation.
-- Android instrumentation tests cover lifecycle, Surface recreation, permission-free app-private storage, and log export.
-- Waydroid runs inside a visible Gamescope window for install, import, launch, rotation, suspend/resume, and touch tests.
-- Galaxy S25 validates ARM64 Box64, Vulkan/Zink, audio, thermals, and sustained gameplay.
-- A Snapdragon 865-class device is required before declaring the minimum specification verified.
+- Pure JVM tests cover state transitions, ownership decisions, progress aggregation, path validation, payload validation, log redaction, save summaries, and conflict selection.
+- Android tests cover QR-state restoration, foreground-service reconnection, Keystore token storage, download UI recreation, and log export.
+- Waydroid in Gamescope verifies sign-in UI, owned-content display, download progress/logging, resume, validation, and installed-state transitions.
+- Galaxy S25 verifies authentication, full Depot/DLC installation, Wine/Box64 launch, save creation, cloud upload/download, conflict handling, and sustained gameplay.
+- A Snapdragon 865-class ARM64 device is required before declaring the minimum specification verified.
 
-## Delivery phases
+## Delivery order
 
-1. Runtime MVP with developer-only local payload import.
-2. Steam authentication, ownership, Depot/DLC download, update and repair.
-3. Save manager and Steam Cloud.
-4. Workshop browser and mod enable/disable/load order.
-5. Compatibility expansion, controller editor, and performance profiles.
-6. Butcher's Circus investigation; no support promise because Steam networking may be unavailable.
+1. Steam QR/Guard authentication, token storage, and ownership verification.
+2. Foreground Depot/DLC download, visible logs, resume, validation, and atomic installation.
+3. Runtime launch against the downloaded Windows payload.
+4. Stable save mapping, snapshots, and bidirectional Steam Cloud synchronization.
+5. Workshop browser and mod enable/disable/load order.
 
 ## Deliberate exclusions
 
-- No game assets in APK or repository.
-- No Windows/Wine path while the official Linux build works.
-- No generic multi-game containers or per-game environment editor.
-- No analytics, accounts, backend service, or telemetry.
-- No custom updater until a signed release channel exists.
-- No PvP implementation in the first four phases.
+- No game or DLC data in the APK or repository.
+- No SteamCMD, external Steam app, backend account service, or generic multi-game UI.
+- No automatic cloud conflict resolution.
+- No editable performance profiles until measured device compatibility requires one.
+- No Workshop support before installation and cloud sync are reliable.
+- No Butcher's Circus support promise because its Steam networking behavior remains unverified.

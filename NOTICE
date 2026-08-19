@@ -1,0 +1,15 @@
+DD1 Android Launcher
+Copyright (c) 2026 DD1 Android Launcher contributors
+
+This project is not affiliated with Red Hook Studios or Valve Corporation.
+It does not include or distribute Darkest Dungeon, DLC, Workshop items, or
+Steam credentials. Users must supply files obtained with their own license.
+
+This project is based on Winlator 11.1:
+- winlator: https://github.com/brunodev85/winlator
+  commit fb66541b93a4eb3ee585a433b4c7b20544d58e40
+- winlator-app: https://github.com/brunodev85/winlator-app
+  commit c2f4ad4534f4637b543a9a3b085e28f50cf6d01c
+
+Winlator is licensed under LGPL-2.1. Bundled Wine, Box64, Mesa and other
+components retain their respective upstream licenses and notices.
