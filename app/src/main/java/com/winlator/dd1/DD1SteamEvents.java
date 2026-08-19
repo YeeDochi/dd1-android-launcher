@@ -34,6 +34,11 @@ public final class DD1SteamEvents {
         return update(DD1InstallPhase.ERROR, "Steam operation failed", null);
     }
 
+    public synchronized DD1InstallSnapshot sessionExpired() {
+        log.append("Stored Steam session did not answer; signing in again is required");
+        return update(DD1InstallPhase.SIGNED_OUT, "Steam sign-in required", null);
+    }
+
     public synchronized DD1InstallSnapshot signedOut() {
         log.append("Steam session closed");
         return update(DD1InstallPhase.SIGNED_OUT, "Steam sign-in required", null);

@@ -11,17 +11,17 @@ import java.util.Collections;
 
 public class DD1HomeProgressTest {
     @Test
-    public void showsThePercentage() {
-        assertEquals("50.0%", DD1HomeFragment.progressSummary(snapshot(5000, 10000, 0)));
+    public void showsThePercentageBesideTheBar() {
+        assertEquals("50%", DD1HomeFragment.progressSummary(snapshot(5000, 10000, 0)));
     }
 
     @Test
-    public void showsNothingUntilTheTotalIsKnown() {
+    public void showsNothingUntilThereIsAFigure() {
         assertEquals("", DD1HomeFragment.progressSummary(snapshot(0, 0, 0)));
     }
 
     private static DD1InstallSnapshot snapshot(long downloaded, long total, long speed) {
         return new DD1InstallSnapshot(DD1InstallPhase.DOWNLOADING, downloaded, total, speed,
-            "", "file", null, Collections.emptyList());
+            "Part 2 of 4", "file", null, Collections.emptyList());
     }
 }

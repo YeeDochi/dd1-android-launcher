@@ -8,10 +8,10 @@ import org.junit.Test;
 
 public class DD1SignInControlsTest {
     @Test
-    public void whileTheSessionIsCheckedNothingIsOffered() {
+    public void checkingASessionCanBeGivenUpOn() {
         DD1SignInControls controls = DD1SignInControls.from(DD1InstallPhase.RESTORING);
         assertFalse(controls.showForm);
-        assertFalse(controls.showCancel);
+        assertTrue("waiting on a stored session must be escapable", controls.showCancel);
         assertFalse(controls.showSignOut);
     }
 

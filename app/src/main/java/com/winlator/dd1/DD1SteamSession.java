@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletableFuture;
 
 import in.dragonbra.javasteam.enums.EResult;
@@ -51,6 +53,7 @@ public final class DD1SteamSession implements Closeable {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService operations = Executors.newSingleThreadExecutor();
     private final ExecutorService callbackLoop = Executors.newSingleThreadExecutor();
+    private final ScheduledExecutorService watchdog = Executors.newSingleThreadScheduledExecutor();
     private final List<Closeable> subscriptions = new ArrayList<>();
 
     private volatile List<License> licenses = Collections.emptyList();
@@ -58,6 +61,7 @@ public final class DD1SteamSession implements Closeable {
     private volatile boolean qrRequested;
     private volatile boolean expectedDisconnect;
     private volatile boolean signingOut;
+    private volatile boolean restoring;
     private volatile SteamTokenStore.Session savedSession;
     private volatile int reconnects;
     private volatile String credentialAccount;
@@ -89,7 +93,20 @@ public final class DD1SteamSession implements Closeable {
             publish(events.signedOut());
             return;
         }
+        restoring = true;
         connect();
+        // A stored session that never answers would otherwise hold the launcher
+        // on the checking screen forever.
+        watchdog.schedule(this::abandonRestore, 25, TimeUnit.SECONDS);
+    }
+
+    private void abandonRestore() {
+        if (!restoring || closed) return;
+        restoring = false;
+        tokens.clear();
+        expectedDisconnect = true;
+        client.disconnect();
+        publish(events.sessionExpired());
     }
 
     public void startCredentials(String account, String password) {
@@ -109,11 +126,14 @@ public final class DD1SteamSession implements Closeable {
 
     public void signOut() {
         signingOut = true;
+        restoring = false;
         tokens.clear();
-        if (client.isConnected()) user.logOff();
         expectedDisconnect = true;
-        client.disconnect();
+        // Publish first: the user asked to stop, and disconnecting can take a
+        // while when the connection is the thing that is wedged.
         publish(events.signedOut());
+        if (client.isConnected()) user.logOff();
+        client.disconnect();
     }
 
     public SteamClient client() {
@@ -134,6 +154,7 @@ public final class DD1SteamSession implements Closeable {
         expectedDisconnect = true;
         client.disconnect();
         operations.shutdownNow();
+        watchdog.shutdownNow();
         callbackLoop.shutdown();
         for (Closeable subscription : subscriptions) {
             try {
@@ -219,6 +240,7 @@ public final class DD1SteamSession implements Closeable {
     }
 
     private void onLoggedOn(LoggedOnCallback callback) {
+        restoring = false;
         if (callback.getResult() == EResult.OK) {
             reconnects = 0;
             publish(events.loggedOn());

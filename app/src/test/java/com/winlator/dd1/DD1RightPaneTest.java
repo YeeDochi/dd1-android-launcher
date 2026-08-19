@@ -6,19 +6,22 @@ import org.junit.Test;
 
 public class DD1RightPaneTest {
     @Test
-    public void restoringAStoredSessionShowsNeitherFormNorLog() {
-        assertEquals(DD1RightPane.CHECKING,
-            DD1RightPane.from(DD1InstallPhase.RESTORING, false));
-        assertEquals(DD1RightPane.CHECKING,
-            DD1RightPane.from(DD1InstallPhase.RESTORING, true));
+    public void signingInComesBeforeTheGameBecauseSavesNeedTheAccount() {
+        assertEquals(DD1RightPane.SIGN_IN, DD1RightPane.from(DD1InstallPhase.SIGNED_OUT, true));
+        assertEquals(DD1RightPane.SIGN_IN, DD1RightPane.from(DD1InstallPhase.SIGNED_OUT, false));
     }
 
     @Test
-    public void signInComesFirstEvenWhileTheRuntimeIsStillUnpacking() {
-        assertEquals(DD1RightPane.SIGN_IN,
-            DD1RightPane.from(DD1InstallPhase.SIGNED_OUT, false));
-        assertEquals(DD1RightPane.SIGN_IN,
-            DD1RightPane.from(DD1InstallPhase.SIGNED_OUT, true));
+    public void checkingAStoredSessionComesFirstToo() {
+        assertEquals(DD1RightPane.CHECKING, DD1RightPane.from(DD1InstallPhase.RESTORING, true));
+        assertEquals(DD1RightPane.CHECKING, DD1RightPane.from(DD1InstallPhase.RESTORING, false));
+    }
+
+    @Test
+    public void onceSignedInAnInstalledGameShowsItsLog() {
+        assertEquals(DD1RightPane.LOG, DD1RightPane.from(DD1InstallPhase.READY_TO_INSTALL, true));
+        assertEquals(DD1RightPane.LOG, DD1RightPane.from(DD1InstallPhase.READY, true));
+        assertEquals(DD1RightPane.LOG, DD1RightPane.from(DD1InstallPhase.ERROR, true));
     }
 
     @Test
@@ -38,14 +41,7 @@ public class DD1RightPaneTest {
     }
 
     @Test
-    public void anInstalledGameLeavesTheLogInPlace() {
-        assertEquals(DD1RightPane.LOG, DD1RightPane.from(DD1InstallPhase.READY, true));
-        assertEquals(DD1RightPane.LOG, DD1RightPane.from(DD1InstallPhase.VERIFYING, true));
-    }
-
-    @Test
     public void anErrorIsShownWithTheControlsThatCanRecoverFromIt() {
         assertEquals(DD1RightPane.INSTALL, DD1RightPane.from(DD1InstallPhase.ERROR, false));
-        assertEquals(DD1RightPane.LOG, DD1RightPane.from(DD1InstallPhase.ERROR, true));
     }
 }

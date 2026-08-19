@@ -8,6 +8,8 @@ public enum DD1RightPane {
     INSTALL,
     LOG;
 
+    // The account comes first even when the game is installed, because save
+    // synchronisation needs it. Only once signed in does the install decide.
     public static DD1RightPane from(DD1InstallPhase phase, boolean gameInstalled) {
         if (phase == DD1InstallPhase.RESTORING) return CHECKING;
         if (phase == DD1InstallPhase.SIGNED_OUT || phase == DD1InstallPhase.AUTHENTICATING)

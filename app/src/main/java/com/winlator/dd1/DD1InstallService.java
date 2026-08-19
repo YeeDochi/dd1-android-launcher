@@ -112,9 +112,10 @@ public final class DD1InstallService extends Service {
         stopSelf();
     }
 
+    // Closing the Steam connection blocks, so it never runs on the caller's thread.
     public void signOut() {
         cancel();
-        steam.signOut();
+        worker.execute(steam::signOut);
     }
 
     public java.util.List<Integer> ownedDlc() {
@@ -268,9 +269,13 @@ public final class DD1InstallService extends Service {
         }
 
         private DD1InstallSnapshot downloadSnapshot(int depotId, String file) {
+            double overall = progress.overall();
             return new DD1InstallSnapshot(DD1InstallPhase.DOWNLOADING,
-                (long)(progress.overall() * 100), 10000L, 0,
-                "Downloading depot " + depotId, file, null, log.visibleLines());
+                overall < 0 ? 0 : (long)(overall * 100), overall < 0 ? 0 : 10000L,
+                progress.currentIndex(), progress.totalKnown()
+                    ? "Part " + progress.currentIndex() + " of " + progress.depotCount()
+                    : "Part " + progress.currentIndex(),
+                file == null ? "" : file, null, log.visibleLines());
         }
 
         @Override

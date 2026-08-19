@@ -109,7 +109,6 @@ public class DD1HomeFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        if (DD1Game.findExecutable(requireContext().getFilesDir()) != null) return;
         requireContext().bindService(new Intent(requireContext(), DD1InstallService.class),
             serviceConnection, Context.BIND_AUTO_CREATE);
     }
@@ -231,7 +230,7 @@ public class DD1HomeFragment extends Fragment {
 
         int[] controls = {R.id.IVSteamQr, R.id.BTSteamLogin, R.id.ETSteamAccount,
             R.id.ETSteamPassword, R.id.BTSteamCredentials, R.id.BTDownload,
-            R.id.PBDownload, R.id.TVDownloadFile,
+            R.id.LLDownloadBar,
             R.id.BTCancelDownload, R.id.BTRetryDownload, R.id.BTSteamSignOut,
             R.id.TVDlcTitle, R.id.SVDlcChoices};
         for (int id : controls) rootView.findViewById(id).setVisibility(View.GONE);
@@ -253,13 +252,14 @@ public class DD1HomeFragment extends Fragment {
         }
         else if (snapshot.phase == DD1InstallPhase.DOWNLOADING ||
                 snapshot.phase == DD1InstallPhase.VERIFYING) {
-            show(R.id.PBDownload, R.id.TVDownloadFile, R.id.BTCancelDownload);
+            show(R.id.LLDownloadBar, R.id.BTCancelDownload);
             ProgressBar progress = rootView.findViewById(R.id.PBDownload);
             progress.setIndeterminate(snapshot.totalBytes <= 0);
             if (snapshot.totalBytes > 0)
                 progress.setProgress((int)Math.min(1000, snapshot.downloadedBytes * 1000 / snapshot.totalBytes));
-            ((TextView)rootView.findViewById(R.id.TVDownloadFile))
-                .setText(progressSummary(snapshot) + "\n" + snapshot.currentFile);
+            ((TextView)rootView.findViewById(R.id.TVDownloadPercent))
+                .setText(progressSummary(snapshot));
+            rootView.findViewById(R.id.TVInstallLog).setVisibility(View.VISIBLE);
         }
         else if (snapshot.phase == DD1InstallPhase.NOT_OWNED) {
             // Nothing to offer but a different account.
@@ -345,10 +345,11 @@ public class DD1HomeFragment extends Fragment {
         refresh();
     }
 
-    // The downloader only reports a percentage reliably, so that is all this shows.
+    // The part being fetched is named in the status box; this is only the figure.
     static String progressSummary(DD1InstallSnapshot snapshot) {
         if (snapshot.totalBytes <= 0) return "";
-        return String.format(Locale.US, "%.1f%%", snapshot.downloadedBytes * 100.0 / snapshot.totalBytes);
+        return String.format(Locale.US, "%.0f%%",
+            snapshot.downloadedBytes * 100.0 / snapshot.totalBytes);
     }
 
     private void show(int... ids) {

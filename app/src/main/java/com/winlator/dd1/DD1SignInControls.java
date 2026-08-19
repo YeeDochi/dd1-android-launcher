@@ -17,7 +17,7 @@ public final class DD1SignInControls {
     }
 
     public static DD1SignInControls from(DD1InstallPhase phase) {
-        if (phase == DD1InstallPhase.RESTORING) return new DD1SignInControls(false, false, false);
+        if (phase == DD1InstallPhase.RESTORING) return new DD1SignInControls(false, true, false);
         if (phase == DD1InstallPhase.AUTHENTICATING) return new DD1SignInControls(false, true, false);
         if (phase == DD1InstallPhase.SIGNED_OUT || phase == DD1InstallPhase.ERROR)
             return new DD1SignInControls(true, false, false);
