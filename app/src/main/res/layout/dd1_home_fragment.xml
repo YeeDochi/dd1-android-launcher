@@ -39,6 +39,124 @@
             android:textColor="?attr/colorPrimaryText"
             android:textSize="18sp" />
 
+        <LinearLayout
+            android:id="@+id/LLSteamInstall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/IVSteamQr"
+                android:layout_width="220dp"
+                android:layout_height="220dp"
+                android:contentDescription="@string/dd1_steam_qr"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/BTSteamLogin"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="@string/dd1_steam_login"
+                android:visibility="gone" />
+
+            <EditText
+                android:id="@+id/ETSteamAccount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:autofillHints="username"
+                android:hint="@string/dd1_steam_account"
+                android:inputType="textEmailAddress"
+                android:singleLine="true"
+                android:textColor="?attr/colorPrimaryText"
+                android:textColorHint="?attr/colorSecondaryText"
+                android:visibility="gone" />
+
+            <EditText
+                android:id="@+id/ETSteamPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:autofillHints="password"
+                android:hint="@string/dd1_steam_password"
+                android:inputType="textPassword"
+                android:singleLine="true"
+                android:textColor="?attr/colorPrimaryText"
+                android:textColorHint="?attr/colorSecondaryText"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/BTSteamCredentials"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="@string/dd1_steam_credentials"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/BTDownload"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="@string/dd1_download"
+                android:visibility="gone" />
+
+            <ProgressBar
+                android:id="@+id/PBDownload"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="1000"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/TVDownloadFile"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:ellipsize="middle"
+                android:maxLines="2"
+                android:textColor="?attr/colorSecondaryText"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/TVInstallLog"
+                android:layout_width="match_parent"
+                android:layout_height="160dp"
+                android:layout_marginTop="12dp"
+                android:background="?attr/colorSecondarySurface"
+                android:fontFamily="monospace"
+                android:gravity="bottom|start"
+                android:padding="12dp"
+                android:textColor="?attr/colorSecondaryText"
+                android:textIsSelectable="true"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/BTCancelDownload"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="@string/cancel"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/BTRetryDownload"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="@string/dd1_retry"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/BTSteamSignOut"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="@string/dd1_steam_sign_out"
+                android:visibility="gone" />
+        </LinearLayout>
+
         <Button
             android:id="@+id/BTPrimaryAction"
             android:layout_width="match_parent"

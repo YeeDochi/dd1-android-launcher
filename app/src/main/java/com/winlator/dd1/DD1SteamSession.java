@@ -12,10 +12,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.CompletableFuture;
 
 import in.dragonbra.javasteam.enums.EResult;
 import in.dragonbra.javasteam.steam.authentication.AuthPollResult;
 import in.dragonbra.javasteam.steam.authentication.AuthSessionDetails;
+import in.dragonbra.javasteam.steam.authentication.CredentialsAuthSession;
+import in.dragonbra.javasteam.steam.authentication.IAuthenticator;
 import in.dragonbra.javasteam.steam.authentication.QrAuthSession;
 import in.dragonbra.javasteam.steam.handlers.steamapps.License;
 import in.dragonbra.javasteam.steam.handlers.steamapps.PICSProductInfo;
@@ -53,6 +56,11 @@ public final class DD1SteamSession implements Closeable {
     private volatile List<License> licenses = Collections.emptyList();
     private volatile boolean closed;
     private volatile boolean qrRequested;
+    private volatile boolean expectedDisconnect;
+    private volatile SteamTokenStore.Session savedSession;
+    private volatile int reconnects;
+    private volatile String credentialAccount;
+    private volatile String credentialPassword;
 
     public DD1SteamSession(Context context, Listener listener) {
         tokens = new SteamTokenStore(context);
@@ -66,17 +74,40 @@ public final class DD1SteamSession implements Closeable {
 
     public void startQr() {
         qrRequested = true;
+        savedSession = null;
+        reconnects = 0;
+        publish(events.authStarted(null));
         connect();
     }
 
     public void restore() {
         qrRequested = false;
+        savedSession = tokens.load();
+        if (savedSession == null) {
+            publish(events.signedOut());
+            return;
+        }
+        connect();
+    }
+
+    public void startCredentials(String account, String password) {
+        if (account == null || account.trim().isEmpty() || password == null || password.isEmpty()) {
+            publish(events.failed("Steam account and password are required"));
+            return;
+        }
+        qrRequested = false;
+        savedSession = null;
+        credentialAccount = account.trim();
+        credentialPassword = password;
+        reconnects = 0;
+        publish(events.authStarted(null));
         connect();
     }
 
     public void signOut() {
         tokens.clear();
         if (client.isConnected()) user.logOff();
+        expectedDisconnect = true;
         client.disconnect();
         publish(events.signedOut());
     }
@@ -92,9 +123,10 @@ public final class DD1SteamSession implements Closeable {
     @Override
     public void close() {
         closed = true;
+        expectedDisconnect = true;
         client.disconnect();
         operations.shutdownNow();
-        callbackLoop.shutdownNow();
+        callbackLoop.shutdown();
         for (Closeable subscription : subscriptions) {
             try {
                 subscription.close();
@@ -105,6 +137,7 @@ public final class DD1SteamSession implements Closeable {
 
     private void connect() {
         if (closed) return;
+        expectedDisconnect = false;
         if (!client.isConnected()) client.connect();
     }
 
@@ -113,7 +146,8 @@ public final class DD1SteamSession implements Closeable {
     }
 
     private void onConnected() {
-        operations.execute(qrRequested ? this::authenticateQr : this::logOnSavedSession);
+        operations.execute(qrRequested ? this::authenticateQr :
+            credentialPassword != null ? this::authenticateCredentials : this::logOnSavedSession);
     }
 
     private void authenticateQr() {
@@ -134,13 +168,37 @@ public final class DD1SteamSession implements Closeable {
     }
 
     private void logOnSavedSession() {
-        SteamTokenStore.Session session = tokens.load();
+        SteamTokenStore.Session session = savedSession;
         if (session == null) {
             publish(events.signedOut());
-            client.disconnect();
             return;
         }
         logOn(session.account, session.token);
+    }
+
+    private void authenticateCredentials() {
+        String password = credentialPassword;
+        credentialPassword = null;
+        try {
+            AuthSessionDetails details = new AuthSessionDetails();
+            details.username = credentialAccount;
+            details.password = password;
+            details.deviceFriendlyName = "DD1 Android Launcher";
+            details.persistentSession = true;
+            details.authenticator = new MobileApprovalAuthenticator();
+            CredentialsAuthSession session = client.getAuthentication()
+                .beginAuthSessionViaCredentials(details).get();
+            AuthPollResult result = session.pollingWaitForResult().get();
+            tokens.save(result.getAccountName(), result.getRefreshToken());
+            logOn(result.getAccountName(), result.getRefreshToken());
+        }
+        catch (Exception error) {
+            fail(error);
+        }
+        finally {
+            password = null;
+            credentialAccount = null;
+        }
     }
 
     private void logOn(String account, String token) {
@@ -153,7 +211,10 @@ public final class DD1SteamSession implements Closeable {
     }
 
     private void onLoggedOn(LoggedOnCallback callback) {
-        if (callback.getResult() == EResult.OK) publish(events.loggedOn());
+        if (callback.getResult() == EResult.OK) {
+            reconnects = 0;
+            publish(events.loggedOn());
+        }
         else fail(new IllegalStateException("Steam logon result " + callback.getResult()));
     }
 
@@ -193,8 +254,19 @@ public final class DD1SteamSession implements Closeable {
     }
 
     private void onDisconnected(DisconnectedCallback callback) {
-        if (!closed && !callback.isUserInitiated())
-            publish(events.failed("Steam connection closed"));
+        if (closed || expectedDisconnect || callback.isUserInitiated()) return;
+        if (reconnects++ < 3) {
+            operations.execute(() -> {
+                try {
+                    Thread.sleep(1000L);
+                    connect();
+                }
+                catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+        }
+        else publish(events.failed("Steam connection closed"));
     }
 
     private void fail(Throwable error) {
@@ -209,5 +281,28 @@ public final class DD1SteamSession implements Closeable {
         T handler = client.getHandler(type);
         if (handler == null) throw new IllegalStateException("Missing Steam handler " + type.getSimpleName());
         return handler;
+    }
+
+    private static final class MobileApprovalAuthenticator implements IAuthenticator {
+        @Override
+        public CompletableFuture<String> getDeviceCode(boolean previousCodeWasIncorrect) {
+            return failedCode();
+        }
+
+        @Override
+        public CompletableFuture<String> getEmailCode(String email, boolean previousCodeWasIncorrect) {
+            return failedCode();
+        }
+
+        @Override
+        public CompletableFuture<Boolean> acceptDeviceConfirmation() {
+            return CompletableFuture.completedFuture(true);
+        }
+
+        private static CompletableFuture<String> failedCode() {
+            CompletableFuture<String> result = new CompletableFuture<>();
+            result.completeExceptionally(new IllegalStateException("Steam Guard code entry is not available"));
+            return result;
+        }
     }
 }

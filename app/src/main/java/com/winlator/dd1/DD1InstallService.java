@@ -48,6 +48,7 @@ public final class DD1InstallService extends Service {
     private volatile DepotDownloader downloader;
     private volatile CountDownLatch completion;
     private volatile boolean cancelled;
+    private volatile boolean ownsGame;
     private DD1SteamSession steam;
 
     @Override
@@ -81,8 +82,12 @@ public final class DD1InstallService extends Service {
         steam.startQr();
     }
 
+    public void startCredentials(String account, String password) {
+        steam.startCredentials(account, password);
+    }
+
     public synchronized void download() {
-        if (snapshot.phase != DD1InstallPhase.READY_TO_INSTALL || downloader != null) return;
+        if (!ownsGame || downloader != null) return;
         cancelled = false;
         startService(new Intent(this, DD1InstallService.class));
         startForeground(1, notification(getString(R.string.dd1_install_downloading)));
@@ -102,6 +107,10 @@ public final class DD1InstallService extends Service {
     public void signOut() {
         cancel();
         steam.signOut();
+    }
+
+    public boolean canDownload() {
+        return ownsGame;
     }
 
     @Override
@@ -162,6 +171,9 @@ public final class DD1InstallService extends Service {
     }
 
     private void publish(DD1InstallSnapshot value) {
+        if (value.phase == DD1InstallPhase.READY_TO_INSTALL) ownsGame = true;
+        else if (value.phase == DD1InstallPhase.SIGNED_OUT || value.phase == DD1InstallPhase.NOT_OWNED)
+            ownsGame = false;
         snapshot = value;
         Listener observer = listener;
         if (observer != null) main.post(() -> observer.onSnapshot(value));
