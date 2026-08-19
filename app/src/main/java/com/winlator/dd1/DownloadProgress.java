@@ -30,6 +30,10 @@ public final class DownloadProgress {
         if (matcher.find()) known.add(Integer.parseInt(matcher.group(1)));
     }
 
+    // Only bytes actually moving advance the figures. Resuming makes the
+    // downloader walk every depot it already has, finishing each at once, and
+    // letting that drive the display sent it straight to the last part with
+    // gigabytes still to come.
     public void onDepotProgress(int depotId, float reported) {
         if (depotId > 0) known.add(depotId);
         if (depotId > 0 && depotId != currentDepot) {
@@ -39,12 +43,18 @@ public final class DownloadProgress {
         if (reported > 0) currentPercent = percent(reported);
     }
 
+    // A depot walked over during the resume sweep: it counts towards the total
+    // but says nothing about where the download is.
+    public void onDepotSeen(int depotId) {
+        if (depotId > 0) known.add(depotId);
+    }
+
     public void onDepotFinished(int depotId) {
         if (depotId > 0) {
             finished.add(depotId);
             known.add(depotId);
         }
-        currentPercent = -1;
+        if (depotId == currentDepot) currentPercent = -1;
     }
 
     public int currentDepot() {

@@ -79,6 +79,24 @@ public class DownloadProgressTest {
     }
 
     @Test
+    public void walkingOverAlreadyFetchedDepotsDoesNotMoveTheFigure() {
+        DownloadProgress progress = new DownloadProgress();
+        for (int depotId : new int[]{1, 2, 3}) {
+            progress.onStatus("Downloading manifest for depot " + depotId);
+        }
+        progress.onDepotProgress(1, 40f);
+        // The resume sweep finishes the parts already on disk.
+        progress.onDepotSeen(2);
+        progress.onDepotFinished(2);
+        progress.onDepotSeen(3);
+        progress.onDepotFinished(3);
+
+        assertEquals("1/3", progress.part());
+        assertEquals("the depot in hand still has its figure", 40.0,
+            progress.currentPercent(), 0.01);
+    }
+
+    @Test
     public void thePartNumberNeverRunsPastTheTotal() {
         DownloadProgress progress = new DownloadProgress();
         progress.onStatus("Downloading manifest for depot 7");

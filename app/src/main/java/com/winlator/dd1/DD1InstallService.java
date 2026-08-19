@@ -104,13 +104,23 @@ public final class DD1InstallService extends Service {
         worker.execute(this::runDownload);
     }
 
-    public synchronized void cancel() {
+    public void cancel() {
         cancelled = true;
-        if (downloader != null) downloader.close();
-        if (completion != null) completion.countDown();
+        DepotDownloader active;
+        CountDownLatch waiting;
+        synchronized (this) {
+            active = downloader;
+            waiting = completion;
+        }
+        // Releasing the worker is what stops the download; the button must not
+        // wait on it.
+        if (waiting != null) waiting.countDown();
         publish(stoppedSnapshot("Download cancelled"));
         stopForeground(true);
         stopSelf();
+        // Closing shuts down the downloader's connections and blocks, so it
+        // never runs on the thread that pressed the button.
+        if (active != null) new Thread(active::close, "dd1-cancel").start();
     }
 
     // Closing the Steam connection blocks, so it never runs on the caller's thread.
@@ -283,7 +293,7 @@ public final class DD1InstallService extends Service {
         @Override
         public void onFileCompleted(int depotId, String fileName, float percent) {
             log.append(fileName);
-            progress.onDepotProgress(depotId, percent);
+            progress.onDepotSeen(depotId);
             publish(downloadSnapshot(describe(), fileName));
         }
 
