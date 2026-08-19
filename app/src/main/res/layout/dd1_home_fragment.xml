@@ -18,7 +18,7 @@
             android:layout_height="wrap_content"
             android:text="@string/dd1_home_title"
             android:textColor="?attr/colorPrimaryText"
-            android:textSize="32sp"
+            android:textSize="26sp"
             android:textStyle="bold" />
 
         <TextView
@@ -33,19 +33,29 @@
             android:id="@+id/TVStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="16dp"
             android:background="?attr/colorSecondarySurface"
             android:gravity="center"
-            android:padding="16dp"
+            android:padding="10dp"
             android:textColor="?attr/colorPrimaryText"
-            android:textSize="16sp" />
+            android:textSize="15sp" />
 
         <Button
             android:id="@+id/BTPrimaryAction"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="16dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
             android:text="@string/dd1_play" />
+
+        <Button
+            android:id="@+id/BTDeleteGame"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginTop="4dp"
+            android:text="@string/dd1_delete_game"
+            android:textColor="?attr/colorSecondaryText"
+            android:visibility="gone" />
 
         <Button
             android:id="@+id/BTAbout"
@@ -57,10 +67,16 @@
             android:textColor="?attr/colorSecondaryText" />
     </LinearLayout>
 
-    <ScrollView
-        android:id="@+id/SVSteamInstall"
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+    <ScrollView
+        android:id="@+id/SVSteamInstall"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
         android:fillViewport="true">
 
@@ -147,21 +163,6 @@
                 android:textSize="13sp"
                 android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/TVInstallLog"
-                android:layout_width="match_parent"
-                android:layout_height="220dp"
-                android:layout_marginTop="8dp"
-                android:background="?attr/colorSecondarySurface"
-                android:fontFamily="monospace"
-                android:gravity="bottom|start"
-                android:padding="10dp"
-                android:scrollbars="vertical"
-                android:textColor="?attr/colorSecondaryText"
-                android:textIsSelectable="true"
-                android:textSize="11sp"
-                android:visibility="gone" />
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -194,4 +195,21 @@
                 android:visibility="gone" />
         </LinearLayout>
     </ScrollView>
+
+        <TextView
+            android:id="@+id/TVInstallLog"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="8dp"
+            android:background="?attr/colorSecondarySurface"
+            android:fontFamily="monospace"
+            android:gravity="bottom|start"
+            android:minHeight="120dp"
+            android:padding="10dp"
+            android:scrollbars="vertical"
+            android:textColor="?attr/colorSecondaryText"
+            android:textIsSelectable="true"
+            android:textSize="11sp" />
+    </LinearLayout>
 </LinearLayout>

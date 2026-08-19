@@ -216,8 +216,7 @@ public final class DD1InstallService extends Service {
 
     private final class ProgressListener implements IDownloadListener {
         private final AtomicReference<Throwable> failure;
-        private long lastBytes;
-        private long lastTime = System.currentTimeMillis();
+        private final DownloadProgress progress = new DownloadProgress();
 
         private ProgressListener(AtomicReference<Throwable> failure) {
             this.failure = failure;
@@ -226,32 +225,35 @@ public final class DD1InstallService extends Service {
         @Override
         public void onStatusUpdate(String message) {
             log.append(message);
-            publish(downloadSnapshot(snapshot.downloadedBytes, snapshot.totalBytes,
-                snapshot.bytesPerSecond, message, snapshot.currentFile));
+            publish(new DD1InstallSnapshot(DD1InstallPhase.DOWNLOADING,
+                snapshot.downloadedBytes, snapshot.totalBytes, 0,
+                message, snapshot.currentFile, null, log.visibleLines()));
         }
 
         @Override
         public void onFileCompleted(int depotId, String fileName, float percent) {
             log.append(fileName);
-            publish(downloadSnapshot(snapshot.downloadedBytes, snapshot.totalBytes,
-                snapshot.bytesPerSecond, "Downloading depot " + depotId, fileName));
+            progress.onDepotProgress(depotId, percent);
+            publish(downloadSnapshot(depotId, fileName));
         }
 
         @Override
         public void onChunkCompleted(int depotId, float percent, long bytes, long uncompressed) {
-            long now = System.currentTimeMillis();
-            long elapsed = Math.max(1, now - lastTime);
-            long speed = Math.max(0, bytes - lastBytes) * 1000 / elapsed;
-            long total = percent > 0 ? (long)(bytes / percent) : 0;
-            lastBytes = bytes;
-            lastTime = now;
-            publish(downloadSnapshot(bytes, total, speed,
-                "Downloading depot " + depotId, snapshot.currentFile));
+            progress.onDepotProgress(depotId, percent);
+            publish(downloadSnapshot(depotId, snapshot.currentFile));
         }
 
         @Override
         public void onDepotCompleted(int depotId, long bytes, long uncompressed) {
             log.append("Depot " + depotId + " completed");
+            progress.onDepotFinished(depotId);
+            publish(downloadSnapshot(depotId, snapshot.currentFile));
+        }
+
+        private DD1InstallSnapshot downloadSnapshot(int depotId, String file) {
+            return new DD1InstallSnapshot(DD1InstallPhase.DOWNLOADING,
+                (long)(progress.overall() * 100), 10000L, 0,
+                "Downloading depot " + depotId, file, null, log.visibleLines());
         }
 
         @Override

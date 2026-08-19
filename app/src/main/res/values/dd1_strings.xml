@@ -21,4 +21,7 @@
     <string name="dd1_download">Download game and owned DLC</string>
     <string name="dd1_retry">Retry</string>
     <string name="dd1_open_source_info">Open-source information</string>
+    <string name="dd1_delete_game">Delete game files</string>
+    <string name="dd1_delete_game_message">The game and any unfinished download will be removed. Signing in again and downloading roughly 4 GB will be required to play. Saves are kept.</string>
+    <string name="dd1_delete_game_failed">Some game files could not be removed</string>
 </resources>

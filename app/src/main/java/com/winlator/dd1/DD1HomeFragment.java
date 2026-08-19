@@ -3,6 +3,7 @@ package com.winlator.dd1;
 import com.winlator.XServerDisplayActivity;
 import com.winlator.R;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -22,6 +23,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -86,6 +88,7 @@ public class DD1HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         rootView = view;
         view.findViewById(R.id.BTAbout).setOnClickListener(v -> new AboutDialog(getContext()).show());
+        view.findViewById(R.id.BTDeleteGame).setOnClickListener(v -> confirmDeleteGame());
         view.findViewById(R.id.BTSteamLogin).setOnClickListener(v -> withService(DD1InstallService::startQr));
         view.findViewById(R.id.BTSteamCredentials).setOnClickListener(v -> startCredentials());
         view.findViewById(R.id.BTDownload).setOnClickListener(v -> withService(DD1InstallService::download));
@@ -151,6 +154,8 @@ public class DD1HomeFragment extends Fragment {
         Button primary = rootView.findViewById(R.id.BTPrimaryAction);
         primary.setVisibility(View.VISIBLE);
         rootView.findViewById(R.id.LLSteamInstall).setVisibility(View.GONE);
+        rootView.findViewById(R.id.BTDeleteGame)
+            .setVisibility(executable != null ? View.VISIBLE : View.GONE);
         primary.setEnabled(state == DD1HomeState.READY || state == DD1HomeState.PROFILE_MISSING);
 
         switch (state) {
@@ -180,6 +185,9 @@ public class DD1HomeFragment extends Fragment {
     void renderInstallSnapshot(DD1InstallSnapshot snapshot) {
         installSnapshot = snapshot;
         if (rootView == null) return;
+        // The log stays on screen in every state; save synchronisation will write
+        // into it too.
+        setLog(TextUtils.join("\n", snapshot.logLines));
         if (snapshot.phase == DD1InstallPhase.READY) {
             refresh();
             return;
@@ -194,7 +202,7 @@ public class DD1HomeFragment extends Fragment {
 
         int[] controls = {R.id.IVSteamQr, R.id.BTSteamLogin, R.id.ETSteamAccount,
             R.id.ETSteamPassword, R.id.BTSteamCredentials, R.id.BTDownload,
-            R.id.PBDownload, R.id.TVDownloadFile, R.id.TVInstallLog,
+            R.id.PBDownload, R.id.TVDownloadFile,
             R.id.BTCancelDownload, R.id.BTRetryDownload, R.id.BTSteamSignOut};
         for (int id : controls) rootView.findViewById(id).setVisibility(View.GONE);
 
@@ -215,23 +223,21 @@ public class DD1HomeFragment extends Fragment {
         }
         else if (snapshot.phase == DD1InstallPhase.DOWNLOADING ||
                 snapshot.phase == DD1InstallPhase.VERIFYING) {
-            show(R.id.PBDownload, R.id.TVDownloadFile, R.id.TVInstallLog, R.id.BTCancelDownload);
+            show(R.id.PBDownload, R.id.TVDownloadFile, R.id.BTCancelDownload);
             ProgressBar progress = rootView.findViewById(R.id.PBDownload);
             progress.setIndeterminate(snapshot.totalBytes <= 0);
             if (snapshot.totalBytes > 0)
                 progress.setProgress((int)Math.min(1000, snapshot.downloadedBytes * 1000 / snapshot.totalBytes));
             ((TextView)rootView.findViewById(R.id.TVDownloadFile))
                 .setText(progressSummary(snapshot) + "\n" + snapshot.currentFile);
-            setLog(TextUtils.join("\n", snapshot.logLines));
         }
         else if (snapshot.phase == DD1InstallPhase.NOT_OWNED) {
             show(R.id.BTSteamSignOut);
         }
         else if (snapshot.phase == DD1InstallPhase.ERROR) {
-            show(R.id.TVInstallLog, R.id.BTSteamSignOut);
+            show(R.id.BTSteamSignOut);
             if (installService != null && installService.canDownload()) show(R.id.BTRetryDownload);
             else show(R.id.BTSteamLogin);
-            setLog(TextUtils.join("\n", snapshot.logLines));
         }
     }
 
@@ -249,26 +255,27 @@ public class DD1HomeFragment extends Fragment {
         });
     }
 
-    static String progressSummary(DD1InstallSnapshot snapshot) {
-        StringBuilder text = new StringBuilder();
-        if (snapshot.totalBytes > 0) {
-            text.append(String.format(Locale.US, "%.1f%% \u00b7 %s / %s",
-                snapshot.downloadedBytes * 100.0 / snapshot.totalBytes,
-                bytes(snapshot.downloadedBytes), bytes(snapshot.totalBytes)));
-        }
-        else text.append(bytes(snapshot.downloadedBytes));
-        if (snapshot.bytesPerSecond > 0)
-            text.append(" \u00b7 ").append(bytes(snapshot.bytesPerSecond)).append("/s");
-        return text.toString();
+    private void confirmDeleteGame() {
+        Activity activity = getActivity();
+        if (activity == null) return;
+        new AlertDialog.Builder(activity)
+            .setTitle(R.string.dd1_delete_game)
+            .setMessage(R.string.dd1_delete_game_message)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.dd1_delete_game, (dialog, which) -> deleteGame(activity))
+            .show();
     }
 
-    private static String bytes(long value) {
-        if (value >= 1024L * 1024L * 1024L)
-            return String.format(Locale.US, "%.2f GB", value / (1024.0 * 1024.0 * 1024.0));
-        if (value >= 1024L * 1024L)
-            return String.format(Locale.US, "%.1f MB", value / (1024.0 * 1024.0));
-        if (value >= 1024L) return String.format(Locale.US, "%.0f KB", value / 1024.0);
-        return value + " B";
+    private void deleteGame(Activity activity) {
+        if (!DD1Installer.uninstall(activity.getFilesDir()))
+            Toast.makeText(activity, R.string.dd1_delete_game_failed, Toast.LENGTH_LONG).show();
+        refresh();
+    }
+
+    // The downloader only reports a percentage reliably, so that is all this shows.
+    static String progressSummary(DD1InstallSnapshot snapshot) {
+        if (snapshot.totalBytes <= 0) return "";
+        return String.format(Locale.US, "%.1f%%", snapshot.downloadedBytes * 100.0 / snapshot.totalBytes);
     }
 
     private void show(int... ids) {

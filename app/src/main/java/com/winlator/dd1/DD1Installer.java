@@ -24,6 +24,14 @@ public final class DD1Installer {
         return new Result(true, null);
     }
 
+    // Frees the installed game and any interrupted download. The Wine prefix is
+    // left alone because the saves live in it.
+    public static boolean uninstall(File filesDir) {
+        delete(new File(filesDir, "game"));
+        delete(new File(filesDir, "staging"));
+        return !new File(filesDir, "game").exists() && !new File(filesDir, "staging").exists();
+    }
+
     private static void delete(File file) {
         File[] children = file.listFiles();
         if (children != null) for (File child : children) delete(child);
