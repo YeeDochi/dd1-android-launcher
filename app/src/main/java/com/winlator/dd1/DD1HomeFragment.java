@@ -153,7 +153,7 @@ public class DD1HomeFragment extends Fragment {
         TextView status = rootView.findViewById(R.id.TVStatus);
         Button primary = rootView.findViewById(R.id.BTPrimaryAction);
         primary.setVisibility(View.VISIBLE);
-        rootView.findViewById(R.id.LLSteamInstall).setVisibility(View.GONE);
+        setInstallPanelVisible(false);
         rootView.findViewById(R.id.BTDeleteGame)
             .setVisibility(executable != null ? View.VISIBLE : View.GONE);
         primary.setEnabled(state == DD1HomeState.READY || state == DD1HomeState.PROFILE_MISSING);
@@ -193,11 +193,11 @@ public class DD1HomeFragment extends Fragment {
             return;
         }
         if (DD1Game.findExecutable(requireContext().getFilesDir()) != null) {
-            rootView.findViewById(R.id.LLSteamInstall).setVisibility(View.GONE);
+            setInstallPanelVisible(false);
             return;
         }
         rootView.findViewById(R.id.BTPrimaryAction).setVisibility(View.GONE);
-        rootView.findViewById(R.id.LLSteamInstall).setVisibility(View.VISIBLE);
+        setInstallPanelVisible(true);
         ((TextView)rootView.findViewById(R.id.TVStatus)).setText(snapshot.message);
 
         int[] controls = {R.id.IVSteamQr, R.id.BTSteamLogin, R.id.ETSteamAccount,
@@ -243,6 +243,14 @@ public class DD1HomeFragment extends Fragment {
 
     // Fixed-height log with its own scroller: without this the growing text
     // pushes the rest of the pane around on every update.
+    // The install panel only earns screen space while it has something to show;
+    // the log takes the rest.
+    private void setInstallPanelVisible(boolean visible) {
+        int visibility = visible ? View.VISIBLE : View.GONE;
+        rootView.findViewById(R.id.SVSteamInstall).setVisibility(visibility);
+        rootView.findViewById(R.id.LLSteamInstall).setVisibility(visibility);
+    }
+
     private void setLog(String text) {
         TextView log = rootView.findViewById(R.id.TVInstallLog);
         if (log.getMovementMethod() == null) log.setMovementMethod(new ScrollingMovementMethod());
