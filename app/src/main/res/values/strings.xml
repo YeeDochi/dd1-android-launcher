@@ -12,6 +12,8 @@
     <string name="dd1_status_profile_error">Unable to prepare the runtime profile</string>
     <string name="dd1_play">Play</string>
     <string name="dd1_create_profile">Create profile</string>
+    <string name="dd1_install_channel">Game download</string>
+    <string name="dd1_install_downloading">Downloading Darkest Dungeon</string>
     <string name="dd1_runtime_profiles">Runtime profiles</string>
     <string name="dd1_open_source_info">Open-source information</string>
     <string name="run">Run</string>

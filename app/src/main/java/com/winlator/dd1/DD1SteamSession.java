@@ -136,8 +136,8 @@ public final class DD1SteamSession implements Closeable {
     private void logOnSavedSession() {
         SteamTokenStore.Session session = tokens.load();
         if (session == null) {
-            qrRequested = true;
-            authenticateQr();
+            publish(events.signedOut());
+            client.disconnect();
             return;
         }
         logOn(session.account, session.token);

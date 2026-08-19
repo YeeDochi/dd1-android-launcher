@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
     <application
         android:icon="@mipmap/ic_launcher"
@@ -48,6 +49,10 @@
             android:theme="@style/AppThemeDark"
             android:exported="false"
             android:screenOrientation="sensor" />
+
+        <service
+            android:name="com.winlator.dd1.DD1InstallService"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
