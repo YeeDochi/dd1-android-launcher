@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import java.util.Collections;
+import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 public class DD1OwnershipTest {
@@ -23,5 +25,22 @@ public class DD1OwnershipTest {
     @Test
     public void emptyPackageMetadataDoesNotGrantOwnership() {
         assertFalse(DD1Ownership.ownsApp(new HashMap<>(), 262060));
+    }
+
+    @Test
+    public void listsTheDlcThatCameWithTheGamesPackages() {
+        Map<Integer, List<Integer>> packages = new HashMap<>();
+        packages.put(1, Arrays.asList(262060, 580100, 735730));
+        packages.put(2, Arrays.asList(999));
+
+        assertEquals(Arrays.asList(580100, 735730), DD1Ownership.dlcAppIds(packages, 262060));
+    }
+
+    @Test
+    public void aPackageWithoutTheGameContributesNoDlc() {
+        Map<Integer, List<Integer>> packages = new HashMap<>();
+        packages.put(1, Arrays.asList(111, 222));
+
+        assertEquals(Collections.emptyList(), DD1Ownership.dlcAppIds(packages, 262060));
     }
 }
