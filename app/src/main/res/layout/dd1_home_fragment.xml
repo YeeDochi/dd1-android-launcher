@@ -35,7 +35,10 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:background="?attr/colorSecondarySurface"
+            android:ellipsize="end"
             android:gravity="center"
+            android:maxLines="3"
+            android:minLines="3"
             android:padding="10dp"
             android:textColor="?attr/colorPrimaryText"
             android:textSize="15sp" />

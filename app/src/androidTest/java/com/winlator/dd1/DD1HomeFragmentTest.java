@@ -22,11 +22,11 @@ import org.junit.runner.RunWith;
 public class DD1HomeFragmentTest {
     @Test
     public void rendersSteamInstallControlsFromServiceState() {
-        try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+        try (ActivityScenario<DD1Activity> scenario = ActivityScenario.launch(DD1Activity.class)) {
             scenario.onActivity(activity -> {
                 activity.getSupportFragmentManager().executePendingTransactions();
                 Fragment fragment = activity.getSupportFragmentManager()
-                    .findFragmentById(R.id.FLFragmentContainer);
+                    .findFragmentById(R.id.FLDD1Container);
                 DD1HomeFragment home = (DD1HomeFragment)fragment;
 
                 home.renderInstallSnapshot(snapshot(DD1InstallPhase.SIGNED_OUT));
