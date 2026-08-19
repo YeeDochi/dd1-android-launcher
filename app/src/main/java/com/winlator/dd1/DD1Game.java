@@ -6,6 +6,8 @@ public abstract class DD1Game {
     private static final String[] EXECUTABLES = {
         "_windowsnosteam/win64/Darkest.exe",
         "_windows/win64/Darkest.exe",
+        "_windowsnosteam/win32/Darkest.exe",
+        "_windows/win32/Darkest.exe",
         "_windowsnosteam/Darkest.exe",
         "_windows/Darkest.exe"
     };

@@ -312,7 +312,10 @@ public class DD1HomeFragment extends Fragment {
         Intent intent = new Intent(activity, XServerDisplayActivity.class);
         intent.putExtra("container_id", container.id);
         intent.putExtra("exec_path", redist != null ? redist.getPath() : executable.getPath());
-        if (redist != null) intent.putExtra("exec_args", " /install /quiet /norestart");
+        // Steam adds -skipvalidation for the 64-bit build; without it the game
+        // exits immediately and silently.
+        intent.putExtra("exec_args", redist != null
+            ? " /install /quiet /norestart" : " -skipvalidation");
         // The game reads its data relative to the install root, not the folder
         // holding Darkest.exe, so it exits at once when started from win64.
         intent.putExtra("work_dir", gameDir.getPath());
