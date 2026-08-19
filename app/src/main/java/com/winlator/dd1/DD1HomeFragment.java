@@ -89,6 +89,8 @@ public class DD1HomeFragment extends Fragment {
         rootView = view;
         view.findViewById(R.id.BTAbout).setOnClickListener(v -> new AboutDialog(getContext()).show());
         view.findViewById(R.id.BTDeleteGame).setOnClickListener(v -> confirmDeleteGame());
+        view.findViewById(R.id.BTSignOutAlways)
+            .setOnClickListener(v -> withService(DD1InstallService::signOut));
         view.findViewById(R.id.BTSteamLogin).setOnClickListener(v -> withService(DD1InstallService::startQr));
         view.findViewById(R.id.BTSteamCredentials).setOnClickListener(v -> startCredentials());
         view.findViewById(R.id.BTDownload).setOnClickListener(v -> withService(DD1InstallService::download));
@@ -153,7 +155,16 @@ public class DD1HomeFragment extends Fragment {
         TextView status = rootView.findViewById(R.id.TVStatus);
         Button primary = rootView.findViewById(R.id.BTPrimaryAction);
         primary.setVisibility(View.VISIBLE);
+        // Signing in does not wait for the runtime, so the Steam state decides the
+        // right half even while the root filesystem is still unpacking.
+        if (installSnapshot != null && installSnapshot.phase != DD1InstallPhase.READY
+                && DD1RightPane.from(installSnapshot.phase, executable != null) != DD1RightPane.LOG) {
+            renderInstallSnapshot(installSnapshot);
+            return;
+        }
         setInstallPanelVisible(false);
+        rootView.findViewById(R.id.TVInstallLog).setVisibility(View.VISIBLE);
+        rootView.findViewById(R.id.BTSignOutAlways).setVisibility(View.VISIBLE);
         rootView.findViewById(R.id.BTDeleteGame)
             .setVisibility(executable != null ? View.VISIBLE : View.GONE);
         primary.setEnabled(state == DD1HomeState.READY || state == DD1HomeState.PROFILE_MISSING);
@@ -185,19 +196,21 @@ public class DD1HomeFragment extends Fragment {
     void renderInstallSnapshot(DD1InstallSnapshot snapshot) {
         installSnapshot = snapshot;
         if (rootView == null) return;
-        // The log stays on screen in every state; save synchronisation will write
-        // into it too.
         setLog(TextUtils.join("\n", snapshot.logLines));
+
+        boolean installed = DD1Game.findExecutable(requireContext().getFilesDir()) != null;
+        DD1RightPane pane = DD1RightPane.from(snapshot.phase, installed);
+        setInstallPanelVisible(pane != DD1RightPane.LOG);
+        rootView.findViewById(R.id.TVInstallLog)
+            .setVisibility(pane == DD1RightPane.LOG ? View.VISIBLE : View.GONE);
+
         if (snapshot.phase == DD1InstallPhase.READY) {
             refresh();
             return;
         }
-        if (DD1Game.findExecutable(requireContext().getFilesDir()) != null) {
-            setInstallPanelVisible(false);
-            return;
-        }
+        if (pane == DD1RightPane.LOG) return;
         rootView.findViewById(R.id.BTPrimaryAction).setVisibility(View.GONE);
-        setInstallPanelVisible(true);
+        rootView.findViewById(R.id.BTSignOutAlways).setVisibility(View.GONE);
         ((TextView)rootView.findViewById(R.id.TVStatus)).setText(snapshot.message);
 
         int[] controls = {R.id.IVSteamQr, R.id.BTSteamLogin, R.id.ETSteamAccount,
@@ -211,7 +224,6 @@ public class DD1HomeFragment extends Fragment {
                 R.id.BTSteamCredentials);
         }
         else if (snapshot.phase == DD1InstallPhase.AUTHENTICATING) {
-            show(R.id.BTSteamSignOut);
             if (snapshot.challengeUrl != null) {
                 ImageView qr = rootView.findViewById(R.id.IVSteamQr);
                 qr.setImageBitmap(qr(snapshot.challengeUrl));
@@ -219,7 +231,7 @@ public class DD1HomeFragment extends Fragment {
             }
         }
         else if (snapshot.phase == DD1InstallPhase.READY_TO_INSTALL) {
-            show(R.id.BTDownload, R.id.BTSteamSignOut);
+            show(R.id.BTDownload);
         }
         else if (snapshot.phase == DD1InstallPhase.DOWNLOADING ||
                 snapshot.phase == DD1InstallPhase.VERIFYING) {
@@ -232,12 +244,12 @@ public class DD1HomeFragment extends Fragment {
                 .setText(progressSummary(snapshot) + "\n" + snapshot.currentFile);
         }
         else if (snapshot.phase == DD1InstallPhase.NOT_OWNED) {
-            show(R.id.BTSteamSignOut);
+            // Nothing to offer but a different account.
         }
         else if (snapshot.phase == DD1InstallPhase.ERROR) {
-            show(R.id.BTSteamSignOut);
             if (installService != null && installService.canDownload()) show(R.id.BTRetryDownload);
-            else show(R.id.BTSteamLogin);
+            else show(R.id.ETSteamAccount, R.id.ETSteamPassword, R.id.BTSteamCredentials,
+                R.id.BTSteamLogin);
         }
     }
 

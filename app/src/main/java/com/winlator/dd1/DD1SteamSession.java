@@ -57,6 +57,7 @@ public final class DD1SteamSession implements Closeable {
     private volatile boolean closed;
     private volatile boolean qrRequested;
     private volatile boolean expectedDisconnect;
+    private volatile boolean signingOut;
     private volatile SteamTokenStore.Session savedSession;
     private volatile int reconnects;
     private volatile String credentialAccount;
@@ -73,6 +74,7 @@ public final class DD1SteamSession implements Closeable {
     }
 
     public void startQr() {
+        signingOut = false;
         qrRequested = true;
         savedSession = null;
         reconnects = 0;
@@ -95,6 +97,7 @@ public final class DD1SteamSession implements Closeable {
             publish(events.failed("Steam account and password are required"));
             return;
         }
+        signingOut = false;
         qrRequested = false;
         savedSession = null;
         credentialAccount = account.trim();
@@ -105,6 +108,7 @@ public final class DD1SteamSession implements Closeable {
     }
 
     public void signOut() {
+        signingOut = true;
         tokens.clear();
         if (client.isConnected()) user.logOff();
         expectedDisconnect = true;
@@ -269,7 +273,10 @@ public final class DD1SteamSession implements Closeable {
         else publish(events.failed("Steam connection closed"));
     }
 
+    // Tearing down an in-flight sign-in raises errors on the way out; the user
+    // asked for that, so it is not reported as a failure.
     private void fail(Throwable error) {
+        if (signingOut || closed) return;
         publish(events.failed(error.getClass().getSimpleName()));
     }
 
