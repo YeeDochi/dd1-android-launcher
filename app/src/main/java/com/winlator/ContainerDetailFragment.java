@@ -128,7 +128,7 @@ public class ContainerDetailFragment extends Fragment {
         if (isEditMode()) {
             etName.setText(container.getName());
         }
-        else etName.setText(manager.getContainers().isEmpty() ? "Darkest Dungeon" : getString(R.string.container)+"-"+manager.getNextContainerId());
+        else etName.setText(getString(R.string.container)+"-"+manager.getNextContainerId());
 
         final ArrayList<WineInfo> wineInfos = WineInstaller.getInstalledWineInfos(context);
         final Spinner sWineVersion = view.findViewById(R.id.SWineVersion);
