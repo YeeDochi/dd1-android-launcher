@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.winlator.R;
+import com.winlator.contentdialog.AboutDialog;
 import com.winlator.core.AppUtils;
 import com.winlator.xenvironment.RootFSInstaller;
 
@@ -28,6 +29,10 @@ public class DD1Activity extends AppCompatActivity {
         findViewById(R.id.BTDrawerDlc).setOnClickListener(v -> {
             closeDrawer();
             openDlc();
+        });
+        findViewById(R.id.BTDrawerAbout).setOnClickListener(v -> {
+            closeDrawer();
+            new AboutDialog(this).show();
         });
         findViewById(R.id.BTDrawerLanguage).setOnClickListener(v -> {
             closeDrawer();

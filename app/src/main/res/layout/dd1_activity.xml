@@ -48,5 +48,20 @@
             android:paddingStart="16dp"
             android:text="@string/dd1_language"
             android:textColor="?attr/colorPrimaryText" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/BTDrawerAbout"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:gravity="center_vertical|start"
+            android:paddingStart="16dp"
+            android:text="@string/dd1_open_source_info"
+            android:textColor="?attr/colorSecondaryText" />
     </LinearLayout>
 </androidx.drawerlayout.widget.DrawerLayout>

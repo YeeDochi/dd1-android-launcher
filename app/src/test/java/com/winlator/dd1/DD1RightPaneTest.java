@@ -25,9 +25,15 @@ public class DD1RightPaneTest {
     }
 
     @Test
-    public void authenticationKeepsTheSignInFormOnScreen() {
+    public void authenticationKeepsTheCodeOnScreenWhileThereIsOne() {
         assertEquals(DD1RightPane.SIGN_IN,
-            DD1RightPane.from(DD1InstallPhase.AUTHENTICATING, false));
+            DD1RightPane.from(DD1InstallPhase.AUTHENTICATING, false, true));
+    }
+
+    @Test
+    public void waitingForSteamAfterApprovalShowsAWaitNotABlankHalf() {
+        assertEquals(DD1RightPane.CHECKING,
+            DD1RightPane.from(DD1InstallPhase.AUTHENTICATING, false, false));
     }
 
     @Test

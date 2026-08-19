@@ -90,7 +90,6 @@ public class DD1HomeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         rootView = view;
-        view.findViewById(R.id.BTAbout).setOnClickListener(v -> new AboutDialog(getContext()).show());
         view.findViewById(R.id.BTMenu).setOnClickListener(
             v -> ((DD1Activity)requireActivity()).toggleDrawer());
         view.findViewById(R.id.BTDeleteGame).setOnClickListener(v -> confirmDeleteGame());
@@ -206,7 +205,8 @@ public class DD1HomeFragment extends Fragment {
         setLog(TextUtils.join("\n", snapshot.logLines));
 
         boolean installed = DD1Game.findExecutable(requireContext().getFilesDir()) != null;
-        DD1RightPane pane = DD1RightPane.from(snapshot.phase, installed);
+        DD1RightPane pane = DD1RightPane.from(snapshot.phase, installed,
+            snapshot.challengeUrl != null);
         setInstallPanelVisible(pane == DD1RightPane.SIGN_IN || pane == DD1RightPane.INSTALL);
         rootView.findViewById(R.id.SVInstallLog)
             .setVisibility(pane == DD1RightPane.LOG ? View.VISIBLE : View.GONE);

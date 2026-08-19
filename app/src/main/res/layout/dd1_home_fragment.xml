@@ -129,16 +129,6 @@
                 android:textColor="?attr/colorSecondaryText"
                 android:visibility="gone" />
 
-            <Button
-                android:id="@+id/BTAbout"
-                style="?android:attr/borderlessButtonStyle"
-                android:layout_width="match_parent"
-                android:minWidth="0dp"
-                android:gravity="start|center_vertical"
-                android:layout_height="40dp"
-                android:layout_marginTop="4dp"
-                android:text="@string/dd1_open_source_info"
-                android:textColor="?attr/colorSecondaryText" />
         </LinearLayout>
     </LinearLayout>
 
