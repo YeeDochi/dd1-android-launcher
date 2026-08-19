@@ -64,6 +64,21 @@ public class DownloadProgressTest {
     }
 
     @Test
+    public void thePartIsWhereTheDepotInHandSitsNotHowManyAreDone() {
+        DownloadProgress progress = new DownloadProgress();
+        for (int depotId : new int[]{1, 2, 3, 4}) {
+            progress.onStatus("Downloading manifest for depot " + depotId);
+        }
+        // A resumed download validates what it already has and finishes those
+        // parts at once; the figure must still name the part being fetched.
+        progress.onDepotFinished(1);
+        progress.onDepotFinished(2);
+        progress.onDepotProgress(3, 5f);
+
+        assertEquals("3/4", progress.part());
+    }
+
+    @Test
     public void thePartNumberNeverRunsPastTheTotal() {
         DownloadProgress progress = new DownloadProgress();
         progress.onStatus("Downloading manifest for depot 7");

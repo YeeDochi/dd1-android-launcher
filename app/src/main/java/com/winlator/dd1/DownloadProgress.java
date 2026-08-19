@@ -55,11 +55,20 @@ public final class DownloadProgress {
         return finished.size();
     }
 
-    // "3/9" once the manifests have been seen. The part number never runs past
-    // the total, which the manifest lines settle before any content arrives.
+    // "3/9" once the manifests have been seen: where the depot in hand sits in
+    // the list, not how many have finished. A resumed download validates the
+    // parts it already has and finishes them at once, which sent a tally
+    // straight to 9/9 while gigabytes were still to come.
     public String part() {
         int total = known.size();
-        int current = Math.min(finished.size() + 1, Math.max(total, 1));
+        int current = 0;
+        if (currentDepot > 0) {
+            for (int depotId : known) {
+                current++;
+                if (depotId == currentDepot) break;
+            }
+        }
+        if (current == 0) current = Math.min(finished.size() + 1, Math.max(total, 1));
         return total > 0 ? current + "/" + total : String.valueOf(current);
     }
 
