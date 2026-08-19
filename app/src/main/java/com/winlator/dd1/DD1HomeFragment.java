@@ -91,6 +91,8 @@ public class DD1HomeFragment extends Fragment {
         view.findViewById(R.id.BTDeleteGame).setOnClickListener(v -> confirmDeleteGame());
         view.findViewById(R.id.BTSignOutAlways)
             .setOnClickListener(v -> withService(DD1InstallService::signOut));
+        view.findViewById(R.id.BTCancelSignIn)
+            .setOnClickListener(v -> withService(DD1InstallService::signOut));
         view.findViewById(R.id.BTSteamLogin).setOnClickListener(v -> withService(DD1InstallService::startQr));
         view.findViewById(R.id.BTSteamCredentials).setOnClickListener(v -> startCredentials());
         view.findViewById(R.id.BTDownload).setOnClickListener(v -> withService(DD1InstallService::download));
@@ -164,7 +166,8 @@ public class DD1HomeFragment extends Fragment {
         }
         setInstallPanelVisible(false);
         rootView.findViewById(R.id.TVInstallLog).setVisibility(View.VISIBLE);
-        rootView.findViewById(R.id.BTSignOutAlways).setVisibility(View.VISIBLE);
+        applySignInControls(installSnapshot == null
+            ? DD1InstallPhase.SIGNED_OUT : installSnapshot.phase);
         rootView.findViewById(R.id.BTDeleteGame)
             .setVisibility(executable != null ? View.VISIBLE : View.GONE);
         primary.setEnabled(state == DD1HomeState.READY || state == DD1HomeState.PROFILE_MISSING);
@@ -208,9 +211,9 @@ public class DD1HomeFragment extends Fragment {
             refresh();
             return;
         }
+        applySignInControls(snapshot.phase);
         if (pane == DD1RightPane.LOG) return;
         rootView.findViewById(R.id.BTPrimaryAction).setVisibility(View.GONE);
-        rootView.findViewById(R.id.BTSignOutAlways).setVisibility(View.GONE);
         ((TextView)rootView.findViewById(R.id.TVStatus)).setText(snapshot.message);
 
         int[] controls = {R.id.IVSteamQr, R.id.BTSteamLogin, R.id.ETSteamAccount,
@@ -255,6 +258,14 @@ public class DD1HomeFragment extends Fragment {
 
     // Fixed-height log with its own scroller: without this the growing text
     // pushes the rest of the pane around on every update.
+    private void applySignInControls(DD1InstallPhase phase) {
+        DD1SignInControls controls = DD1SignInControls.from(phase);
+        rootView.findViewById(R.id.BTCancelSignIn)
+            .setVisibility(controls.showCancel ? View.VISIBLE : View.GONE);
+        rootView.findViewById(R.id.BTSignOutAlways)
+            .setVisibility(controls.showSignOut ? View.VISIBLE : View.GONE);
+    }
+
     // The install panel only earns screen space while it has something to show;
     // the log takes the rest.
     private void setInstallPanelVisible(boolean visible) {
