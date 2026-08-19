@@ -6,19 +6,27 @@ DLC, Workshop, or Steam account data.
 
 This project is not affiliated with Red Hook Studios or Valve Corporation.
 
-## Current development flow
+## Current flow
 
-1. Put an owned game installation in the app's `files/game` directory.
-2. Open the DD1 home screen. The launcher creates and configures its single
-   internal runtime profile automatically.
-3. Press `Play`. The launcher mounts the game directory and starts
-   `__build/x64_Debug/Darkest.exe` when present.
+1. Open the DD1 home screen. If no valid game installation exists, sign in to
+   Steam by QR code or account and password. Passwords are neither stored nor
+   logged; accounts using the password path must approve the request in Steam
+   Mobile.
+2. After the launcher verifies ownership of app `262060`, press `Download`.
+   The owned Windows game and DLC are downloaded into app-private staging while
+   byte, file, and sanitized log progress remains visible.
+3. A validated staging tree atomically replaces `files/game`. Interrupted or
+   invalid downloads never replace the active installation.
+4. The launcher creates its single internal runtime profile automatically.
+   Press `Play` to mount the game directory and start
+   `__build/x64_Debug/Darkest.exe`.
 
 The DD1 home screen owns the launch flow. Winlator's container and runtime
 settings are internal implementation details and are not exposed to users.
 
-The manual file placement is temporary. A legal import/download flow will replace
-it before a public release.
+Steam refresh tokens are encrypted with Android Keystore. The APK and repository
+contain no game, DLC, Workshop, save, or Steam account payload. Steam Cloud save
+sync and Workshop installation are planned follow-up features.
 
 ## Build
 
@@ -32,9 +40,10 @@ The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Testing
 
-Waydroid is used for UI and profile-flow checks. Its x86_64 native bridge cannot
-validate Winlator's nested ARM64 root filesystem execution. Game runtime testing
-therefore requires an ARM64 Android device.
+Waydroid hosted in a visible Gamescope window is used for login, installer UI,
+service lifecycle, and profile-flow checks. Its x86_64 Houdini/native-bridge path
+does not prove Winlator's nested ARM64 gameplay execution. Final game runtime and
+performance testing therefore requires an ARM64 Android device.
 
 ## Upstream and licenses
 
