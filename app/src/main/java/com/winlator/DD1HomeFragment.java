@@ -306,9 +306,13 @@ public class DD1HomeFragment extends Fragment {
             container.saveData();
         }
 
+        File system32 = new File(container.getRootDir(), ".wine/drive_c/windows/system32");
+        File redist = DD1Game.pendingRedistributable(gameDir, system32);
+
         Intent intent = new Intent(activity, XServerDisplayActivity.class);
         intent.putExtra("container_id", container.id);
-        intent.putExtra("exec_path", executable.getPath());
+        intent.putExtra("exec_path", redist != null ? redist.getPath() : executable.getPath());
+        if (redist != null) intent.putExtra("exec_args", " /install /quiet /norestart");
         // The game reads its data relative to the install root, not the folder
         // holding Darkest.exe, so it exits at once when started from win64.
         intent.putExtra("work_dir", gameDir.getPath());

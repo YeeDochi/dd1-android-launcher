@@ -26,6 +26,23 @@ public abstract class DD1Game {
         return new Validation(true, null);
     }
 
+    // Steam installs these before first launch; the game exits without loading a
+    // single DLL when its Visual C++ runtime is missing.
+    private static final String[] REDISTRIBUTABLES = {
+        "_CommonRedist/vcredist/2013/vcredist_x64.exe",
+        "_CommonRedist/vcredist/2022/VC_redist.x64.exe"
+    };
+    private static final String[] REDIST_MARKERS = {"msvcp120.dll", "msvcp140.dll"};
+
+    public static File pendingRedistributable(File gameDir, File system32Dir) {
+        for (int index = 0; index < REDISTRIBUTABLES.length; index++) {
+            if (new File(system32Dir, REDIST_MARKERS[index]).isFile()) continue;
+            File installer = new File(gameDir, REDISTRIBUTABLES[index]);
+            if (installer.isFile()) return installer;
+        }
+        return null;
+    }
+
     private static File executable(File gameDir) {
         for (String path : EXECUTABLES) {
             File executable = new File(gameDir, path);
