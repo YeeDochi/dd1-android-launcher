@@ -48,14 +48,34 @@ Validation therefore checks content, not just presence and size:
 
 ## Touch controls
 
-DD1 is a mouse-driven game at a fixed internal resolution. The launcher ships one
-DD1 profile instead of exposing Winlator's editor:
+The game must be played by touching what you want, not by driving a cursor or a
+virtual pad. DD1 does ship a controller layout, and a physical pad still works
+through the runtime, but a virtual pad turns the phone into a console emulator
+and is not the default.
 
-- Tap is left click, long press is right click, drag scrolls the raid and town
-  views, and two-finger drag pans.
-- A single on-screen key row covers Esc, Space, and the map toggle.
-- Pinch zoom is not bound; DD1 has no zoom.
-- The profile is editable only after the built-in one proves insufficient.
+Direct manipulation covers almost everything:
+
+- Tap where you want to act; the click lands at that point.
+- Drag with one finger to move an item, a trinket, or a hero in the formation,
+  which is what DD1's own mouse drag already is.
+- Two-finger drag scrolls the estate, the dungeon and long lists.
+- Two-finger tap is right click.
+
+The two things touch cannot express get explicit answers.
+
+**Hover.** Skill, item, quirk and trinket descriptions only exist under a resting
+cursor. A long press parks the cursor without clicking, so the tooltip appears;
+the cursor sits slightly above the fingertip in this mode so the text is not
+covered. Releasing does not click.
+
+**Keyboard.** Menu and shortcut keys are not typed. They appear as a small row of
+on-screen buttons along one edge, built from the game's own keyboard controls
+screen and confirmed in game. The row can be collapsed. Nothing requires an
+on-screen keyboard.
+
+Everything above is a starting profile. It gets checked against the screens that
+actually hurt: the estate, the loot window, the formation row, and combat skill
+selection, at whichever internal resolution reads best on the S25.
 
 ## Save location
 
