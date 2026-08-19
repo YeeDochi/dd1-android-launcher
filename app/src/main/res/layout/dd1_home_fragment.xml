@@ -9,7 +9,6 @@
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="0.85"
-        android:gravity="center_vertical"
         android:orientation="vertical"
         android:paddingEnd="40dp">
 
@@ -49,7 +48,7 @@
             android:id="@+id/TVStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="28dp"
             android:background="?attr/colorSecondarySurface"
             android:ellipsize="end"
             android:gravity="center"
@@ -62,16 +61,16 @@
         <Button
             android:id="@+id/BTPrimaryAction"
             android:layout_width="match_parent"
-            android:layout_height="46dp"
-            android:layout_marginTop="10dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
             android:text="@string/dd1_play" />
 
         <Button
             android:id="@+id/BTCancelSignIn"
             style="?android:attr/borderlessButtonStyle"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginTop="0dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="4dp"
             android:text="@string/dd1_steam_cancel_sign_in"
             android:textColor="?attr/colorPrimaryText"
             android:visibility="gone" />
@@ -80,8 +79,8 @@
             android:id="@+id/BTSignOutAlways"
             style="?android:attr/borderlessButtonStyle"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginTop="0dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="4dp"
             android:text="@string/dd1_steam_sign_out"
             android:textColor="?attr/colorSecondaryText"
             android:visibility="gone" />
@@ -90,8 +89,8 @@
             android:id="@+id/BTDeleteGame"
             style="?android:attr/borderlessButtonStyle"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginTop="0dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="4dp"
             android:text="@string/dd1_delete_game"
             android:textColor="?attr/colorSecondaryText"
             android:visibility="gone" />
@@ -100,8 +99,8 @@
             android:id="@+id/BTAbout"
             style="?android:attr/borderlessButtonStyle"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginTop="0dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="4dp"
             android:text="@string/dd1_open_source_info"
             android:textColor="?attr/colorSecondaryText" />
     </LinearLayout>

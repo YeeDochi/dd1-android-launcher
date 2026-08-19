@@ -20,6 +20,17 @@ public final class DD1SteamEvents {
         return update(DD1InstallPhase.AUTHENTICATING, "Checking Darkest Dungeon ownership", null);
     }
 
+    public synchronized DD1InstallSnapshot checkingLicenses(int count) {
+        log.append("Reading " + count + " Steam licenses");
+        return update(DD1InstallPhase.AUTHENTICATING, "Checking Darkest Dungeon ownership", null);
+    }
+
+    public synchronized DD1InstallSnapshot packagesResolved(Map<Integer, List<Integer>> packageApps,
+            long elapsedMillis) {
+        log.append("Ownership check took " + (elapsedMillis / 1000) + "s");
+        return packagesResolved(packageApps);
+    }
+
     public synchronized DD1InstallSnapshot packagesResolved(Map<Integer, List<Integer>> packageApps) {
         boolean owned = DD1Ownership.ownsApp(packageApps, APP_ID);
         ownedDlc = DD1Ownership.ownedAppIds(packageApps);

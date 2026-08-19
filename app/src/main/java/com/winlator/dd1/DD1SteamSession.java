@@ -259,6 +259,8 @@ public final class DD1SteamSession implements Closeable {
 
     private void resolvePackages() {
         try {
+            publish(events.checkingLicenses(licenses.size()));
+            long startedAt = System.currentTimeMillis();
             List<PICSRequest> requests = new ArrayList<>();
             for (License license : licenses)
                 requests.add(new PICSRequest(license.getPackageID(), license.getAccessToken()));
@@ -276,7 +278,8 @@ public final class DD1SteamSession implements Closeable {
                     packageApps.put(entry.getKey(), appIds);
                 }
             }
-            publish(events.packagesResolved(packageApps));
+            publish(events.packagesResolved(packageApps,
+                System.currentTimeMillis() - startedAt));
         }
         catch (Exception error) {
             fail(error);

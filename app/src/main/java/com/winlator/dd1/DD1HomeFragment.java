@@ -214,7 +214,9 @@ public class DD1HomeFragment extends Fragment {
         rootView.findViewById(R.id.FLChecking)
             .setVisibility(pane == DD1RightPane.CHECKING ? View.VISIBLE : View.GONE);
 
-        if (snapshot.phase == DD1InstallPhase.READY) {
+        // Reaching the log means the account side is settled, so the home state
+        // takes over and shows Play.
+        if (pane == DD1RightPane.LOG) {
             refresh();
             return;
         }
@@ -224,7 +226,6 @@ public class DD1HomeFragment extends Fragment {
         ((LinearLayout)rootView.findViewById(R.id.LLSteamInstall)).setGravity(
             pane == DD1RightPane.SIGN_IN ? android.view.Gravity.CENTER_VERTICAL
                 : android.view.Gravity.TOP);
-        if (pane == DD1RightPane.LOG) return;
         rootView.findViewById(R.id.BTPrimaryAction).setVisibility(View.GONE);
         ((TextView)rootView.findViewById(R.id.TVStatus)).setText(snapshot.message);
 
