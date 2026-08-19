@@ -40,6 +40,7 @@ public final class DD1InstallService extends Service {
     private static final String CHANNEL = "dd1_install";
     private final LocalBinder binder = new LocalBinder();
     private final Handler main = new Handler(Looper.getMainLooper());
+    private volatile boolean deliveryPending;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final DD1InstallLog log = new DD1InstallLog(1000);
 
@@ -218,8 +219,27 @@ public final class DD1InstallService extends Service {
             stopForeground(true);
             stopSelf();
         }
+        deliver(value.phase == DD1InstallPhase.DOWNLOADING);
+    }
+
+    // Chunk callbacks arrive far faster than the screen can draw, and each one
+    // relays a whole log into a monospace TextView. Delivering every one buries
+    // the main thread in layout passes and the window stops answering touches,
+    // so a burst is coalesced into the latest state.
+    private void deliver(boolean coalesce) {
         Listener observer = listener;
-        if (observer != null) main.post(() -> observer.onSnapshot(value));
+        if (observer == null) return;
+        if (!coalesce) {
+            main.post(() -> observer.onSnapshot(snapshot));
+            return;
+        }
+        if (deliveryPending) return;
+        deliveryPending = true;
+        main.postDelayed(() -> {
+            deliveryPending = false;
+            Listener current = listener;
+            if (current != null) current.onSnapshot(snapshot);
+        }, 200);
     }
 
     private static boolean isIdle(DD1InstallPhase phase) {

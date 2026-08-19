@@ -19,8 +19,8 @@ public class DD1InstallerModelTest {
         log.append("file two");
 
         assertEquals(Arrays.asList("file one", "file two"), log.visibleLines());
-        assertFalse(log.fullText().contains("abc"));
-        assertFalse(log.fullText().contains("Authorization"));
+        assertFalse(log.visibleLines().toString().contains("abc"));
+        assertFalse(log.visibleLines().toString().contains("Authorization"));
     }
 
     @Test

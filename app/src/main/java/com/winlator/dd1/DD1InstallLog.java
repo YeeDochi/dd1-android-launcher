@@ -11,8 +11,9 @@ public final class DD1InstallLog {
     };
 
     private final int visibleLimit;
+    // Only the visible tail is kept. A full transcript grew a line per file and
+    // a 4 GB download names hundreds of thousands of them.
     private final ArrayDeque<String> visible = new ArrayDeque<>();
-    private final StringBuilder full = new StringBuilder();
 
     public DD1InstallLog(int visibleLimit) {
         if (visibleLimit < 1) throw new IllegalArgumentException("visibleLimit must be positive");
@@ -21,17 +22,12 @@ public final class DD1InstallLog {
 
     public synchronized void append(String line) {
         String safe = redact(line == null ? "null" : line);
-        full.append(safe).append('\n');
         visible.addLast(safe);
         while (visible.size() > visibleLimit) visible.removeFirst();
     }
 
     public synchronized List<String> visibleLines() {
         return new ArrayList<>(visible);
-    }
-
-    public synchronized String fullText() {
-        return full.toString();
     }
 
     private static String redact(String line) {
