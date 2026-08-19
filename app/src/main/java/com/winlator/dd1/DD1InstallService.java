@@ -107,7 +107,7 @@ public final class DD1InstallService extends Service {
         cancelled = true;
         if (downloader != null) downloader.close();
         if (completion != null) completion.countDown();
-        publish(errorSnapshot("Download cancelled"));
+        publish(stoppedSnapshot("Download cancelled"));
         stopForeground(true);
         stopSelf();
     }
@@ -192,6 +192,15 @@ public final class DD1InstallService extends Service {
             String message, String file) {
         return new DD1InstallSnapshot(DD1InstallPhase.DOWNLOADING, bytes, total, speed,
             message, file, null, log.visibleLines());
+    }
+
+    // Stopping a download is a choice, not a failure: the account still owns the
+    // game, so the screen goes back to offering it with the DLC list.
+    private DD1InstallSnapshot stoppedSnapshot(String detail) {
+        if (!ownsGame) return errorSnapshot(detail);
+        log.append(detail);
+        return new DD1InstallSnapshot(DD1InstallPhase.READY_TO_INSTALL, 0, 0, 0,
+            "Ready to download owned game and DLC", null, null, log.visibleLines());
     }
 
     private DD1InstallSnapshot errorSnapshot(String detail) {

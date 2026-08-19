@@ -226,6 +226,8 @@ public class DD1HomeFragment extends Fragment {
         ((LinearLayout)rootView.findViewById(R.id.LLSteamInstall)).setGravity(
             pane == DD1RightPane.SIGN_IN ? android.view.Gravity.CENTER_VERTICAL
                 : android.view.Gravity.TOP);
+        setInstallPanelFills(snapshot.phase != DD1InstallPhase.DOWNLOADING
+            && snapshot.phase != DD1InstallPhase.VERIFYING);
         rootView.findViewById(R.id.BTPrimaryAction).setVisibility(View.GONE);
         ((TextView)rootView.findViewById(R.id.TVStatus)).setText(snapshot.message);
 
@@ -302,12 +304,25 @@ public class DD1HomeFragment extends Fragment {
         withService(service -> DlcDialog.show(requireContext(), service));
     }
 
-    // Deleting depends only on whether files exist, so it is decided once instead
-    // of in every branch that draws the screen.
+    // Deleting depends only on whether files are on disk, so it is decided once
+    // instead of in every branch that draws the screen. A half-finished download
+    // holds gigabytes in staging and has to be removable too.
     private void applyDeleteVisibility() {
-        rootView.findViewById(R.id.BTDeleteGame).setVisibility(
-            new File(requireContext().getFilesDir(), "game").isDirectory()
-                ? View.VISIBLE : View.GONE);
+        File filesDir = requireContext().getFilesDir();
+        boolean anything = new File(filesDir, "game").isDirectory()
+            || new File(filesDir, "staging").isDirectory();
+        rootView.findViewById(R.id.BTDeleteGame)
+            .setVisibility(anything ? View.VISIBLE : View.GONE);
+    }
+
+    // While downloading the panel is one progress bar, so it takes only the
+    // height it needs and the log runs from there down.
+    private void setInstallPanelFills(boolean fills) {
+        View panel = rootView.findViewById(R.id.LLSteamInstall);
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams)panel.getLayoutParams();
+        params.height = fills ? 0 : LinearLayout.LayoutParams.WRAP_CONTENT;
+        params.weight = fills ? 1 : 0;
+        panel.setLayoutParams(params);
     }
 
     private void applySignInControls(DD1InstallPhase phase) {
@@ -349,6 +364,8 @@ public class DD1HomeFragment extends Fragment {
     }
 
     private void deleteGame(Activity activity) {
+        // A running download would keep writing into the folder we just removed.
+        withService(DD1InstallService::cancel);
         if (!DD1Installer.uninstall(activity.getFilesDir()))
             Toast.makeText(activity, R.string.dd1_delete_game_failed, Toast.LENGTH_LONG).show();
         refresh();
