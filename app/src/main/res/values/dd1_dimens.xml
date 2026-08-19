@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A phone in landscape is about 380dp wide; a tablet-sized surface is
+         nearly twice that, so the same dp reads as half the size and the gaps
+         open up. The large-screen values live in values-sw600dp. -->
+    <dimen name="dd1_log_size">11sp</dimen>
+    <dimen name="dd1_title_size">24sp</dimen>
+</resources>

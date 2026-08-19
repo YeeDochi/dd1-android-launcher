@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="dd1_log_size">14sp</dimen>
+    <dimen name="dd1_title_size">30sp</dimen>
+</resources>

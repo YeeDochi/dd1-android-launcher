@@ -1,16 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Everything is placed by weight. A phone in landscape is about 380dp wide
+     and a tablet surface nearly twice that, so fixed margins that look right on
+     one are wrong on the other. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal"
-    android:padding="24dp">
+    android:orientation="vertical">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="4" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="92"
+        android:orientation="horizontal">
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="4" />
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="0.85"
-        android:orientation="vertical"
-        android:paddingEnd="40dp">
+        android:layout_weight="38"
+        android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -20,19 +37,21 @@
 
             <ImageButton
                 android:id="@+id/BTMenu"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:layout_marginEnd="10dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/dd1_menu"
                 android:src="@drawable/icon_action_bar_menu" />
 
+            <!-- Autosize truncates rather than shrinks when the width comes
+                 from a weight, so the size comes from the screen bucket. -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/dd1_home_title"
                 android:textColor="?attr/colorPrimaryText"
-                android:textSize="24sp"
+                android:textSize="@dimen/dd1_title_size"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -112,10 +131,15 @@
             android:textColor="?attr/colorSecondaryText" />
     </LinearLayout>
 
+    <View
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="5" />
+
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="1.15"
+        android:layout_weight="49"
         android:orientation="vertical">
 
         <LinearLayout
@@ -276,7 +300,7 @@
                 android:fontFamily="monospace"
                 android:textColor="?attr/colorSecondaryText"
                 android:textIsSelectable="true"
-                android:textSize="11sp" />
+                android:textSize="@dimen/dd1_log_size" />
         </ScrollView>
 
         <LinearLayout
@@ -301,4 +325,14 @@
                 android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
+    <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="4" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="4" />
 </LinearLayout>
