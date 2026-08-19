@@ -29,12 +29,6 @@ public class StringUtils {
         return text.substring(0, start) + value + text.substring(end);
     }
 
-    // ProcessHelper.splitCommand only unescapes "\\ ", so escaping backslashes
-    // or quoting leaves them in the argument Wine finally receives.
-    public static String escapeSpaces(String path) {
-        return path.replace(" ", "\\ ");
-    }
-
     public static String escapeDOSPath(String path) {
         return path.replace("\\", "\\\\").replace(" ", "\\ ");
     }

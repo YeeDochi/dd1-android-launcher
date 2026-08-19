@@ -1,7 +1,6 @@
 package com.winlator.container;
 
 import android.content.Context;
-import android.os.Build;
 
 import com.winlator.core.GPUHelper;
 import com.winlator.core.KeyValueSet;
@@ -81,13 +80,5 @@ public abstract class GraphicsDrivers {
 
     public static String getDefaultDriver(Context context) {
         return GPUHelper.getAdrenoModelId(context) > 0 ? GraphicsDrivers.TURNIP+","+GraphicsDrivers.DEFAULT_OPENGL_DRIVER : GraphicsDrivers.VORTEK+","+GraphicsDrivers.DEFAULT_OPENGL_DRIVER;
-    }
-
-    public static boolean isVortekRendererSupported() {
-        return isVortekRendererSupported(Build.SUPPORTED_ABIS[0]);
-    }
-
-    static boolean isVortekRendererSupported(String primaryAbi) {
-        return !primaryAbi.startsWith("x86");
     }
 }
