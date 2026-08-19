@@ -290,13 +290,16 @@
             android:layout_weight="1"
             android:background="?attr/colorSecondarySurface"
             android:minHeight="120dp"
-            android:padding="10dp"
             android:scrollbars="vertical">
 
+            <!-- The padding belongs to the text, not the viewport: on the
+                 ScrollView it shrinks the scrollable area and the last line
+                 never comes fully into view. -->
             <TextView
                 android:id="@+id/TVInstallLog"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:padding="10dp"
                 android:fontFamily="monospace"
                 android:textColor="?attr/colorSecondaryText"
                 android:textIsSelectable="true"
