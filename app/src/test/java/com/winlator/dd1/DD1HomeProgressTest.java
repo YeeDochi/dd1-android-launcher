@@ -16,8 +16,8 @@ public class DD1HomeProgressTest {
     }
 
     @Test
-    public void saysTheFigureIsUnknownRatherThanShowingABlank() {
-        assertEquals("??%", DD1HomeFragment.progressSummary(snapshot(0, 0, 0)));
+    public void namesTheAllocatingStageRatherThanShowingABlank() {
+        assertEquals("Preparing", DD1HomeFragment.progressSummary(snapshot(0, 0, 0)));
     }
 
     private static DD1InstallSnapshot snapshot(long downloaded, long total, long speed) {

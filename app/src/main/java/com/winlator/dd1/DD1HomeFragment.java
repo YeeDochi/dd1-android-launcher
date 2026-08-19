@@ -368,8 +368,10 @@ public class DD1HomeFragment extends Fragment {
 
     // The part being fetched is named in the status box; this is only the figure.
     static String progressSummary(DD1InstallSnapshot snapshot) {
-        // A blank reads as a broken screen; say the figure is not known yet.
-        if (snapshot.totalBytes <= 0) return "??%";
+        // The downloader creates a depot's files before it fetches their
+        // contents and reports no progress while it does, so there is nothing
+        // to put a number on yet.
+        if (snapshot.totalBytes <= 0) return "Preparing";
         return String.format(Locale.US, "%.0f%%",
             snapshot.downloadedBytes * 100.0 / snapshot.totalBytes);
     }
