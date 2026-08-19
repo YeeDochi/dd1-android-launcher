@@ -416,14 +416,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         winHandler.stop();
         if (environment != null) environment.stopEnvironmentComponents();
 
-        Intent intent = getIntent();
-        if (intent.hasExtra("exec_path")) {
-            AppUtils.RestartApplicationOptions options = new AppUtils.RestartApplicationOptions();
-            options.containerId = container.id;
-            options.startPath = FileUtils.getDirname(intent.getStringExtra("exec_path"));
-            AppUtils.restartApplication(this, options);
-        }
-        else AppUtils.restartApplication(this);
+        AppUtils.restartApplication(this);
     }
 
     private void setupWineSystemFiles() {

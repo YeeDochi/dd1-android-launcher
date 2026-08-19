@@ -17,15 +17,22 @@ import androidx.fragment.app.Fragment;
 
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
+import com.winlator.container.GraphicsDrivers;
+import com.winlator.contentdialog.AboutDialog;
 import com.winlator.dd1.DD1Game;
 import com.winlator.dd1.DD1HomeState;
+import com.winlator.dd1.DD1ProfileConfig;
 import com.winlator.xenvironment.RootFS;
+
+import org.json.JSONObject;
 
 import java.io.File;
 
 public class DD1HomeFragment extends Fragment {
     private final Handler handler = new Handler();
     private View rootView;
+    private boolean creatingProfile;
+    private boolean profileCreationFailed;
 
     @Nullable
     @Override
@@ -38,8 +45,7 @@ public class DD1HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         rootView = view;
         ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle(R.string.dd1_home_title);
-        view.findViewById(R.id.BTRuntimeProfiles).setOnClickListener(v ->
-            ((MainActivity)getActivity()).showFragment(new ContainersFragment()));
+        view.findViewById(R.id.BTAbout).setOnClickListener(v -> new AboutDialog(getContext()).show());
     }
 
     @Override
@@ -61,7 +67,20 @@ public class DD1HomeFragment extends Fragment {
         File executable = DD1Game.findExecutable(activity.getFilesDir());
         ContainerManager manager = new ContainerManager(activity);
         Container container = manager.getContainers().isEmpty() ? null : manager.getContainers().get(0);
-        DD1HomeState state = DD1HomeState.from(RootFS.find(activity).isValid(), executable != null, container != null);
+        boolean runtimeReady = RootFS.find(activity).isValid();
+
+        if (runtimeReady && container == null && !creatingProfile && !profileCreationFailed) {
+            creatingProfile = true;
+            JSONObject data = new JSONObject(DD1ProfileConfig.create(
+                GraphicsDrivers.getDefaultDriver(activity), Container.getFallbackCPUList()));
+            manager.createContainerAsync(data, created -> {
+                creatingProfile = false;
+                profileCreationFailed = created == null;
+                refresh();
+            });
+        }
+
+        DD1HomeState state = DD1HomeState.from(runtimeReady, executable != null, container != null);
 
         TextView status = rootView.findViewById(R.id.TVStatus);
         Button primary = rootView.findViewById(R.id.BTPrimaryAction);
@@ -74,9 +93,10 @@ public class DD1HomeFragment extends Fragment {
                 primary.setOnClickListener(v -> launch(activity, container, executable));
                 break;
             case PROFILE_MISSING:
-                status.setText(R.string.dd1_status_profile_missing);
-                primary.setText(R.string.dd1_create_profile);
-                primary.setOnClickListener(v -> ((MainActivity)activity).showFragment(new ContainerDetailFragment()));
+                status.setText(profileCreationFailed ? R.string.dd1_status_profile_error : R.string.dd1_status_runtime_preparing);
+                primary.setText(R.string.dd1_play);
+                primary.setEnabled(false);
+                primary.setOnClickListener(null);
                 break;
             case GAME_MISSING:
                 status.setText(R.string.dd1_status_game_missing);

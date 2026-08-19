@@ -9,12 +9,13 @@ This project is not affiliated with Red Hook Studios or Valve Corporation.
 ## Current development flow
 
 1. Put an owned game installation in the app's `files/game` directory.
-2. Open the DD1 home screen and create the runtime profile when prompted.
+2. Open the DD1 home screen. The launcher creates and configures its single
+   internal runtime profile automatically.
 3. Press `Play`. The launcher mounts the game directory and starts
    `__build/x64_Debug/Darkest.exe` when present.
 
-The DD1 home screen owns the normal launch flow. Winlator's container, input, and
-runtime settings remain available as advanced screens.
+The DD1 home screen owns the launch flow. Winlator's container and runtime
+settings are internal implementation details and are not exposed to users.
 
 The manual file placement is temporary. A legal import/download flow will replace
 it before a public release.

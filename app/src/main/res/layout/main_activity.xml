@@ -16,6 +16,7 @@
             android:layout_width="match_parent"
             android:layout_height="?actionBarSize"
             android:id="@+id/Toolbar"
+            android:visibility="gone"
             app:layout_scrollFlags="enterAlways|scroll"
             app:title="@string/app_name" />
 
@@ -31,6 +32,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:id="@+id/NavigationView"
+        android:visibility="gone"
         android:fitsSystemWindows="true"
         app:headerLayout="@layout/main_menu_header"
         app:itemIconTint="?attr/colorAccent"

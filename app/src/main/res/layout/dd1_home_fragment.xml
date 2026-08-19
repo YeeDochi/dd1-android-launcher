@@ -47,12 +47,12 @@
             android:text="@string/dd1_play" />
 
         <Button
-            android:id="@+id/BTRuntimeProfiles"
+            android:id="@+id/BTAbout"
             style="?android:attr/borderlessButtonStyle"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="8dp"
-            android:text="@string/dd1_runtime_profiles"
-            android:textColor="?attr/colorPrimaryText" />
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/dd1_open_source_info"
+            android:textColor="?attr/colorSecondaryText" />
     </LinearLayout>
 </ScrollView>
