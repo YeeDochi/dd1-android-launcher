@@ -53,7 +53,7 @@
             android:ellipsize="end"
             android:gravity="center"
             android:maxLines="3"
-            android:minLines="3"
+            android:minLines="2"
             android:padding="10dp"
             android:textColor="?attr/colorPrimaryText"
             android:textSize="15sp" />
@@ -84,6 +84,13 @@
             android:text="@string/dd1_steam_sign_out"
             android:textColor="?attr/colorSecondaryText"
             android:visibility="gone" />
+
+        <!-- Pins the secondary actions to the bottom so they line up with the
+             cancel button in the other column. -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
 
         <Button
             android:id="@+id/BTDeleteGame"
@@ -221,9 +228,7 @@
                     android:id="@+id/TVDownloadPercent"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:minWidth="64dp"
-                    android:gravity="end"
+                    android:layout_marginStart="10dp"
                     android:textColor="?attr/colorPrimaryText"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -254,32 +259,36 @@
                 android:layout_gravity="center" />
         </FrameLayout>
 
-        <TextView
-            android:id="@+id/TVInstallLog"
+        <ScrollView
+            android:id="@+id/SVInstallLog"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:background="?attr/colorSecondarySurface"
-            android:fontFamily="monospace"
-            android:gravity="bottom|start"
             android:minHeight="120dp"
             android:padding="10dp"
-            android:scrollbars="vertical"
-            android:textColor="?attr/colorSecondaryText"
-            android:textIsSelectable="true"
-            android:textSize="11sp" />
+            android:scrollbars="vertical">
+
+            <TextView
+                android:id="@+id/TVInstallLog"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textColor="?attr/colorSecondaryText"
+                android:textIsSelectable="true"
+                android:textSize="11sp" />
+        </ScrollView>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
             android:orientation="horizontal">
 
             <Button
                 android:id="@+id/BTCancelDownload"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="48dp"
+                android:layout_height="40dp"
                 android:text="@string/cancel"
                 android:visibility="gone" />
 
@@ -287,7 +296,7 @@
                 android:id="@+id/BTSteamSignOut"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="48dp"
+                android:layout_height="40dp"
                 android:text="@string/dd1_steam_sign_out"
                 android:visibility="gone" />
         </LinearLayout>

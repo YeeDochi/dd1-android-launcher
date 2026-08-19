@@ -14,7 +14,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.text.TextUtils;
-import android.text.method.ScrollingMovementMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +24,7 @@ import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -170,7 +170,7 @@ public class DD1HomeFragment extends Fragment {
         }
         setInstallPanelVisible(false);
         rootView.findViewById(R.id.FLChecking).setVisibility(View.GONE);
-        rootView.findViewById(R.id.TVInstallLog).setVisibility(View.VISIBLE);
+        rootView.findViewById(R.id.SVInstallLog).setVisibility(View.VISIBLE);
         applySignInControls(installSnapshot == null
             ? DD1InstallPhase.SIGNED_OUT : installSnapshot.phase);
         applyDeleteVisibility();
@@ -208,7 +208,7 @@ public class DD1HomeFragment extends Fragment {
         boolean installed = DD1Game.findExecutable(requireContext().getFilesDir()) != null;
         DD1RightPane pane = DD1RightPane.from(snapshot.phase, installed);
         setInstallPanelVisible(pane == DD1RightPane.SIGN_IN || pane == DD1RightPane.INSTALL);
-        rootView.findViewById(R.id.TVInstallLog)
+        rootView.findViewById(R.id.SVInstallLog)
             .setVisibility(pane == DD1RightPane.LOG ? View.VISIBLE : View.GONE);
         rootView.findViewById(R.id.FLChecking)
             .setVisibility(pane == DD1RightPane.CHECKING ? View.VISIBLE : View.GONE);
@@ -262,7 +262,7 @@ public class DD1HomeFragment extends Fragment {
                 progress.setProgress((int)Math.min(1000, snapshot.downloadedBytes * 1000 / snapshot.totalBytes));
             ((TextView)rootView.findViewById(R.id.TVDownloadPercent))
                 .setText(progressSummary(snapshot));
-            rootView.findViewById(R.id.TVInstallLog).setVisibility(View.VISIBLE);
+            rootView.findViewById(R.id.SVInstallLog).setVisibility(View.VISIBLE);
         }
         else if (snapshot.phase == DD1InstallPhase.NOT_OWNED) {
             // Nothing to offer but a different account.
@@ -341,15 +341,10 @@ public class DD1HomeFragment extends Fragment {
     }
 
     private void setLog(String text) {
-        TextView log = rootView.findViewById(R.id.TVInstallLog);
-        if (log.getMovementMethod() == null) log.setMovementMethod(new ScrollingMovementMethod());
-        log.setText(text);
-        log.post(() -> {
-            int overflow = log.getLayout() == null ? 0
-                : log.getLayout().getLineBottom(log.getLineCount() - 1)
-                    - (log.getHeight() - log.getPaddingTop() - log.getPaddingBottom());
-            log.scrollTo(0, Math.max(0, overflow));
-        });
+        ((TextView)rootView.findViewById(R.id.TVInstallLog)).setText(text);
+        // New lines are what matters, so the view follows the tail.
+        ScrollView scroller = rootView.findViewById(R.id.SVInstallLog);
+        scroller.post(() -> scroller.fullScroll(View.FOCUS_DOWN));
     }
 
     private void confirmDeleteGame() {
@@ -373,7 +368,8 @@ public class DD1HomeFragment extends Fragment {
 
     // The part being fetched is named in the status box; this is only the figure.
     static String progressSummary(DD1InstallSnapshot snapshot) {
-        if (snapshot.totalBytes <= 0) return "";
+        // A blank reads as a broken screen; say the figure is not known yet.
+        if (snapshot.totalBytes <= 0) return "??%";
         return String.format(Locale.US, "%.0f%%",
             snapshot.downloadedBytes * 100.0 / snapshot.totalBytes);
     }

@@ -254,6 +254,7 @@ public final class DD1InstallService extends Service {
         @Override
         public void onStatusUpdate(String message) {
             log.append(message);
+            progress.onStatus(message);
             publish(new DD1InstallSnapshot(DD1InstallPhase.DOWNLOADING,
                 snapshot.downloadedBytes, snapshot.totalBytes, 0,
                 describe(), snapshot.currentFile, null, log.visibleLines()));
@@ -290,7 +291,7 @@ public final class DD1InstallService extends Service {
 
         // The left box says which part is in hand; the log carries the detail.
         private String describe() {
-            return "Part " + (progress.finishedCount() + 1);
+            return "Part " + progress.part();
         }
 
         @Override

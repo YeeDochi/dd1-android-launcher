@@ -1,8 +1,6 @@
 package com.winlator.dd1;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -18,91 +16,77 @@ public class DownloadProgressTest {
     }
 
     @Test
-    public void treatsOneAsComplete() {
-        assertEquals(100.0, DownloadProgress.percent(1f), 0.01);
-        assertEquals(100.0, DownloadProgress.percent(100f), 0.01);
-    }
-
-    @Test
     public void clampsNonsense() {
         assertEquals(0.0, DownloadProgress.percent(-3f), 0.01);
         assertEquals(100.0, DownloadProgress.percent(250f), 0.01);
     }
 
     @Test
-    public void oneDepotInFlightIsNotTheWholeDownload() {
+    public void startsWithNothingToShow() {
         DownloadProgress progress = new DownloadProgress();
-        progress.onDepotProgress(1, 100f);
 
-        assertEquals("the number of depots is not known yet", -1.0, progress.overall(), 0.01);
+        assertEquals(-1.0, progress.currentPercent(), 0.01);
+        assertEquals(0, progress.currentDepot());
+        assertEquals(0, progress.finishedCount());
     }
 
     @Test
-    public void progressAppearsOnceADepotHasFinished() {
+    public void tracksTheDepotBeingFetched() {
         DownloadProgress progress = new DownloadProgress();
-        progress.onDepotProgress(1, 100f);
+        progress.onDepotProgress(228985, 30f);
+
+        assertEquals(228985, progress.currentDepot());
+        assertEquals(30.0, progress.currentPercent(), 0.01);
+    }
+
+    @Test
+    public void movingToAnotherDepotStartsItsFigureOver() {
+        DownloadProgress progress = new DownloadProgress();
+        progress.onDepotProgress(1, 90f);
         progress.onDepotFinished(1);
         progress.onDepotProgress(2, 0f);
 
-        assertEquals(50.0, progress.overall(), 0.01);
+        assertEquals(2, progress.currentDepot());
+        assertEquals("a fresh depot has not reported yet", -1.0, progress.currentPercent(), 0.01);
+        assertEquals(1, progress.finishedCount());
     }
 
     @Test
-    public void countsFinishedDepotsTowardsTheWhole() {
+    public void theManifestLinesSettleThePartTotalBeforeAnyContentArrives() {
         DownloadProgress progress = new DownloadProgress();
-        progress.onDepotProgress(1, 50f);
-        progress.onDepotFinished(1);
-        progress.onDepotProgress(2, 50f);
-        assertEquals(75.0, progress.overall(), 0.01);
+        progress.onStatus("Downloading manifest for depot 228985");
+        progress.onStatus("Downloading manifest for depot 228989");
+        progress.onStatus("Allocating file: game.exe");
+
+        assertEquals("1/2", progress.part());
+        progress.onDepotFinished(228985);
+        assertEquals("2/2", progress.part());
     }
 
     @Test
-    public void neverGoesBackwardsWhenADepotRestarts() {
+    public void thePartNumberNeverRunsPastTheTotal() {
         DownloadProgress progress = new DownloadProgress();
-        progress.onDepotProgress(1, 80f);
-        progress.onDepotFinished(1);
-        progress.onDepotProgress(2, 5f);
+        progress.onStatus("Downloading manifest for depot 7");
+        progress.onDepotFinished(7);
 
-        assertTrue(progress.overall() >= 50.0);
+        assertEquals("1/1", progress.part());
     }
 
     @Test
-    public void countsWhichDepotIsBeingFetched() {
+    public void withoutManifestLinesItCountsWhatItHasSeen() {
         DownloadProgress progress = new DownloadProgress();
-        assertEquals(0, progress.currentIndex());
+        progress.onDepotProgress(7, 10f);
 
-        progress.onDepotProgress(1, 10f);
-        assertEquals(1, progress.currentIndex());
-        assertEquals(1, progress.depotCount());
-
-        progress.onDepotFinished(1);
-        progress.onDepotProgress(2, 10f);
-        assertEquals(2, progress.currentIndex());
-        assertEquals(2, progress.depotCount());
+        assertEquals("1/1", progress.part());
     }
 
     @Test
-    public void revisitingADepotDoesNotInventANewOne() {
+    public void aCallbackWithoutADepotKeepsTheCurrentOne() {
         DownloadProgress progress = new DownloadProgress();
-        progress.onDepotProgress(1, 10f);
-        progress.onDepotProgress(1, 40f);
+        progress.onDepotProgress(7, 10f);
+        progress.onDepotProgress(0, 50f);
 
-        assertEquals(1, progress.currentIndex());
-        assertEquals(1, progress.depotCount());
-    }
-
-    @Test
-    public void theTotalIsOnlyClaimedOnceTheDownloadEnds() {
-        DownloadProgress progress = new DownloadProgress();
-        progress.onDepotProgress(1, 10f);
-        assertFalse(progress.totalKnown());
-
-        progress.onAllDepotsSeen();
-        assertTrue(progress.totalKnown());
-    }
-
-    @Test
-    public void staysUnknownUntilTheFirstReport() {
-        assertEquals(-1.0, new DownloadProgress().overall(), 0.01);
+        assertEquals(7, progress.currentDepot());
+        assertEquals(50.0, progress.currentPercent(), 0.01);
     }
 }
