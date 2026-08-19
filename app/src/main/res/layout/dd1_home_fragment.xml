@@ -114,7 +114,8 @@
         <LinearLayout
             android:id="@+id/LLSteamInstall"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="top"
             android:minHeight="0dp"
             android:orientation="vertical"
@@ -189,7 +190,8 @@
             <ScrollView
                 android:id="@+id/SVDlcChoices"
                 android:layout_width="match_parent"
-                android:layout_height="300dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:visibility="gone">
 
                 <LinearLayout
