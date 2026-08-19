@@ -96,7 +96,9 @@
             <Button
                 android:id="@+id/BTCancelSignIn"
                 style="?android:attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
+                android:minWidth="0dp"
+                android:gravity="start|center_vertical"
                 android:layout_height="40dp"
                 android:layout_marginTop="4dp"
                 android:text="@string/dd1_steam_cancel_sign_in"
@@ -106,7 +108,9 @@
             <Button
                 android:id="@+id/BTSignOutAlways"
                 style="?android:attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
+                android:minWidth="0dp"
+                android:gravity="start|center_vertical"
                 android:layout_height="40dp"
                 android:layout_marginTop="4dp"
                 android:text="@string/dd1_steam_sign_out"
@@ -116,7 +120,9 @@
             <Button
                 android:id="@+id/BTDeleteGame"
                 style="?android:attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
+                android:minWidth="0dp"
+                android:gravity="start|center_vertical"
                 android:layout_height="40dp"
                 android:layout_marginTop="4dp"
                 android:text="@string/dd1_delete_game"
@@ -126,7 +132,9 @@
             <Button
                 android:id="@+id/BTAbout"
                 style="?android:attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
+                android:minWidth="0dp"
+                android:gravity="start|center_vertical"
                 android:layout_height="40dp"
                 android:layout_marginTop="4dp"
                 android:text="@string/dd1_open_source_info"

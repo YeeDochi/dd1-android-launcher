@@ -3,7 +3,7 @@ package com.winlator.dd1;
 import com.winlator.XServerDisplayActivity;
 import com.winlator.R;
 import android.app.Activity;
-import android.app.AlertDialog;
+import androidx.appcompat.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
