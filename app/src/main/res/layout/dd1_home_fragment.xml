@@ -104,18 +104,11 @@
         android:layout_weight="1.15"
         android:orientation="vertical">
 
-    <ScrollView
-        android:id="@+id/SVSteamInstall"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true"
-        android:visibility="gone">
-
         <LinearLayout
             android:id="@+id/LLSteamInstall"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="top"
             android:minHeight="0dp"
             android:orientation="vertical"
@@ -187,12 +180,20 @@
                 android:textSize="13sp"
                 android:visibility="gone" />
 
-            <LinearLayout
-                android:id="@+id/LLDlcChoices"
+            <ScrollView
+                android:id="@+id/SVDlcChoices"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone" />
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:minHeight="140dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:id="@+id/LLDlcChoices"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </ScrollView>
 
             <ProgressBar
                 android:id="@+id/PBDownload"
@@ -246,7 +247,6 @@
                 android:text="@string/dd1_retry"
                 android:visibility="gone" />
         </LinearLayout>
-    </ScrollView>
 
         <TextView
             android:id="@+id/TVInstallLog"

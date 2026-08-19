@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <ImageView
+        android:id="@+id/IVDlcCover"
+        android:layout_width="132dp"
+        android:layout_height="62dp"
+        android:background="?attr/colorSecondarySurface"
+        android:contentDescription="@string/dd1_dlc"
+        android:scaleType="centerCrop" />
+
+    <CheckBox
+        android:id="@+id/CBDlc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:textColor="?attr/colorPrimaryText"
+        android:textSize="15sp" />
+</LinearLayout>

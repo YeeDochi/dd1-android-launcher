@@ -230,7 +230,7 @@ public class DD1HomeFragment extends Fragment {
             R.id.ETSteamPassword, R.id.BTSteamCredentials, R.id.BTDownload,
             R.id.PBDownload, R.id.TVDownloadFile,
             R.id.BTCancelDownload, R.id.BTRetryDownload, R.id.BTSteamSignOut,
-            R.id.TVDlcTitle, R.id.LLDlcChoices};
+            R.id.TVDlcTitle, R.id.SVDlcChoices};
         for (int id : controls) rootView.findViewById(id).setVisibility(View.GONE);
 
         if (snapshot.phase == DD1InstallPhase.SIGNED_OUT) {
@@ -278,18 +278,20 @@ public class DD1HomeFragment extends Fragment {
         DlcSelection selection = installService.dlcSelection();
         if (selection.owned().isEmpty()) return;
 
+        LayoutInflater inflater = LayoutInflater.from(requireContext());
         for (int appId : selection.owned()) {
-            CheckBox box = new CheckBox(requireContext());
+            View row = inflater.inflate(R.layout.dd1_dlc_item, list, false);
+            CheckBox box = row.findViewById(R.id.CBDlc);
             box.setText(DlcSelection.nameOf(appId));
-            box.setTextColor(getResources().getColor(android.R.color.white, null));
             box.setChecked(selection.isSelected(appId));
             box.setOnCheckedChangeListener((button, checked) -> {
                 selection.setSelected(appId, checked);
                 installService.saveDlcSelection(selection);
             });
-            list.addView(box);
+            DlcCovers.load(row.findViewById(R.id.IVDlcCover), appId);
+            list.addView(row);
         }
-        show(R.id.TVDlcTitle, R.id.LLDlcChoices);
+        show(R.id.TVDlcTitle, R.id.SVDlcChoices);
     }
 
     public void showDlcDialog() {
@@ -308,7 +310,6 @@ public class DD1HomeFragment extends Fragment {
     // the log takes the rest.
     private void setInstallPanelVisible(boolean visible) {
         int visibility = visible ? View.VISIBLE : View.GONE;
-        rootView.findViewById(R.id.SVSteamInstall).setVisibility(visibility);
         rootView.findViewById(R.id.LLSteamInstall).setVisibility(visibility);
     }
 
