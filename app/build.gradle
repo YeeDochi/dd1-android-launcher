@@ -3,6 +3,11 @@ apply plugin: 'com.android.application'
 android {
     compileSdk 34
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
     defaultConfig {
         applicationId 'io.github.dd1android.launcher'
         minSdkVersion 26
@@ -47,5 +52,9 @@ dependencies {
     implementation 'com.github.luben:zstd-jni:1.5.2-3@aar'
     implementation 'org.tukaani:xz:1.7'
     implementation 'org.apache.commons:commons-compress:1.20'
+    implementation 'in.dragonbra:javasteam:1.8.0'
+    implementation 'in.dragonbra:javasteam-depotdownloader:1.8.0'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.83'
+    implementation 'com.google.zxing:core:3.5.3'
     testImplementation 'junit:junit:4.13.2'
 }
