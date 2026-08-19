@@ -63,12 +63,69 @@ Saves live in the Wine prefix under the user's Documents directory, in
 `Darkest/profile_<number>`. Cloud synchronization uses that path; the design's
 conflict rules apply unchanged.
 
-## Workshop and mods
+## Mod manager
 
-Deferred until installation and cloud sync are reliable, per the design. When it
-lands, mods are downloaded through Steam Workshop into `files/game/mods`, and the
-launcher writes the load order the game reads. Mod code never runs in the
-launcher process.
+Two kinds of mods share one list: Workshop items the user subscribed to, and
+local mods the user copied in. The launcher owns both because no Steam client
+runs on the device to deliver Workshop content.
+
+Every mod appears with its title, source, version marker, and enabled state.
+Users enable, disable, reorder, and delete. The launcher writes the load order
+file the game reads and never executes mod code itself.
+
+### Workshop delivery
+
+Steam does not push Workshop content to a device with no Steam client, so the
+launcher fetches it the same way it fetches the game: through the CDN.
+
+1. List the account's subscribed items for App ID `262060`.
+2. Read each item's details for title, `time_updated`, and its manifest.
+3. Download the manifest's chunks from a CDN server, verifying each chunk hash
+   and then each file hash.
+4. If the payload is a single archive, unpack it; otherwise use the file tree as
+   downloaded.
+5. Swap it into `files/game/mods/<published_file_id>` through staging, and record
+   `time_updated`.
+
+An item without a manifest is skipped with a stated reason rather than failing
+the whole sync. A user may also paste a Workshop item URL, which resolves the id
+and runs the same steps. Items that declare required items offer to fetch those
+too; declining leaves the mod installed but flagged.
+
+### Sync plan
+
+Synchronization first produces a plan the user can read, then applies it. Each
+item lands in exactly one bucket:
+
+- **Install** — subscribed, not present locally.
+- **Update** — present, and the subscription's `time_updated` is newer.
+- **Disabled update** — an update for a mod the user turned off; fetched, still
+  off afterwards.
+- **Orphan** — installed from Workshop but no longer subscribed. Never deleted
+  automatically; the user decides.
+- **Stale entry** — a config row whose mod directory is gone.
+- **Conflict** — the same mod id exists both from Workshop and from a manual
+  copy. Both versions are shown and the user picks; the choice is remembered so
+  the next sync does not ask again.
+- **Skipped** — anything unusable, always with a reason.
+
+Nothing is applied while the game is running, and a failed download leaves the
+previous version in place.
+
+### Mod configuration
+
+A single versioned config file holds one row per mod: id, source, enabled flag,
+and position. It is reconciled against a scan of the mods directory on every
+launch, so mods added or removed outside the launcher appear correctly. The load
+order the game reads is written from that list, and it is the only file the
+launcher writes inside the install.
+
+### Boundaries
+
+- Archives are unpacked with path traversal rejected and a size ceiling.
+- Deleting the game files also deletes `files/game/mods`, stated in the delete
+  confirmation.
+- Mod code never runs in the launcher process.
 
 ## Release gate
 
