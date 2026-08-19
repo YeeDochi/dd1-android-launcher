@@ -311,6 +311,20 @@ public class DD1HomeFragment extends Fragment {
 
         Intent intent = new Intent(activity, XServerDisplayActivity.class);
         intent.putExtra("container_id", container.id);
+        File system32 = new File(container.getRootDir(), ".wine/drive_c/windows/system32");
+        File redist = DD1Game.pendingRedistributable(gameDir, system32);
+
+        Intent intent = new Intent(activity, XServerDisplayActivity.class);
+        intent.putExtra("container_id", container.id);
+        File probe = new File(container.getRootDir(), ".wine/drive_c/windows/dd1probe.exe");
+        if (probe.isFile()) {
+            intent.putExtra("exec_path", executable.getPath());
+            intent.putExtra("work_dir", gameDir.getPath());
+            intent.putExtra("exec_dos", "C:\\windows\\system32\\cmd.exe");
+            intent.putExtra("exec_args", " /c G:\\dd1probe.bat");
+            activity.startActivity(intent);
+            return;
+        }
         intent.putExtra("exec_path", redist != null ? redist.getPath() : executable.getPath());
         // Steam adds -skipvalidation for the 64-bit build; without it the game
         // exits immediately and silently.

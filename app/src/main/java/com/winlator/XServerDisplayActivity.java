@@ -493,7 +493,9 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             if (container.getHUDMode() == FrameRating.Mode.FULL.ordinal()) envVars.put("X11_WND_GPU_INFO", "1");
 
             String desktopName = shortcut != null || getIntent().hasExtra("exec_path") ? "nogui" : "shell";
-            String guestExecutable = "wine explorer /desktop="+desktopName+","+xServer.screenInfo+" "+getWineStartCommand();
+            String guestExecutable = getIntent().hasExtra("work_dir")
+                ? "wine "+getWineStartCommand()
+                : "wine explorer /desktop="+desktopName+","+xServer.screenInfo+" "+getWineStartCommand();
             guestProgramLauncherComponent.setGuestExecutable(guestExecutable);
             String workDir = getIntent().getStringExtra("work_dir");
             if (workDir != null) guestProgramLauncherComponent.setGuestWorkingDir(new File(workDir));
@@ -949,9 +951,10 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         }
         else {
             Intent intent = getIntent();
-            if (intent.hasExtra("exec_path")) {
+            if (intent.hasExtra("exec_args")) execArgs = intent.getStringExtra("exec_args");
+            if (intent.hasExtra("exec_dos")) execPath = intent.getStringExtra("exec_dos");
+            else if (intent.hasExtra("exec_path")) {
                 execPath = WineUtils.unixToDOSPath(intent.getStringExtra("exec_path"), container);
-                if (intent.hasExtra("exec_args")) execArgs = intent.getStringExtra("exec_args");
 
                 if (execPath.endsWith(".lnk")) {
                     cmdArgs = "\""+execPath+"\"";
@@ -984,9 +987,9 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         // executable directly and let the process working directory stand in for /dir.
         // ShellExecute (winhandler, start.exe) needs RpcSs, which never starts here,
         // so hand the executable to cmd.exe, which only uses CreateProcess.
-        return execPath != null
-            ? "C:\\windows\\system32\\cmd.exe /c "+execPath+execArgs
-            : "C:\\windows\\winhandler.exe "+cmdArgs;
+        if (execPath == null) return "C:\\windows\\winhandler.exe "+cmdArgs;
+        return getIntent().hasExtra("work_dir") ? execPath+execArgs
+            : "C:\\windows\\system32\\cmd.exe /c "+execPath+execArgs;
     }
 
     // winhandler joins /dir and the executable with a separator, so a drive root
