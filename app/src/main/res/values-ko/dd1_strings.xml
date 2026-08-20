@@ -26,6 +26,10 @@
     <string name="dd1_steam_cancel_sign_in">취소하고 다시 로그인</string>
     <string name="dd1_dlc">다운로드 콘텐츠</string>
     <string name="dd1_dlc_none">이 계정에서 DLC를 찾지 못했습니다. 로그인하지 않았다면 먼저 로그인하세요.</string>
+    <string name="dd1_dlc_apply">선택 적용</string>
+    <string name="dd1_dlc_apply_title">선택하지 않은 콘텐츠 제거</string>
+    <string name="dd1_dlc_apply_message">%s을(를) 설치본에서 지웁니다. 되돌리려면 다시 받아야 하고, 그 콘텐츠를 쓰는 세이브는 열리지 않을 수 있습니다.</string>
+    <string name="dd1_dlc_missing">아직 받지 않은 콘텐츠: %s</string>
     <string name="dd1_dlc_hint">선택하지 않은 콘텐츠는 다운로드가 끝날 때 제거됩니다. 변경은 다음 다운로드부터 적용됩니다.</string>
     <string name="dd1_menu">메뉴</string>
     <string name="dd1_settings">설정</string>

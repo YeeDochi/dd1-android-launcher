@@ -59,6 +59,28 @@ public class DlcInstallFilterTest {
         assertEquals(Arrays.asList("readme"), names(game));
     }
 
+    // The screen has to say what is on disk before it can offer to remove any of
+    // it, and the folder name is the only record of which DLC a directory is.
+    @Test
+    public void readsWhichDlcIsInstalledFromTheFolderNames() throws IOException {
+        File game = folder.newFolder("game");
+        dlc(game, "580100_crimson_court");
+        dlc(game, "735730_color_of_madness");
+        dlc(game, "readme");
+
+        java.util.List<Integer> installed =
+            new java.util.ArrayList<>(DlcInstallFilter.installed(game));
+        java.util.Collections.sort(installed);
+
+        assertEquals(Arrays.asList(580100, 735730), installed);
+    }
+
+    @Test
+    public void nothingInstalledWhenThereIsNoDlcDirectory() throws IOException {
+        assertEquals(Collections.emptyList(),
+            new java.util.ArrayList<>(DlcInstallFilter.installed(folder.newFolder("game"))));
+    }
+
     @Test
     public void missingDlcDirectoryIsNotAnError() throws IOException {
         DlcInstallFilter.apply(folder.newFolder("game"), Collections.emptyList());

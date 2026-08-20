@@ -9,9 +9,12 @@ import android.os.IBinder;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AlertDialog;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,6 +22,8 @@ import androidx.fragment.app.Fragment;
 
 import com.winlator.R;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 // Which DLC the launcher installs. A screen rather than a dialog because the
@@ -99,9 +104,58 @@ public class DD1DlcFragment extends Fragment {
             box.setOnCheckedChangeListener((button, checked) -> {
                 selection.setSelected(appId, checked);
                 installService.saveDlcSelection(selection);
+                // What is on disk no longer matches what is ticked, and the offer
+                // to act on that has to appear with the tick, not on the next
+                // redraw that happens to come along.
+                renderPending(view, selection);
             });
             DlcCovers.load(row.findViewById(R.id.IVDlcCover), appId);
             list.addView(row);
         }
+        renderPending(view, selection);
+    }
+
+    // Ticking a box only records a choice. Acting on it is deliberate: removing
+    // content cannot be undone without downloading it again, so it takes a press
+    // and a confirmation.
+    private void renderPending(View view, DlcSelection selection) {
+        File gameDir = new File(requireContext().getFilesDir(), "game");
+        List<Integer> installed = DlcInstallFilter.installed(gameDir);
+
+        List<Integer> removable = new ArrayList<>(installed);
+        removable.removeAll(selection.selected());
+
+        List<Integer> missing = new ArrayList<>(selection.selected());
+        missing.removeAll(installed);
+
+        TextView pending = view.findViewById(R.id.TVDlcMissing);
+        pending.setVisibility(missing.isEmpty() ? View.GONE : View.VISIBLE);
+        if (!missing.isEmpty())
+            pending.setText(getString(R.string.dd1_dlc_missing, names(missing)));
+
+        Button apply = view.findViewById(R.id.BTDlcApply);
+        apply.setVisibility(removable.isEmpty() ? View.GONE : View.VISIBLE);
+        apply.setOnClickListener(v -> confirmRemoval(gameDir, selection, removable));
+    }
+
+    private void confirmRemoval(File gameDir, DlcSelection selection, List<Integer> removable) {
+        new AlertDialog.Builder(requireContext(), R.style.DD1Dialog)
+            .setTitle(R.string.dd1_dlc_apply_title)
+            .setMessage(getString(R.string.dd1_dlc_apply_message, names(removable)))
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.dd1_dlc_apply, (dialog, which) -> {
+                DlcInstallFilter.apply(gameDir, selection.selected());
+                renderList();
+            })
+            .show();
+    }
+
+    private static String names(List<Integer> appIds) {
+        StringBuilder text = new StringBuilder();
+        for (int appId : appIds) {
+            if (text.length() > 0) text.append(", ");
+            text.append(DlcSelection.nameOf(appId));
+        }
+        return text.toString();
     }
 }

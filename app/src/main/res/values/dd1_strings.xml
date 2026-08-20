@@ -27,6 +27,10 @@
     <string name="dd1_steam_cancel_sign_in">Cancel and sign in again</string>
     <string name="dd1_dlc">Downloadable content</string>
     <string name="dd1_dlc_none">No DLC found on this account. Sign in first if you have not.</string>
+    <string name="dd1_dlc_apply">Apply selection</string>
+    <string name="dd1_dlc_apply_title">Remove unselected content</string>
+    <string name="dd1_dlc_apply_message">%s will be deleted from the installed game. Getting it back means downloading it again, and a save that uses its content may stop loading.</string>
+    <string name="dd1_dlc_missing">Not installed yet: %s</string>
     <string name="dd1_dlc_hint">Unselected content is removed when the download finishes. Changing this takes effect on the next download.</string>
     <string name="dd1_menu">Menu</string>
     <string name="dd1_settings">Settings</string>
