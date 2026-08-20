@@ -5,8 +5,15 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.view.KeyCharacterMap;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
+import android.view.inputmethod.BaseInputConnection;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputMethodManager;
 
 import com.winlator.core.AppUtils;
 import com.winlator.math.XForm;
@@ -50,28 +57,39 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         // The finger is the cursor now, so the arrow it drags along is only in the
         // way. The pointer still moves; nothing is drawn for it.
         xServer.getRenderer().setCursorVisible(false);
-        updateXform(AppUtils.getScreenWidth(), AppUtils.getScreenHeight());
+        // The keyboard needs something to type into. With no focused editor on
+        // this side the IME opens over the game, sends its characters nowhere,
+        // and the game loses the field it had selected.
+        setFocusable(true);
+        setFocusableInTouchMode(true);
+        placeEscape(0, AppUtils.getScreenHeight());
     }
 
     @Override
     protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
         super.onSizeChanged(width, height, oldWidth, oldHeight);
-        updateXform(width, height);
+        placeEscape(transformation().viewOffsetX, height);
     }
 
     // The container draws at its own resolution inside whatever the screen is, so
-    // a fingertip in view pixels is not yet a place on the desktop.
-    private void updateXform(int outerWidth, int outerHeight) {
-        ViewTransformation transformation = new ViewTransformation();
-        transformation.update(outerWidth, outerHeight,
-            xServer.screenInfo.width, xServer.screenInfo.height);
+    // a fingertip in view pixels is not yet a place on the desktop. Working out
+    // that placement twice is how the pointer ended up somewhere else than the
+    // finger when the keyboard resized the window: the renderer keeps the
+    // transformation it actually drew with, so read that one and there is
+    // nothing left to disagree with.
+    private ViewTransformation transformation() {
+        return xServer.getRenderer().viewTransformation;
+    }
+
+    private float[] xform() {
+        ViewTransformation transformation = transformation();
         float invAspect = 1.0f / transformation.aspect;
         if (!xServer.getRenderer().isFullscreen()) {
             XForm.makeTranslation(xform, -transformation.viewOffsetX, -transformation.viewOffsetY);
             XForm.scale(xform, invAspect, invAspect);
         }
         else XForm.makeScale(xform, invAspect, invAspect);
-        placeEscape(transformation.viewOffsetX, outerHeight);
+        return xform;
     }
 
     // The game does not fill a phone this wide, and the bars either side of it
@@ -113,6 +131,7 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
                     invalidate();
                     return true;
                 }
+                if (!insidePicture(lastX, lastY)) return true;
                 hovering = false;
                 gesture.down(lastX, lastY, now);
                 postDelayed(hold, TouchGesture.HOLD_MILLIS);
@@ -134,10 +153,8 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
                     typing = false;
                     invalidate();
                     if (event.getActionMasked() == MotionEvent.ACTION_UP
-                            && keyboard.contains(lastX, lastY)
-                            && getContext() instanceof androidx.appcompat.app.AppCompatActivity)
-                        com.winlator.core.AppUtils.showKeyboard(
-                            (androidx.appcompat.app.AppCompatActivity)getContext());
+                            && keyboard.contains(lastX, lastY))
+                        toggleKeyboard();
                     return true;
                 }
                 removeCallbacks(hold);
@@ -147,6 +164,115 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
             default:
                 return false;
         }
+    }
+
+    // The IME talks to whatever view claims to be an editor, so the overlay
+    // claims it. Nothing is edited here: every character committed is turned
+    // straight into a key the game sees.
+    @Override
+    public boolean onCheckIsTextEditor() {
+        return true;
+    }
+
+    @Override
+    public InputConnection onCreateInputConnection(EditorInfo out) {
+        // A composing IME keeps its letters in a buffer this view cannot hold -
+        // Samsung's Korean keypad piled up jamo and committed nothing. Asking
+        // for the visible-password variant turns composition off, so every key
+        // arrives finished.
+        // ponytail: Latin only. Hangul needs syllables injected as Unicode
+        // keysyms, which is a keysym table this does not have.
+        out.inputType = EditorInfo.TYPE_CLASS_TEXT
+            | EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            | EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+        out.imeOptions = EditorInfo.IME_ACTION_DONE | EditorInfo.IME_FLAG_NO_EXTRACT_UI
+            | EditorInfo.IME_FLAG_NO_FULLSCREEN;
+        // No text is held, so there is nothing for the IME to compose against.
+        return new BaseInputConnection(this, false) {
+            @Override
+            public boolean commitText(CharSequence text, int newCursorPosition) {
+                for (int i = 0; i < text.length(); i++) sendChar(text.charAt(i));
+                return true;
+            }
+
+            @Override
+            public boolean sendKeyEvent(KeyEvent event) {
+                // Backspace and Enter arrive as real key events, and the
+                // runtime already maps those.
+                return xServer.keyboard.onKeyEvent(event);
+            }
+
+            @Override
+            public boolean deleteSurroundingText(int before, int after) {
+                for (int i = 0; i < before; i++) {
+                    xServer.injectKeyPress(XKeycode.KEY_BKSP);
+                    postDelayed(() -> xServer.injectKeyRelease(XKeycode.KEY_BKSP), CLICK_MILLIS);
+                }
+                return true;
+            }
+        };
+    }
+
+    // The runtime's own key path already turns a single character into a keysym
+    // on a spare keycode, and a multiple-action event is how it is asked to.
+    private void sendChar(char c) {
+        xServer.keyboard.onKeyEvent(new KeyEvent(0L, String.valueOf(c),
+            KeyCharacterMap.VIRTUAL_KEYBOARD, 0));
+    }
+
+    // The game has to move out of the keyboard's way, or the field being typed
+    // into sits behind it. Shrinking the window did not do it: the game view is
+    // not laid out again, so all that happens is the bottom gets clipped off.
+    // Turning the screen upright does, and costs nothing to arrange - the game
+    // is a landscape picture, so it letterboxes into the top half and the
+    // keyboard has the bottom half to itself. Landscape comes back with the
+    // keyboard.
+    private void toggleKeyboard() {
+        android.app.Activity activity = getContext() instanceof android.app.Activity
+            ? (android.app.Activity)getContext() : null;
+        if (activity == null) return;
+        InputMethodManager imm =
+            (InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm == null) return;
+
+        if (keyboardShown()) {
+            imm.hideSoftInputFromWindow(getWindowToken(), 0);
+            activity.setRequestedOrientation(
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+            activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            AppUtils.hideSystemUI(activity);
+            return;
+        }
+        activity.getWindow().setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R)
+            activity.getWindow().setDecorFitsSystemWindows(true);
+        activity.setRequestedOrientation(
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        // The IME opens against the focused view, so the focus has to be here
+        // before it is asked to.
+        requestFocus();
+        imm.showSoftInput(this, 0);
+    }
+
+    // The game does not fill the window once the keyboard has taken half of it,
+    // and a touch in the black around it lands on the edge of the desktop, where
+    // the game scrolls the view - which is the screen shaking by itself. Outside
+    // the picture there is nothing to press.
+    private boolean keyboardShown() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) return false;
+        android.view.WindowInsets insets = getRootWindowInsets();
+        return insets != null && insets.isVisible(android.view.WindowInsets.Type.ime());
+    }
+
+    private boolean insidePicture(float x, float y) {
+        if (xServer.getRenderer().isFullscreen()) return true;
+        ViewTransformation transformation = transformation();
+        return x >= transformation.viewOffsetX
+            && x <= transformation.viewOffsetX + transformation.viewWidth
+            && y >= transformation.viewOffsetY
+            && y <= transformation.viewOffsetY + transformation.viewHeight;
     }
 
     private void sendEscape() {
@@ -186,7 +312,7 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         // ponytail: if this ever needs to hold against more of the runtime, listen
         // for window modifications instead of leaning on touches.
         xServer.getRenderer().setCursorVisible(false);
-        float[] point = XForm.transformPoint(xform, x, y + TouchGesture.hoverOffset(hovering));
+        float[] point = XForm.transformPoint(xform(), x, y + TouchGesture.hoverOffset(hovering));
         xServer.injectPointerMove((int)point[0], (int)point[1]);
     }
 
