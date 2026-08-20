@@ -94,6 +94,21 @@ public class DD1WorkshopTest {
     }
 
     @Test
+    public void payloadContainingASymlinkCannotEscapeStaging() throws Exception {
+        File files = folder.newFolder();
+        File payload = mkdir(files, "workshop-staging/42");
+        touch(new File(payload, "project.xml"));
+        File outside = new File(files, "outside");
+        touch(outside);
+        Files.createSymbolicLink(new File(payload, "escape").toPath(), outside.toPath());
+
+        expectIOException(() -> DD1Workshop.promote(files, 42, 8, "Linked"));
+
+        assertFalse(new File(files, "game/mods/42").exists());
+        assertTrue(outside.isFile());
+    }
+
+    @Test
     public void deleteRemovesOnlyTheNamedDirectChild() throws Exception {
         File files = folder.newFolder();
         mkdir(files, "game/mods/local");

@@ -49,6 +49,7 @@ public final class DD1Workshop {
             throws IOException {
         File staging = new File(filesDir, "workshop-staging/" + publishedFileId);
         File payload = payload(staging);
+        rejectLinks(payload);
         Files.write(new File(payload, MARKER).toPath(), marker(publishedFileId, updatedAt, title));
 
         File mods = new File(filesDir, "game/mods");
@@ -105,6 +106,15 @@ public final class DD1Workshop {
     private static byte[] marker(long id, long updatedAt, String title) {
         String safeTitle = title == null ? Long.toString(id) : title.replace('\n', ' ').replace('\r', ' ');
         return (id + "\n" + updatedAt + "\n" + safeTitle + "\n").getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static void rejectLinks(File file) throws IOException {
+        if (Files.isSymbolicLink(file.toPath()))
+            throw new IOException("Workshop payload contains a symbolic link");
+        if (!file.isDirectory()) return;
+        File[] children = file.listFiles();
+        if (children == null) throw new IOException("Cannot read Workshop payload");
+        for (File child : children) rejectLinks(child);
     }
 
     private static void deleteTree(File file) throws IOException {
