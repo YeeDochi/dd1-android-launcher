@@ -172,6 +172,10 @@ public final class DD1InstallService extends Service {
         return steam.catalog();
     }
 
+    public DD1CloudSaves cloudSaves() {
+        return new DD1CloudSaves(steam.cloud());
+    }
+
     public java.util.List<Integer> ownedDlc() {
         return steam.ownedDlc();
     }

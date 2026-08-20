@@ -47,6 +47,8 @@ public final class DD1SteamSession implements Closeable {
     private final CallbackManager callbacks = new CallbackManager(client);
     private final SteamUser user = requireHandler(SteamUser.class);
     private final SteamApps apps = requireHandler(SteamApps.class);
+    private final in.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud cloud =
+        requireHandler(in.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud.class);
     private final SteamTokenStore tokens;
     private final DD1SteamEvents events;
     private final Listener listener;
@@ -335,6 +337,10 @@ public final class DD1SteamSession implements Closeable {
 
     public synchronized DD1DepotCatalog catalog() {
         return catalog;
+    }
+
+    public in.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud cloud() {
+        return cloud;
     }
 
     private void onDisconnected(DisconnectedCallback callback) {
