@@ -51,14 +51,21 @@ public final class DD1CloudSaves {
         }
     }
 
-    // Steam reports a bare filename plus a list of prefixes, and the index that
-    // should say which prefix applies came back as zero for every file - for the
-    // fourteen inside profile_0 and the two in the root alike. The prefix is right
-    // far more often than not, so it is applied, and fetch falls back to the bare
-    // name when Steam does not know the prefixed one.
+    // Steam reports a bare filename and the index of the prefix it belongs under,
+    // and that index is 0-based and correct: with two slots up there the listing
+    // came back 16 files at index 0 and 8 at index 1, matching profile_0 and
+    // profile_1 exactly.
+    //
+    // Measured the hard way. With only one slot in the cloud every file read
+    // index 0, which looked like the index being unset; taking the first prefix
+    // for everything then worked by luck and mislabelled every file of the second
+    // slot as the first's the moment there were two. The two files Steam keeps in
+    // the tree's root also report index 0, so they are named as though they were
+    // inside profile_0 - DD1SaveSlots decides that from the local tree instead.
     private static String name(List<String> prefixes, AppFileInfo file) {
-        if (prefixes.isEmpty()) return file.getFilename();
-        return prefixes.get(0) + file.getFilename();
+        int index = file.getPathPrefixIndex();
+        if (index < 0 || index >= prefixes.size()) return file.getFilename();
+        return prefixes.get(index) + file.getFilename();
     }
 
     // A name the listing got wrong costs one failed request, and the digest check
