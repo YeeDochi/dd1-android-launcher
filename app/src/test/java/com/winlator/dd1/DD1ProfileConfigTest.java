@@ -12,7 +12,9 @@ public class DD1ProfileConfigTest {
         Map<String, Object> config = DD1ProfileConfig.create("turnip,gladio", "0,1,2,3");
 
         assertEquals("Darkest Dungeon", config.get("name"));
-        assertEquals("1280x720", config.get("screenSize"));
+        // 1:1 with the S25 panel: the game scales its interface with the
+        // resolution, so a smaller one is the same size and blurrier.
+        assertEquals("1920x1080", config.get("screenSize"));
         assertEquals("turnip,gladio", config.get("graphicsDriver"));
         assertEquals("0,1,2,3", config.get("cpuList"));
         assertEquals("0,1,2,3", config.get("cpuListWoW64"));

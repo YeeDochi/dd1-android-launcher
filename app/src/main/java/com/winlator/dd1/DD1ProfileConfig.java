@@ -7,7 +7,12 @@ public abstract class DD1ProfileConfig {
     public static Map<String, Object> create(String graphicsDriver, String cpuList) {
         Map<String, Object> config = new LinkedHashMap<>();
         config.put("name", "Darkest Dungeon");
-        config.put("screenSize", "1280x720");
+        // The game scales its interface with the resolution, so this does not
+        // change how big the text is - only how many pixels it gets. 1080 matches
+        // the S25 panel exactly and reads cleanly; 960x540 was the same size and
+        // blurrier, and anything taller is downscaled again. The bars either side
+        // are where the Esc button lives.
+        config.put("screenSize", "1920x1080");
         config.put("envVars", "ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=1 TU_DEBUG=noconform");
         config.put("cpuList", cpuList);
         config.put("cpuListWoW64", cpuList);
