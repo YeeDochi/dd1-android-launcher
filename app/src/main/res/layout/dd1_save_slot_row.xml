@@ -27,14 +27,9 @@
             android:orientation="vertical">
 
             <TextView
-                style="@style/DD1Meta"
-                android:text="@string/dd1_saves_local" />
-
-            <TextView
                 android:id="@+id/TVSlotLocal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
                 android:textColor="?attr/colorPrimaryText"
                 android:textSize="13sp" />
 
@@ -53,14 +48,9 @@
             android:orientation="vertical">
 
             <TextView
-                style="@style/DD1Meta"
-                android:text="@string/dd1_saves_cloud" />
-
-            <TextView
                 android:id="@+id/TVSlotCloud"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
                 android:textColor="?attr/colorPrimaryText"
                 android:textSize="13sp" />
 

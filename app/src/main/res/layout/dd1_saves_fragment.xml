@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The same shape as the home screen: what you act on down the left, what it is
+     doing down the right. A slot card stretched across the whole width read as
+     one enormous row and left nowhere for progress to go. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -10,46 +13,98 @@
 
     <include layout="@layout/dd1_screen_header" />
 
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="8dp">
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <ProgressBar
-                android:id="@+id/PBSavesLoading"
-                style="?android:attr/progressBarStyleLarge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="12dp"
-                android:visibility="gone" />
+        <ScrollView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="45">
 
             <LinearLayout
-                android:id="@+id/LLSlots"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                android:orientation="vertical">
 
+                <ProgressBar
+                    android:id="@+id/PBSavesLoading"
+                    style="?android:attr/progressBarStyleLarge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone" />
+
+                <!-- Said once above the list rather than in every card: with ten
+                     slots the labels would be the loudest thing on the screen. -->
+                <LinearLayout
+                    android:id="@+id/LLSlotHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <TextView
+                        style="@style/DD1SectionTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginTop="0dp"
+                        android:text="@string/dd1_saves_local" />
+
+                    <TextView
+                        style="@style/DD1SectionTitle"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginTop="0dp"
+                        android:layout_marginStart="12dp"
+                        android:text="@string/dd1_saves_cloud" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/LLSlots"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <TextView
+                    style="@style/DD1SectionTitle"
+                    android:text="@string/dd1_saves_snapshots" />
+
+                <LinearLayout
+                    android:id="@+id/LLSnapshots"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/SVSavesLog"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="55"
+            android:layout_marginStart="12dp"
+            android:background="?attr/colorSecondarySurface"
+            android:scrollbars="vertical">
+
+            <!-- The padding belongs to the text, not the viewport, or the last
+                 line never comes fully into view. -->
             <TextView
-                android:id="@+id/TVSavesStatus"
-                style="@style/DD1Meta"
-                android:layout_marginTop="8dp" />
-
-            <TextView
-                style="@style/DD1SectionTitle"
-                android:text="@string/dd1_saves_snapshots" />
-
-            <LinearLayout
-                android:id="@+id/LLSnapshots"
+                android:id="@+id/TVSavesLog"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
-        </LinearLayout>
-    </ScrollView>
+                android:fontFamily="monospace"
+                android:padding="10dp"
+                android:textColor="?attr/colorSecondaryText"
+                android:textIsSelectable="true"
+                android:textSize="@dimen/dd1_log_size" />
+        </ScrollView>
+    </LinearLayout>
 </LinearLayout>

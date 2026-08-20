@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -134,6 +135,8 @@ public class DD1SavesFragment extends Fragment {
         java.util.Collections.sort(names, (left, right) ->
             Integer.compare(DD1Saves.slotOf(left), DD1Saves.slotOf(right)));
 
+        view.findViewById(R.id.LLSlotHeader)
+            .setVisibility(names.isEmpty() ? View.GONE : View.VISIBLE);
         if (names.isEmpty()) list.addView(note(getString(R.string.dd1_saves_none)));
         for (String name : names) list.addView(row(name, local.get(name)));
 
@@ -195,6 +198,9 @@ public class DD1SavesFragment extends Fragment {
         }).start();
     }
 
+    // The estate's name and how far the campaign has got. The time it was saved
+    // is left to the dialog: minutes played is the better answer to "which of
+    // these two do I want", and a date beside it only competes with it.
     private String describe(DD1SaveSlot slot) {
         StringBuilder text = new StringBuilder();
         if (slot.estate != null) text.append(slot.estate);
@@ -203,16 +209,26 @@ public class DD1SavesFragment extends Fragment {
             text.append(String.format(Locale.US, getString(R.string.dd1_saves_played),
                 slot.playedSeconds / 60f));
         }
-        if (slot.savedAt != null) {
-            if (text.length() > 0) text.append('\n');
-            text.append(slot.savedAt);
-        }
         return text.length() == 0 ? slot.name : text.toString();
     }
 
-    private void status(String text) {
+    // Replacing a save is the one choice that cannot be taken back, so this one
+    // says everything known, the save time included.
+    private String describeFully(DD1SaveSlot slot) {
+        String summary = describe(slot).replace('\n', ' ');
+        return slot.savedAt == null ? summary : summary + " · " + slot.savedAt;
+    }
+
+    // The right half is a console rather than a single status line: a transfer is
+    // fifteen small round trips, and knowing which one it is on is the whole
+    // information. Called on the main thread only.
+    private void log(String line) {
         View view = getView();
-        if (view != null) ((TextView)view.findViewById(R.id.TVSavesStatus)).setText(text);
+        if (view == null) return;
+        TextView console = view.findViewById(R.id.TVSavesLog);
+        console.append(console.length() == 0 ? line : "\n" + line);
+        ScrollView scroll = view.findViewById(R.id.SVSavesLog);
+        scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
     }
 
     private void upload(DD1SaveSlot slot) {
@@ -224,14 +240,21 @@ public class DD1SavesFragment extends Fragment {
         for (DD1SaveSummary.Entry file : DD1SaveSummary.of(new File(root, slot.name)))
             named.add(new DD1SaveSummary.Entry(slot.name + "/" + file.path, file.length,
                 file.modifiedMillis, file.sha1));
-        status(getString(R.string.dd1_saves_progress, 0, named.size()));
+        log(slot.name + " → " + getString(R.string.dd1_saves_cloud)
+            + " (" + named.size() + ")");
 
         new Thread(() -> {
-            if (DD1SaveSnapshots.take(filesDir, System.currentTimeMillis()) == null) return;
+            if (DD1SaveSnapshots.take(filesDir, System.currentTimeMillis()) == null) {
+                main.post(() -> log(getString(R.string.dd1_saves_no_snapshot)));
+                return;
+            }
+            main.post(() -> log(getString(R.string.dd1_saves_snapshot_taken)));
+            for (DD1SaveSummary.Entry file : named)
+                main.post(() -> log("  " + file.path + "  " + file.length));
             boolean sent = installService != null
                 && installService.cloudSaves().upload(root, named);
             main.post(() -> {
-                status(sent ? getString(R.string.dd1_saves_sent, named.size())
+                log(sent ? getString(R.string.dd1_saves_sent, named.size())
                     : getString(R.string.dd1_saves_send_failed));
                 loadCloud();
             });
@@ -241,7 +264,8 @@ public class DD1SavesFragment extends Fragment {
     private void download(String slot) {
         File filesDir = requireContext().getFilesDir();
         List<DD1SaveSummary.Entry> files = DD1SaveSlots.filesOf(cloud, slot);
-        status(getString(R.string.dd1_saves_progress, 0, files.size()));
+        log(getString(R.string.dd1_saves_cloud) + " → " + slot
+            + " (" + files.size() + ")");
 
         new Thread(() -> {
             DD1SaveStaging.clear(filesDir, slot);
@@ -249,19 +273,20 @@ public class DD1SavesFragment extends Fragment {
             for (DD1SaveSummary.Entry file : files) {
                 byte[] content = installService == null ? null
                     : installService.cloudSaves().fetch(file.path);
-                if (content == null || !DD1SaveStaging.put(filesDir, slot, file.path, content))
-                    break;
+                boolean kept = content != null
+                    && DD1SaveStaging.put(filesDir, slot, file.path, content);
+                final String line = "  " + file.path + "  "
+                    + (kept ? String.valueOf(content.length) : "?");
+                main.post(() -> log(line));
+                if (!kept) break;
                 done++;
-                final int sofar = done;
-                main.post(() -> status(getString(R.string.dd1_saves_progress,
-                    sofar, files.size())));
             }
             final boolean whole = done == files.size() && !files.isEmpty();
             main.post(() -> {
                 if (whole) confirmReplace(slot);
                 else {
                     DD1SaveStaging.clear(filesDir, slot);
-                    status(getString(R.string.dd1_saves_get_failed));
+                    log(getString(R.string.dd1_saves_get_failed));
                 }
             });
         }).start();
@@ -270,23 +295,28 @@ public class DD1SavesFragment extends Fragment {
     // The staged slot is described before anything is replaced, so the choice is
     // made against what the cloud actually holds rather than against its name.
     private void confirmReplace(String slot) {
+        log(getString(R.string.dd1_saves_asking));
         File filesDir = requireContext().getFilesDir();
         DD1SaveSlot staged = DD1SaveStaging.describe(filesDir, slot);
         if (staged == null) {
             DD1SaveStaging.clear(filesDir, slot);
-            status(getString(R.string.dd1_saves_get_failed));
+            log(getString(R.string.dd1_saves_get_failed));
             return;
         }
         DD1SaveSlot live = DD1SaveSlot.of(new File(DD1Saves.root(filesDir), slot));
         new AlertDialog.Builder(requireContext(), R.style.DD1Dialog)
             .setTitle(R.string.dd1_saves_replace_title)
             .setMessage(getString(R.string.dd1_saves_replace,
-                live == null ? getString(R.string.dd1_saves_none) : describe(live),
-                describe(staged)))
-            .setNegativeButton(android.R.string.cancel,
-                (dialog, which) -> DD1SaveStaging.clear(filesDir, slot))
+                live == null ? getString(R.string.dd1_saves_none) : describeFully(live),
+                describeFully(staged)))
+            .setNegativeButton(android.R.string.cancel, (dialog, which) -> {
+                DD1SaveStaging.clear(filesDir, slot);
+                log(getString(R.string.dd1_saves_kept_local));
+            })
             .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                DD1SaveStaging.apply(filesDir, slot);
+                boolean applied = DD1SaveStaging.apply(filesDir, slot);
+                log(applied ? getString(R.string.dd1_saves_replaced, slot)
+                    : getString(R.string.dd1_saves_get_failed));
                 render();
             })
             .show();

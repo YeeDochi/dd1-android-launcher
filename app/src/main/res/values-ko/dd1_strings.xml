@@ -48,6 +48,11 @@
     <string name="dd1_saves_progress">%1$d/%2$d 파일</string>
     <string name="dd1_saves_reading">읽는 중…</string>
     <string name="dd1_saves_unreadable">읽을 수 없습니다</string>
+    <string name="dd1_saves_snapshot_taken">스냅샷을 남겼습니다</string>
+    <string name="dd1_saves_no_snapshot">스냅샷을 남길 수 없어 아무것도 보내지 않았습니다</string>
+    <string name="dd1_saves_asking">선택을 기다립니다</string>
+    <string name="dd1_saves_kept_local">이 기기의 세이브를 그대로 두었습니다</string>
+    <string name="dd1_saves_replaced">%1$s을(를) 바꿨습니다</string>
     <string name="dd1_saves_snapshots">스냅샷</string>
     <string name="dd1_saves_sent">%1$d개 파일을 보냈습니다</string>
     <string name="dd1_saves_send_failed">Steam이 세이브를 받지 않았습니다</string>
