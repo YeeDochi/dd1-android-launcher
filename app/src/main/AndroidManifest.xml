@@ -13,6 +13,14 @@
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
+    <!-- Steam's content servers hand out candidate hosts as http://host:443/...,
+         and Android blocks cleartext by default from API 28 on. Manifests came
+         through on the https hosts while every chunk request died with
+         UnknownServiceException, so files were allocated and never filled: the
+         launcher saw a download that neither finished nor failed, and the
+         executables it promoted were the right size and entirely zeros. Steam
+         hashes every chunk against the manifest, which is what makes allowing
+         cleartext here tolerable. -->
     <application
         android:name="com.winlator.dd1.DD1Application"
         android:icon="@mipmap/ic_launcher"
@@ -20,6 +28,7 @@
         android:isGame="true"
         android:extractNativeLibs="true"
         android:allowAudioPlaybackCapture="true"
+        android:usesCleartextTraffic="true"
         android:label="Darkest Dungeon">
 
         <activity android:name="com.winlator.dd1.DD1Activity"
