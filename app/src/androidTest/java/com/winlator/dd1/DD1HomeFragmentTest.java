@@ -43,7 +43,7 @@ public class DD1HomeFragmentTest {
 
                 home.renderInstallSnapshot(snapshot(DD1InstallPhase.DOWNLOADING));
                 assertEquals(View.VISIBLE, activity.findViewById(R.id.PBDownload).getVisibility());
-                assertEquals(View.VISIBLE, activity.findViewById(R.id.TVDownloadFile).getVisibility());
+                assertEquals(View.VISIBLE, activity.findViewById(R.id.TVDownloadPercent).getVisibility());
                 assertEquals(View.VISIBLE, activity.findViewById(R.id.TVInstallLog).getVisibility());
             });
         }
