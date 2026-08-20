@@ -40,11 +40,40 @@ public final class DD1SaveSlots {
     }
 
     public static List<DD1SaveSummary.Entry> filesOf(DD1CloudListing listing, String slot) {
+        return filesOf(listing, slot, Collections.<String>emptySet());
+    }
+
+    // Steam named the two files it keeps in the tree's root as though they were
+    // inside profile_0, and a slot transfer duly carried them into it: fourteen
+    // files became sixteen, and the game reads them from the root, so the copies
+    // were inert clutter. What lives where is settled by the local tree - a name
+    // the root already has is a root file whatever the cloud calls it.
+    public static List<DD1SaveSummary.Entry> filesOf(DD1CloudListing listing, String slot,
+            Set<String> namesAtRoot) {
         List<DD1SaveSummary.Entry> files = new ArrayList<>();
         for (DD1SaveSummary.Entry file : listing.files()) {
-            if (slot.equals(slotOf(file.path))) files.add(file);
+            if (!slot.equals(slotOf(file.path))) continue;
+            if (namesAtRoot.contains(basenameOf(file.path))) continue;
+            files.add(file);
         }
         return files;
+    }
+
+    // What the tree's own root holds, by name. The caller reads it once and hands
+    // it in, because deciding this per file would stat the directory per file.
+    public static Set<String> namesAtRoot(File filesDir) {
+        Set<String> names = new LinkedHashSet<>();
+        File[] entries = DD1Saves.root(filesDir).listFiles();
+        if (entries == null) return names;
+        for (File entry : entries) {
+            if (entry.isFile()) names.add(entry.getName());
+        }
+        return names;
+    }
+
+    private static String basenameOf(String path) {
+        int slash = path.lastIndexOf('/');
+        return slash < 0 ? path : path.substring(slash + 1);
     }
 
     // Anything not under a profile_N belongs to no slot: the options file and

@@ -288,7 +288,8 @@ public class DD1SavesFragment extends Fragment {
 
     private void download(String slot) {
         File filesDir = requireContext().getFilesDir();
-        List<DD1SaveSummary.Entry> files = DD1SaveSlots.filesOf(cloud, slot);
+        List<DD1SaveSummary.Entry> files = DD1SaveSlots.filesOf(cloud, slot,
+            DD1SaveSlots.namesAtRoot(filesDir));
         log(getString(R.string.dd1_saves_cloud) + " → " + slot
             + " (" + files.size() + ")");
 

@@ -44,6 +44,35 @@ public class DD1SaveSlotsTest {
             DD1SaveSlots.cloudSlotNames(DD1CloudListing.unknown()));
     }
 
+    // Steam named the two files it keeps in the tree's root as though they were
+    // inside profile_0, and a slot transfer duly carried them into it - fourteen
+    // files became sixteen. What lives where is settled by the local tree: a name
+    // that exists at the root is a root file whatever the cloud calls it.
+    @Test
+    public void aFileTheRootAlreadyHasIsNotPartOfASlot() {
+        DD1CloudListing listing = DD1CloudListing.of(1L, Arrays.asList(
+            entry("profile_0/persist.game.json"),
+            entry("profile_0/persist.options.json"),
+            entry("profile_0/steam_init.json")));
+
+        List<DD1SaveSummary.Entry> files = DD1SaveSlots.filesOf(listing, "profile_0",
+            new java.util.HashSet<>(Arrays.asList("persist.options.json",
+                "steam_init.json")));
+
+        assertEquals(1, files.size());
+        assertEquals("profile_0/persist.game.json", files.get(0).path);
+    }
+
+    @Test
+    public void withNothingKnownAtTheRootEveryNamedFileCounts() {
+        DD1CloudListing listing = DD1CloudListing.of(1L, Arrays.asList(
+            entry("profile_0/persist.game.json"),
+            entry("profile_0/persist.options.json")));
+
+        assertEquals(2, DD1SaveSlots.filesOf(listing, "profile_0",
+            java.util.Collections.<String>emptySet()).size());
+    }
+
     private static DD1SaveSummary.Entry entry(String path) {
         return new DD1SaveSummary.Entry(path, 10, 0L, "aaa");
     }
