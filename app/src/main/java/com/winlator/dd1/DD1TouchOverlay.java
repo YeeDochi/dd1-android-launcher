@@ -36,6 +36,9 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         super(context);
         this.xServer = xServer;
         this.manyFingers = manyFingers;
+        // The finger is the cursor now, so the arrow it drags along is only in the
+        // way. The pointer still moves; nothing is drawn for it.
+        xServer.getRenderer().setCursorVisible(false);
         updateXform(AppUtils.getScreenWidth(), AppUtils.getScreenHeight());
     }
 
@@ -96,6 +99,12 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
 
     @Override
     public void onMove(float x, float y) {
+        // The runtime turns the cursor back on when the game's first window maps,
+        // and it has no hook to ask it not to, so the answer is repeated rather
+        // than argued about. Setting a boolean per move costs nothing.
+        // ponytail: if this ever needs to hold against more of the runtime, listen
+        // for window modifications instead of leaning on touches.
+        xServer.getRenderer().setCursorVisible(false);
         float[] point = XForm.transformPoint(xform, x, y + TouchGesture.hoverOffset(hovering));
         xServer.injectPointerMove((int)point[0], (int)point[1]);
     }
@@ -105,9 +114,15 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         xServer.injectPointerButtonPress(Pointer.Button.BUTTON_LEFT);
     }
 
+    // A press and a release in the same instant is not a click: the game polls
+    // the button and never sees it down. The runtime's own touchpad holds the
+    // release back by the same amount for the same reason.
+    private static final long CLICK_MILLIS = 30L;
+
     @Override
     public void onRelease() {
-        xServer.injectPointerButtonRelease(Pointer.Button.BUTTON_LEFT);
+        postDelayed(() ->
+            xServer.injectPointerButtonRelease(Pointer.Button.BUTTON_LEFT), CLICK_MILLIS);
     }
 
     // The gesture says nothing about where the pointer goes, so lifting it clear
