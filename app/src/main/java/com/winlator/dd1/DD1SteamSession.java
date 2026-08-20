@@ -28,6 +28,8 @@ import in.dragonbra.javasteam.steam.handlers.steamapps.PICSRequest;
 import in.dragonbra.javasteam.steam.handlers.steamapps.SteamApps;
 import in.dragonbra.javasteam.steam.handlers.steamapps.callback.LicenseListCallback;
 import in.dragonbra.javasteam.steam.handlers.steamapps.callback.PICSProductInfoCallback;
+import in.dragonbra.javasteam.steam.handlers.steamunifiedmessages.SteamUnifiedMessages;
+import in.dragonbra.javasteam.steam.handlers.steamunifiedmessages.callback.ServiceMethodResponse;
 import in.dragonbra.javasteam.steam.handlers.steamuser.LogOnDetails;
 import in.dragonbra.javasteam.steam.handlers.steamuser.SteamUser;
 import in.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOnCallback;
@@ -37,6 +39,9 @@ import in.dragonbra.javasteam.steam.steamclient.callbacks.ConnectedCallback;
 import in.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback;
 import in.dragonbra.javasteam.types.AsyncJobMultiple;
 import in.dragonbra.javasteam.types.KeyValue;
+import in.dragonbra.javasteam.rpc.service.PublishedFile;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_GetUserFiles_Request;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_GetUserFiles_Response;
 
 public final class DD1SteamSession implements Closeable {
     public interface Listener {
@@ -49,6 +54,8 @@ public final class DD1SteamSession implements Closeable {
     private final SteamApps apps = requireHandler(SteamApps.class);
     private final in.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud cloud =
         requireHandler(in.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud.class);
+    private final PublishedFile publishedFiles =
+        requireHandler(SteamUnifiedMessages.class).createService(PublishedFile.class);
     private final SteamTokenStore tokens;
     private final DD1SteamEvents events;
     private final Listener listener;
@@ -146,6 +153,34 @@ public final class DD1SteamSession implements Closeable {
 
     public java.util.List<Integer> ownedDlc() {
         return events.ownedDlc();
+    }
+
+    public CompletableFuture<List<ModSyncPlan.Subscribed>> workshop() {
+        CompletableFuture<List<ModSyncPlan.Subscribed>> future = new CompletableFuture<>();
+        operations.execute(() -> {
+            try {
+                List<in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.PublishedFileDetails>
+                    details = new ArrayList<>();
+                int page = 1;
+                while (true) {
+                    CPublishedFile_GetUserFiles_Request request = DD1WorkshopCatalog.request(
+                        client.getSteamID().convertToUInt64(), page++);
+                    ServiceMethodResponse<CPublishedFile_GetUserFiles_Response.Builder> response =
+                        publishedFiles.getUserFiles(request).runBlock();
+                    if (response.getResult() != EResult.OK)
+                        throw new IllegalStateException("Steam Workshop result " + response.getResult());
+                    CPublishedFile_GetUserFiles_Response.Builder body = response.getBody();
+                    int received = body.getPublishedfiledetailsCount();
+                    details.addAll(body.getPublishedfiledetailsList());
+                    if (received == 0 || details.size() >= body.getTotal()) break;
+                }
+                future.complete(DD1WorkshopCatalog.fromDetails(details));
+            }
+            catch (Throwable error) {
+                future.completeExceptionally(error);
+            }
+        });
+        return future;
     }
 
     public List<License> licenses() {
