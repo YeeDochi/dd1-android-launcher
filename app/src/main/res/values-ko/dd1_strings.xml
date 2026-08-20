@@ -28,6 +28,11 @@
     <string name="dd1_dlc_none">이 계정에서 DLC를 찾지 못했습니다. 로그인하지 않았다면 먼저 로그인하세요.</string>
     <string name="dd1_dlc_hint">선택하지 않은 콘텐츠는 다운로드가 끝날 때 제거됩니다. 변경은 다음 다운로드부터 적용됩니다.</string>
     <string name="dd1_menu">메뉴</string>
+    <string name="dd1_settings">설정</string>
+    <string name="dd1_resolution">해상도</string>
+    <string name="dd1_resolution_hint">다음 실행부터 적용됩니다.</string>
+    <string name="dd1_resolution_unavailable">런타임 프로필이 아직 준비되지 않았습니다.</string>
+    <string name="dd1_back">뒤로</string>
     <string name="dd1_language">언어</string>
     <string name="dd1_state_restoring">Steam 세션 확인 중</string>
     <string name="dd1_state_sign_in">Steam 로그인이 필요합니다</string>

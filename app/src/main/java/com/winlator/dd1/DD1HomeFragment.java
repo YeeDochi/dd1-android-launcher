@@ -305,10 +305,6 @@ public class DD1HomeFragment extends Fragment {
         show(R.id.TVDlcTitle, R.id.SVDlcChoices);
     }
 
-    public void showDlcDialog() {
-        withService(service -> DlcDialog.show(requireContext(), service));
-    }
-
     // Deleting depends only on whether files are on disk, so it is decided once
     // instead of in every branch that draws the screen. A half-finished download
     // holds gigabytes in staging and has to be removable too.

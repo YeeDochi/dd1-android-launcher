@@ -4,7 +4,6 @@ import android.content.Context;
 import android.os.Bundle;
 import android.view.Gravity;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
 
@@ -28,15 +27,17 @@ public class DD1Activity extends AppCompatActivity {
         RootFSInstaller.installIfNeeded(this);
         findViewById(R.id.BTDrawerDlc).setOnClickListener(v -> {
             closeDrawer();
-            openDlc();
+            showScreen(new DD1DlcFragment());
         });
+        findViewById(R.id.BTDrawerSettings).setOnClickListener(v -> {
+            closeDrawer();
+            showScreen(new DD1SettingsFragment());
+        });
+        // The open-source notice is the runtime's own text; it stays a dialog
+        // rather than being rewritten as a screen.
         findViewById(R.id.BTDrawerAbout).setOnClickListener(v -> {
             closeDrawer();
             new AboutDialog(this).show();
-        });
-        findViewById(R.id.BTDrawerLanguage).setOnClickListener(v -> {
-            closeDrawer();
-            chooseLanguage();
         });
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
@@ -56,25 +57,6 @@ public class DD1Activity extends AppCompatActivity {
         super.attachBaseContext(DD1Locale.wrap(base));
     }
 
-    private void chooseLanguage() {
-        String[] tags = {DD1Locale.SYSTEM, "en", "ko"};
-        String chosen = DD1Locale.chosen(this);
-        int selected = 0;
-        for (int i = 0; i < tags.length; i++) {
-            if (tags[i].equals(chosen)) selected = i;
-        }
-        new AlertDialog.Builder(this, R.style.DD1Dialog)
-            .setTitle(R.string.dd1_language)
-            .setSingleChoiceItems(R.array.dd1_languages, selected, (dialog, which) -> {
-                dialog.dismiss();
-                if (tags[which].equals(DD1Locale.chosen(this))) return;
-                DD1Locale.choose(this, tags[which]);
-                recreate();
-            })
-            .setNegativeButton(android.R.string.cancel, null)
-            .show();
-    }
-
     public void toggleDrawer() {
         DrawerLayout drawer = findViewById(R.id.DLDD1Drawer);
         if (drawer.isDrawerOpen(Gravity.START)) drawer.closeDrawer(Gravity.START);
@@ -85,9 +67,12 @@ public class DD1Activity extends AppCompatActivity {
         ((DrawerLayout)findViewById(R.id.DLDD1Drawer)).closeDrawer(Gravity.START);
     }
 
-    private void openDlc() {
-        DD1HomeFragment home = (DD1HomeFragment)getSupportFragmentManager()
-            .findFragmentById(R.id.FLDD1Container);
-        if (home != null) home.showDlcDialog();
+    // Home is the root, so it keeps no entry of its own and the system back
+    // button returns to it.
+    private void showScreen(androidx.fragment.app.Fragment screen) {
+        getSupportFragmentManager().beginTransaction()
+            .replace(R.id.FLDD1Container, screen)
+            .addToBackStack(null)
+            .commit();
     }
 }
