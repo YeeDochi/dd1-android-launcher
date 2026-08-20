@@ -69,11 +69,12 @@
             </LinearLayout>
 
             <!-- The slots scroll on their own so that ten of them cannot push the
-                 snapshots off the bottom of the screen. -->
+                 snapshots off the bottom of the screen. The minimum is two rows:
+                 a slot cut in half reads as a rendering fault. -->
             <ScrollView
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_weight="1">
+                android:layout_weight="3">
 
                 <LinearLayout
                     android:id="@+id/LLSlots"
@@ -87,10 +88,13 @@
                 android:layout_marginTop="12dp"
                 android:text="@string/dd1_saves_snapshots" />
 
+            <!-- Shared by weight rather than capped: maxHeight is not an attribute
+                 a ScrollView honours, so asking for one silently gave the
+                 snapshots the whole foot of the screen and cut a slot in half. -->
             <ScrollView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxHeight="132dp">
+                android:layout_height="0dp"
+                android:layout_weight="2">
 
                 <LinearLayout
                     android:id="@+id/LLSnapshots"

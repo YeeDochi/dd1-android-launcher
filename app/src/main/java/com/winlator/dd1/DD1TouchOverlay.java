@@ -27,12 +27,14 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     private final Runnable hold = this::tick;
 
     private final RectF escape = new RectF();
+    private final RectF keyboard = new RectF();
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private float lastX;
     private float lastY;
     private boolean hovering;
     private boolean escaping;
+    private boolean typing;
 
     // Sitting on top of the runtime's touchpad means it never sees a touch again,
     // and the four finger tap that opens the drawer is the only way to reach the
@@ -81,6 +83,11 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         float margin = 12f * density;
         float left = letterbox >= size + margin * 2 ? (letterbox - size) * 0.5f : margin;
         escape.set(left, outerHeight - size - margin, left + size, outerHeight - margin);
+        // Naming an estate needs letters, and reaching them through the runtime's
+        // own drawer is a detour. It sits above Esc in the same strip of screen
+        // the game does not use.
+        keyboard.set(left, escape.top - size - margin * 0.5f, left + size,
+            escape.top - margin * 0.5f);
     }
 
     @Override
@@ -101,6 +108,11 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
                     invalidate();
                     return true;
                 }
+                if (keyboard.contains(lastX, lastY)) {
+                    typing = true;
+                    invalidate();
+                    return true;
+                }
                 hovering = false;
                 gesture.down(lastX, lastY, now);
                 postDelayed(hold, TouchGesture.HOLD_MILLIS);
@@ -116,6 +128,16 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
                     invalidate();
                     if (event.getActionMasked() == MotionEvent.ACTION_UP
                             && escape.contains(lastX, lastY)) sendEscape();
+                    return true;
+                }
+                if (typing) {
+                    typing = false;
+                    invalidate();
+                    if (event.getActionMasked() == MotionEvent.ACTION_UP
+                            && keyboard.contains(lastX, lastY)
+                            && getContext() instanceof androidx.appcompat.app.AppCompatActivity)
+                        com.winlator.core.AppUtils.showKeyboard(
+                            (androidx.appcompat.app.AppCompatActivity)getContext());
                     return true;
                 }
                 removeCallbacks(hold);
@@ -136,16 +158,20 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (escape.isEmpty()) return;
-        float radius = escape.height() * 0.25f;
-        paint.setColor(Color.argb(escaping ? 110 : 60, 255, 255, 255));
+        key(canvas, keyboard, "ABC", typing);
+        key(canvas, escape, "ESC", escaping);
+    }
+
+    private void key(Canvas canvas, RectF where, String label, boolean pressed) {
+        float radius = where.height() * 0.25f;
+        paint.setColor(Color.argb(pressed ? 110 : 60, 255, 255, 255));
         paint.setStyle(Paint.Style.FILL);
-        canvas.drawRoundRect(escape, radius, radius, paint);
-        paint.setColor(Color.argb(escaping ? 220 : 140, 0, 0, 0));
-        paint.setStyle(Paint.Style.FILL);
-        paint.setTextSize(escape.height() * 0.32f);
+        canvas.drawRoundRect(where, radius, radius, paint);
+        paint.setColor(Color.argb(pressed ? 220 : 140, 0, 0, 0));
+        paint.setTextSize(where.height() * 0.32f);
         paint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText("ESC", escape.centerX(),
-            escape.centerY() + paint.getTextSize() * 0.35f, paint);
+        canvas.drawText(label, where.centerX(),
+            where.centerY() + paint.getTextSize() * 0.35f, paint);
     }
 
     private void tick() {

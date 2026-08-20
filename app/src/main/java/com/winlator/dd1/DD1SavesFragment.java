@@ -149,7 +149,7 @@ public class DD1SavesFragment extends Fragment {
         view.findViewById(R.id.LLSlotHeader)
             .setVisibility(names.isEmpty() ? View.GONE : View.VISIBLE);
         if (names.isEmpty()) list.addView(note(getString(R.string.dd1_saves_none)));
-        for (String name : names) list.addView(row(name, local.get(name)));
+        for (String name : names) list.addView(row(list, name, local.get(name)));
 
         LinearLayout snapshots = view.findViewById(R.id.LLSnapshots);
         snapshots.removeAllViews();
@@ -163,7 +163,7 @@ public class DD1SavesFragment extends Fragment {
                 continue;
             }
             View row = LayoutInflater.from(requireContext())
-                .inflate(R.layout.dd1_snapshot_row, null, false);
+                .inflate(R.layout.dd1_snapshot_row, snapshots, false);
             ((TextView)row.findViewById(R.id.TVSnapshot)).setText(taken);
             row.setOnClickListener(v -> confirmRestore(snapshot, taken));
             snapshots.addView(row);
@@ -177,9 +177,12 @@ public class DD1SavesFragment extends Fragment {
         return view;
     }
 
-    private View row(String name, DD1SaveSlot local) {
+    // Inflated against the list it goes into, not against null: a null root
+    // throws away the layout's own margins, and the rows ended up touching each
+    // other as one undivided block.
+    private View row(LinearLayout into, String name, DD1SaveSlot local) {
         View row = LayoutInflater.from(requireContext())
-            .inflate(R.layout.dd1_save_slot_row, null, false);
+            .inflate(R.layout.dd1_save_slot_row, into, false);
         ((TextView)row.findViewById(R.id.TVSlotName)).setText(name);
 
         // The box is the button, so a side with nothing in it is not one: it
