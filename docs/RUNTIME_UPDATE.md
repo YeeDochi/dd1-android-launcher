@@ -12,7 +12,23 @@ can be dropped in without merging.
 - `docs/**`
 
 Everything else under `app/src/main` — Java, resources, assets, `cpp`, `jniLibs` —
-is upstream Winlator and carries no local edits.
+is upstream Winlator and carries no local edits, with one exception.
+
+## The one upstream edit
+
+`XServerDisplayActivity` gains two lines that attach the launcher's touch
+overlay, immediately after `rootView.addView(touchpadView)`:
+
+```java
+// dd1: the game is played by touching it, so direct touch sits over the
+// runtime's relative cursor and hands anything but one finger back.
+rootView.addView(new com.winlator.dd1.DD1TouchOverlay(this, xServer, touchpadView));
+```
+
+Nothing else in that file changes. The overlay needs a view to attach to and the
+`XServer` to inject into, and the runtime offers no hook for either, so this is
+the smallest place to say it. Keep it to these lines; everything the touch
+profile does belongs in `com.winlator.dd1`.
 
 ## Procedure
 
@@ -20,7 +36,9 @@ is upstream Winlator and carries no local edits.
 2. Replace every path listed as upstream above with the release's version.
 3. Restore `app/AndroidManifest.xml` and `app/build.gradle` from this repository
    and re-apply upstream's own changes to them by hand; both files are small.
-4. Build, run the unit tests, then launch the game once on a device.
+4. Re-apply the touch overlay lines to `XServerDisplayActivity`; see above.
+5. Build, run the unit tests, then launch the game once on a device and check
+   that a tap still lands where it was aimed.
 
 ## Rule
 

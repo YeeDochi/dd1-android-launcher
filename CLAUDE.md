@@ -27,6 +27,8 @@ edits**, except:
 - `app/src/*/java/com/winlator/dd1/**` - the launcher
 - `app/src/main/res/**/dd1_*.xml` - the launcher's resources
 - `app/AndroidManifest.xml`, `app/build.gradle` - project files
+- `XServerDisplayActivity` - two lines that attach the touch overlay, and
+  nothing else; `docs/RUNTIME_UPDATE.md` carries them verbatim
 
 `docs/RUNTIME_UPDATE.md` describes how to take a new Winlator release. If the
 launcher needs behaviour the runtime does not offer, add it in

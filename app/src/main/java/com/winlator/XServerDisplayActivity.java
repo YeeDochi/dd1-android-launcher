@@ -584,6 +584,9 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             if (!drawerLayout.isDrawerOpen(GravityCompat.START)) drawerLayout.openDrawer(GravityCompat.START);
         });
         rootView.addView(touchpadView);
+        // dd1: the game is played by touching it, so direct touch sits over the
+        // runtime's relative cursor and hands anything but one finger back.
+        rootView.addView(new com.winlator.dd1.DD1TouchOverlay(this, xServer, touchpadView));
 
         inputControlsView = new InputControlsView(this);
         inputControlsView.setOverlayOpacity(preferences.getFloat("overlay_opacity", InputControlsView.DEFAULT_OVERLAY_OPACITY));

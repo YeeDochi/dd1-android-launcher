@@ -17,7 +17,8 @@ public final class TouchGesture {
     private static final float SLOP = 16f;
 
     // Long enough that an ordinary tap is never read as a request for a tooltip.
-    private static final long HOLD_MILLIS = 350L;
+    // The caller needs it to know when to run the clock.
+    public static final long HOLD_MILLIS = 350L;
 
     // How far above the fingertip the cursor sits while hovering, in pixels.
     public static final float HOVER_LIFT = 48f;
