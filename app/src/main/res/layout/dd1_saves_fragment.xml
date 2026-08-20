@@ -21,27 +21,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/dd1_saves_local"
-                android:textColor="?attr/colorPrimaryText"
-                android:textStyle="bold" />
-
-            <LinearLayout
-                android:id="@+id/LLLocalSlots"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:text="@string/dd1_saves_cloud"
-                android:textColor="?attr/colorPrimaryText"
-                android:textStyle="bold" />
-
             <ProgressBar
                 android:id="@+id/PBSavesLoading"
                 style="?android:attr/progressBarStyleLarge"
@@ -52,26 +31,19 @@
                 android:visibility="gone" />
 
             <LinearLayout
-                android:id="@+id/LLCloudSlots"
+                android:id="@+id/LLSlots"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
 
             <TextView
                 android:id="@+id/TVSavesStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textColor="?attr/colorSecondaryText"
-                android:textSize="12sp" />
+                style="@style/DD1Meta"
+                android:layout_marginTop="8dp" />
 
             <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:text="@string/dd1_saves_snapshots"
-                android:textColor="?attr/colorPrimaryText"
-                android:textStyle="bold" />
+                style="@style/DD1SectionTitle"
+                android:text="@string/dd1_saves_snapshots" />
 
             <LinearLayout
                 android:id="@+id/LLSnapshots"

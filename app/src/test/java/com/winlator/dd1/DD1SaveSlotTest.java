@@ -31,6 +31,23 @@ public class DD1SaveSlotTest {
         assertEquals("2026-08-20 02:53:14", slot.savedAt);
     }
 
+    // The cloud hands over bytes rather than a directory, and the same three
+    // things have to come out of them so the two sides can be compared.
+    @Test
+    public void describesASlotFromBytesAlone() throws IOException {
+        DD1SaveSlot slot = DD1SaveSlot.of("profile_2", dson());
+
+        assertEquals("profile_2", slot.name);
+        assertEquals("Hamlet", slot.estate);
+        assertEquals(616.707f, slot.playedSeconds, 0.01f);
+    }
+
+    @Test
+    public void nothingDescribesNoSlot() {
+        assertNull(DD1SaveSlot.of("profile_2", new byte[0]));
+        assertNull(DD1SaveSlot.of("profile_2", null));
+    }
+
     // A slot the player has never used has no game file, and inventing a name
     // for it would put an empty row on the screen.
     @Test

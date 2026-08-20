@@ -1,23 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One slot, both sides. Two lists side by side made the reader match the rows
+     up themselves; the point of the screen is the comparison, so the comparison
+     is the row. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingTop="8dp"
-    android:paddingBottom="8dp">
+    style="@style/DD1Card"
+    android:orientation="vertical">
 
     <TextView
-        android:id="@+id/TVSlot"
-        android:layout_width="0dp"
+        android:id="@+id/TVSlotName"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
         android:textColor="?attr/colorPrimaryText"
-        android:textSize="15sp" />
+        android:textSize="15sp"
+        android:textStyle="bold" />
 
-    <Button
-        android:id="@+id/BTSlotAction"
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/DD1Meta"
+                android:text="@string/dd1_saves_local" />
+
+            <TextView
+                android:id="@+id/TVSlotLocal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="?attr/colorPrimaryText"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/BTSlotUpload"
+                style="@style/DD1Action"
+                android:layout_marginTop="2dp"
+                android:text="@string/dd1_saves_upload" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/DD1Meta"
+                android:text="@string/dd1_saves_cloud" />
+
+            <TextView
+                android:id="@+id/TVSlotCloud"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="?attr/colorPrimaryText"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/BTSlotDownload"
+                style="@style/DD1Action"
+                android:layout_marginTop="2dp"
+                android:text="@string/dd1_saves_download" />
+        </LinearLayout>
+    </LinearLayout>
 </LinearLayout>

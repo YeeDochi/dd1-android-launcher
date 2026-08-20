@@ -47,6 +47,8 @@
     <string name="dd1_saves_replace_title">Replace this save</string>
     <string name="dd1_saves_replace">On this device: %1$s\n\nFrom the cloud: %2$s\n\nThe save on this device is snapshotted first.</string>
     <string name="dd1_saves_progress">%1$d/%2$d files</string>
+    <string name="dd1_saves_reading">Reading…</string>
+    <string name="dd1_saves_unreadable">Could not be read</string>
     <string name="dd1_saves_snapshots">Snapshots</string>
     <string name="dd1_saves_sent">Sent %1$d files</string>
     <string name="dd1_saves_send_failed">Steam did not take the save</string>

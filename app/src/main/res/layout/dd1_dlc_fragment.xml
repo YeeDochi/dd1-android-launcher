@@ -21,11 +21,9 @@
 
     <TextView
         android:id="@+id/TVDlcEmpty"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        style="@style/DD1Meta"
         android:layout_marginTop="12dp"
         android:text="@string/dd1_dlc_none"
-        android:textColor="?attr/colorSecondaryText"
         android:visibility="gone" />
 
     <ScrollView
@@ -43,20 +41,14 @@
 
     <TextView
         android:id="@+id/TVDlcMissing"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        style="@style/DD1Meta"
         android:layout_marginTop="8dp"
-        android:textColor="?attr/colorSecondaryText"
-        android:textSize="12sp"
         android:visibility="gone" />
 
     <TextView
         android:id="@+id/TVDlcOutdated"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        style="@style/DD1Meta"
         android:layout_marginTop="4dp"
-        android:textColor="?attr/colorSecondaryText"
-        android:textSize="12sp"
         android:visibility="gone" />
 
     <Button
@@ -76,10 +68,7 @@
         android:visibility="gone" />
 
     <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/dd1_dlc_hint"
-        android:textColor="?attr/colorSecondaryText"
-        android:textSize="12sp" />
+        style="@style/DD1Meta"
+        android:layout_marginTop="12dp"
+        android:text="@string/dd1_dlc_hint" />
 </LinearLayout>

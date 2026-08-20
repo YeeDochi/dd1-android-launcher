@@ -31,10 +31,15 @@ public final class DD1SaveSlot {
     public static DD1SaveSlot of(File profileDir) {
         File game = new File(profileDir, "persist.game.json");
         if (!game.isFile() || game.length() == 0) return null;
-        byte[] dson = read(game);
-        if (dson == null) return null;
-        return new DD1SaveSlot(profileDir.getName(), field(dson, "estatename"),
-            number(dson, "totalelapsed"), field(dson, "date_time"));
+        return of(profileDir.getName(), read(game));
+    }
+
+    // The cloud's copy of a slot can be described the same way for the price of
+    // one small file, which is what makes the two sides comparable at a glance.
+    public static DD1SaveSlot of(String name, byte[] gameFile) {
+        if (gameFile == null || gameFile.length == 0) return null;
+        return new DD1SaveSlot(name, field(gameFile, "estatename"),
+            number(gameFile, "totalelapsed"), field(gameFile, "date_time"));
     }
 
     // A length, then that many bytes of text, the last of which is a NUL.

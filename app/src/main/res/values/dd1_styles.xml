@@ -3,4 +3,42 @@
     <!-- The app theme is dark but leaves dialogs on AppCompat's light default,
          which puts a grey title on white. -->
     <style name="DD1Dialog" parent="Theme.AppCompat.Dialog.Alert" />
+
+    <!-- The home screen already says what a block of information looks like: the
+         secondary surface with room around the text. The pushed screens borrow
+         it rather than inventing a second look. -->
+    <style name="DD1Card">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:background">?attr/colorSecondarySurface</item>
+        <item name="android:padding">12dp</item>
+    </style>
+
+    <style name="DD1SectionTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">20dp</item>
+        <item name="android:textColor">?attr/colorSecondaryText</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.08</item>
+    </style>
+
+    <style name="DD1Meta">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">?attr/colorSecondaryText</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <!-- A row's own action, which should read as a link beside the thing it acts
+         on rather than compete with it as a filled button. -->
+    <style name="DD1Action" parent="Widget.AppCompat.Button.Borderless">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:textColor">?attr/colorAccent</item>
+        <item name="android:textSize">13sp</item>
+    </style>
 </resources>

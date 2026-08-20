@@ -46,6 +46,8 @@
     <string name="dd1_saves_replace_title">이 세이브를 바꿉니다</string>
     <string name="dd1_saves_replace">이 기기: %1$s\n\n클라우드: %2$s\n\n이 기기의 세이브는 먼저 스냅샷으로 남습니다.</string>
     <string name="dd1_saves_progress">%1$d/%2$d 파일</string>
+    <string name="dd1_saves_reading">읽는 중…</string>
+    <string name="dd1_saves_unreadable">읽을 수 없습니다</string>
     <string name="dd1_saves_snapshots">스냅샷</string>
     <string name="dd1_saves_sent">%1$d개 파일을 보냈습니다</string>
     <string name="dd1_saves_send_failed">Steam이 세이브를 받지 않았습니다</string>

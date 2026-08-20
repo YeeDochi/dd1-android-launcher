@@ -1,27 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The hamburger lives on the home screen, so a pushed screen carries its own
-     way back rather than leaving the drawer's edge swipe as the only one. -->
+     way back. A glyph rather than the word: it sits beside the title without
+     reading as a second heading. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
     android:orientation="horizontal">
 
-    <Button
+    <TextView
         android:id="@+id/BTScreenBack"
-        style="?android:attr/borderlessButtonStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="48dp"
-        android:minWidth="56dp"
-        android:text="@string/dd1_back"
-        android:textColor="?attr/colorSecondaryText" />
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:contentDescription="@string/dd1_back"
+        android:gravity="center"
+        android:text="‹"
+        android:textColor="?attr/colorSecondaryText"
+        android:textSize="28sp" />
 
     <TextView
         android:id="@+id/TVScreenTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="4dp"
         android:textColor="?attr/colorPrimaryText"
-        android:textSize="20sp"
+        android:textSize="@dimen/dd1_title_size"
         android:textStyle="bold" />
 </LinearLayout>

@@ -22,11 +22,8 @@
             android:orientation="vertical">
 
             <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/dd1_language"
-                android:textColor="?attr/colorPrimaryText"
-                android:textStyle="bold" />
+                style="@style/DD1SectionTitle"
+                android:text="@string/dd1_language" />
 
             <RadioGroup
                 android:id="@+id/RGLanguage"
@@ -35,12 +32,8 @@
                 android:layout_marginTop="4dp" />
 
             <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:text="@string/dd1_resolution"
-                android:textColor="?attr/colorPrimaryText"
-                android:textStyle="bold" />
+                style="@style/DD1SectionTitle"
+                android:text="@string/dd1_resolution" />
 
             <RadioGroup
                 android:id="@+id/RGResolution"
@@ -50,12 +43,9 @@
 
             <TextView
                 android:id="@+id/TVResolutionHint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/dd1_resolution_hint"
-                android:textColor="?attr/colorSecondaryText"
-                android:textSize="12sp" />
+                style="@style/DD1Meta"
+                android:layout_marginTop="8dp"
+                android:text="@string/dd1_resolution_hint" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

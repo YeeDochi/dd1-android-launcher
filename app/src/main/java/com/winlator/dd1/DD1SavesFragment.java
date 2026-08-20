@@ -119,25 +119,23 @@ public class DD1SavesFragment extends Fragment {
         if (view == null) return;
         File filesDir = requireContext().getFilesDir();
 
-        LinearLayout localList = view.findViewById(R.id.LLLocalSlots);
-        localList.removeAllViews();
-        List<DD1SaveSlot> local = DD1SaveSlots.local(filesDir);
-        if (local.isEmpty()) localList.addView(note(getString(R.string.dd1_saves_none)));
-        for (DD1SaveSlot slot : local)
-            localList.addView(row(describe(slot), R.string.dd1_saves_upload,
-                v -> upload(slot)));
+        LinearLayout list = view.findViewById(R.id.LLSlots);
+        list.removeAllViews();
 
-        LinearLayout cloudList = view.findViewById(R.id.LLCloudSlots);
-        cloudList.removeAllViews();
-        if (!cloud.known())
-            cloudList.addView(note(getString(R.string.dd1_saves_cloud_unknown)));
-        else {
-            List<String> names = DD1SaveSlots.cloudSlotNames(cloud);
-            if (names.isEmpty()) cloudList.addView(note(getString(R.string.dd1_saves_none)));
-            for (String name : names)
-                cloudList.addView(row(name, R.string.dd1_saves_download,
-                    v -> download(name)));
+        java.util.Map<String, DD1SaveSlot> local = new java.util.LinkedHashMap<>();
+        for (DD1SaveSlot slot : DD1SaveSlots.local(filesDir)) local.put(slot.name, slot);
+
+        // One row per slot number, whichever side it is on. Two lists made the
+        // reader pair them up; the comparison is the point, so it is the row.
+        List<String> names = new ArrayList<>(local.keySet());
+        for (String name : DD1SaveSlots.cloudSlotNames(cloud)) {
+            if (!names.contains(name)) names.add(name);
         }
+        java.util.Collections.sort(names, (left, right) ->
+            Integer.compare(DD1Saves.slotOf(left), DD1Saves.slotOf(right)));
+
+        if (names.isEmpty()) list.addView(note(getString(R.string.dd1_saves_none)));
+        for (String name : names) list.addView(row(name, local.get(name)));
 
         LinearLayout snapshots = view.findViewById(R.id.LLSnapshots);
         snapshots.removeAllViews();
@@ -156,27 +154,60 @@ public class DD1SavesFragment extends Fragment {
     private TextView note(String text) {
         TextView view = new TextView(requireContext());
         view.setText(text);
+        view.setTextColor(0xffbdbdbd);
         return view;
     }
 
-    private View row(String label, int action, View.OnClickListener onClick) {
+    private View row(String name, DD1SaveSlot local) {
         View row = LayoutInflater.from(requireContext())
             .inflate(R.layout.dd1_save_slot_row, null, false);
-        ((TextView)row.findViewById(R.id.TVSlot)).setText(label);
-        Button button = row.findViewById(R.id.BTSlotAction);
-        button.setText(action);
-        button.setOnClickListener(onClick);
+        ((TextView)row.findViewById(R.id.TVSlotName)).setText(name);
+
+        TextView localText = row.findViewById(R.id.TVSlotLocal);
+        Button upload = row.findViewById(R.id.BTSlotUpload);
+        localText.setText(local == null ? getString(R.string.dd1_saves_none) : describe(local));
+        upload.setVisibility(local == null ? View.GONE : View.VISIBLE);
+        if (local != null) upload.setOnClickListener(v -> upload(local));
+
+        TextView cloudText = row.findViewById(R.id.TVSlotCloud);
+        Button download = row.findViewById(R.id.BTSlotDownload);
+        boolean inCloud = DD1SaveSlots.cloudSlotNames(cloud).contains(name);
+        cloudText.setText(!cloud.known() ? getString(R.string.dd1_saves_cloud_unknown)
+            : inCloud ? getString(R.string.dd1_saves_reading)
+            : getString(R.string.dd1_saves_none));
+        download.setVisibility(inCloud ? View.VISIBLE : View.GONE);
+        if (inCloud) {
+            download.setOnClickListener(v -> download(name));
+            describeCloud(name, cloudText);
+        }
         return row;
     }
 
+    // The cloud's own summary of a slot costs one small file, and without it the
+    // two halves of the row cannot be compared at all.
+    private void describeCloud(String name, TextView into) {
+        new Thread(() -> {
+            byte[] game = installService == null ? null
+                : installService.cloudSaves().fetch(name + "/persist.game.json");
+            DD1SaveSlot slot = DD1SaveSlot.of(name, game);
+            main.post(() -> into.setText(slot == null
+                ? getString(R.string.dd1_saves_unreadable) : describe(slot)));
+        }).start();
+    }
+
     private String describe(DD1SaveSlot slot) {
-        StringBuilder text = new StringBuilder(slot.name);
-        if (slot.estate != null) text.append(" · ").append(slot.estate);
-        if (slot.playedSeconds >= 0) text.append(" · ").append(
-            String.format(Locale.US, getString(R.string.dd1_saves_played),
+        StringBuilder text = new StringBuilder();
+        if (slot.estate != null) text.append(slot.estate);
+        if (slot.playedSeconds >= 0) {
+            if (text.length() > 0) text.append('\n');
+            text.append(String.format(Locale.US, getString(R.string.dd1_saves_played),
                 slot.playedSeconds / 60f));
-        if (slot.savedAt != null) text.append(" · ").append(slot.savedAt);
-        return text.toString();
+        }
+        if (slot.savedAt != null) {
+            if (text.length() > 0) text.append('\n');
+            text.append(slot.savedAt);
+        }
+        return text.length() == 0 ? slot.name : text.toString();
     }
 
     private void status(String text) {
