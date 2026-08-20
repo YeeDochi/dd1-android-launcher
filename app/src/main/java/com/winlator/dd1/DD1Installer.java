@@ -41,6 +41,72 @@ public final class DD1Installer {
         return staging;
     }
 
+    // Puts one or more downloaded DLC into a game that is already installed.
+    // activate() cannot do it: a staging tree holding a DLC has no launch
+    // executable and it would rightly refuse the whole thing. Each DLC lands
+    // whole or not at all, and one failing leaves the ones before it in place -
+    // they are separate content.
+    public static Result merge(File filesDir, java.util.Map<Integer, String> versions) {
+        File staging = new File(filesDir, "staging/game/dlc");
+        File installed = new File(filesDir, "game/dlc");
+        for (java.util.Map.Entry<Integer, String> entry : versions.entrySet()) {
+            File staged = folderOf(staging, entry.getKey());
+            if (staged == null)
+                return new Result(false, "Missing downloaded content for " + entry.getKey());
+            // The downloader allocates every file before it fetches any content,
+            // so a right-sized folder of zeros is what a download that never
+            // delivered looks like.
+            if (!hasContent(staged))
+                return new Result(false, "Downloaded content for " + entry.getKey() + " is empty");
+
+            installed.mkdirs();
+            File target = new File(installed, staged.getName());
+            delete(target);
+            if (!staged.renameTo(target))
+                return new Result(false, "Unable to install content for " + entry.getKey());
+            DD1DlcVersions.record(filesDir, entry.getKey(), entry.getValue());
+        }
+        // The tree did its job, and leaving the attempt on record would make the
+        // next download throw away a staging directory for no reason.
+        delete(new File(filesDir, "staging/game"));
+        new File(filesDir, "staging/" + ATTEMPT_MARKER).delete();
+        new File(filesDir, "staging/" + COMPLETE_MARKER).delete();
+        return new Result(true, null);
+    }
+
+    // Folders are named "<appid>_<title>" and the title is Steam's, not ours.
+    private static File folderOf(File dlcDir, int appId) {
+        File[] entries = dlcDir.listFiles();
+        if (entries == null) return null;
+        for (File entry : entries) {
+            if (entry.isDirectory() && DlcInstallFilter.appIdOf(entry.getName()) == appId)
+                return entry;
+        }
+        return null;
+    }
+
+    private static boolean hasContent(File file) {
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children == null) return false;
+            for (File child : children) {
+                if (hasContent(child)) return true;
+            }
+            return false;
+        }
+        byte[] head = new byte[64];
+        try (java.io.InputStream in = new java.io.FileInputStream(file)) {
+            int read = in.read(head);
+            for (int i = 0; i < read; i++) {
+                if (head[i] != 0) return true;
+            }
+            return false;
+        }
+        catch (java.io.IOException unreadable) {
+            return false;
+        }
+    }
+
     public static Result activate(File filesDir) {
         File stagingRoot = new File(filesDir, "staging");
         File staging = new File(stagingRoot, "game");

@@ -109,11 +109,37 @@ public final class DD1InstallService extends Service {
 
     public synchronized void download() {
         if (!ownsGame || downloader != null) return;
+        begin();
+        worker.execute(() -> runDownload(Collections.emptyList(), null));
+    }
+
+    // Adding or updating one DLC on a game that is already installed. Only the
+    // depots asked for are fetched, and what arrives is merged into the install
+    // rather than replacing it.
+    public synchronized void downloadDlc(java.util.Collection<Integer> appIds) {
+        if (!ownsGame || downloader != null || appIds.isEmpty()) return;
+        DD1DepotCatalog catalog = steam.catalog();
+        java.util.List<Integer> depots = new java.util.ArrayList<>();
+        java.util.Map<Integer, String> versions = new java.util.LinkedHashMap<>();
+        for (int appId : appIds) {
+            int depot = catalog.depotOf(appId);
+            if (depot <= 0) continue;
+            depots.add(depot);
+            versions.put(appId, catalog.manifestOf(appId));
+        }
+        if (depots.isEmpty()) {
+            publish(errorSnapshot(getString(R.string.dd1_dlc_no_depot)));
+            return;
+        }
+        begin();
+        worker.execute(() -> runDownload(depots, versions));
+    }
+
+    private void begin() {
         cancelled = false;
         downloading = true;
         keepAlive(R.string.dd1_install_downloading);
         publish(downloadSnapshot(0, 0, 0, getString(R.string.dd1_state_starting), null));
-        worker.execute(this::runDownload);
     }
 
     public void cancel() {
@@ -140,6 +166,10 @@ public final class DD1InstallService extends Service {
     public void signOut() {
         cancel();
         worker.execute(steam::signOut);
+    }
+
+    public DD1DepotCatalog depotCatalog() {
+        return steam.catalog();
     }
 
     public java.util.List<Integer> ownedDlc() {
@@ -170,7 +200,8 @@ public final class DD1InstallService extends Service {
         super.onDestroy();
     }
 
-    private void runDownload() {
+    private void runDownload(java.util.List<Integer> depots,
+            java.util.Map<Integer, String> dlcVersions) {
         AtomicReference<Throwable> failure = new AtomicReference<>();
         completion = new CountDownLatch(1);
         File staging = DD1Installer.beginDownload(getFilesDir());
@@ -182,7 +213,7 @@ public final class DD1InstallService extends Service {
             // checks the files it allocated and never fetches their contents.
             downloader.add(new AppItem(DD1SteamEvents.APP_ID, false, staging.getAbsolutePath(),
                 "public", "", false, "windows", false, "64", false, "english",
-                false, Collections.emptyList(), Collections.emptyList(), false, false));
+                false, depots, Collections.emptyList(), false, false));
             downloader.finishAdding();
             awaitCompletion();
             if (cancelled) return;
@@ -190,9 +221,13 @@ public final class DD1InstallService extends Service {
 
             publish(new DD1InstallSnapshot(DD1InstallPhase.VERIFYING, 0, 0, 0,
                 getString(R.string.dd1_state_verifying), null, null, log.visibleLines()));
-            DD1Installer.markDownloadComplete(getFilesDir());
-            DlcInstallFilter.apply(staging, dlcSelection().selected());
-            DD1Installer.Result result = DD1Installer.activate(getFilesDir());
+            DD1Installer.Result result;
+            if (dlcVersions == null) {
+                DD1Installer.markDownloadComplete(getFilesDir());
+                DlcInstallFilter.apply(staging, dlcSelection().selected());
+                result = DD1Installer.activate(getFilesDir());
+            }
+            else result = DD1Installer.merge(getFilesDir(), dlcVersions);
             if (!result.success) throw new IllegalStateException(result.error);
             log.append("Darkest Dungeon installation ready");
             publish(new DD1InstallSnapshot(DD1InstallPhase.READY, 0, 0, 0,

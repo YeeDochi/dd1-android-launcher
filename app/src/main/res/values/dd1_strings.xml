@@ -31,6 +31,9 @@
     <string name="dd1_dlc_apply_title">Remove unselected content</string>
     <string name="dd1_dlc_apply_message">%s will be deleted from the installed game. Getting it back means downloading it again, and a save that uses its content may stop loading.</string>
     <string name="dd1_dlc_missing">Not installed yet: %s</string>
+    <string name="dd1_dlc_no_depot">Steam has no Windows content for that DLC.</string>
+    <string name="dd1_dlc_fetch">Download selected content</string>
+    <string name="dd1_dlc_outdated">Update available: %s</string>
     <string name="dd1_dlc_hint">Unselected content is removed when the download finishes. Changing this takes effect on the next download.</string>
     <string name="dd1_menu">Menu</string>
     <string name="dd1_settings">Settings</string>

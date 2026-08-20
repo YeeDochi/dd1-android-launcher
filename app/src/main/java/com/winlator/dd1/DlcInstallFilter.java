@@ -31,7 +31,7 @@ public final class DlcInstallFilter {
     }
 
     // Folders are named "<appid>_<title>"; anything else is not ours to remove.
-    private static int appIdOf(String name) {
+    public static int appIdOf(String name) {
         int separator = name.indexOf('_');
         if (separator <= 0) return -1;
         try {

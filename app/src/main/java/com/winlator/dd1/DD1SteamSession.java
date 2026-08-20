@@ -50,6 +50,7 @@ public final class DD1SteamSession implements Closeable {
     private final SteamTokenStore tokens;
     private final DD1SteamEvents events;
     private final Listener listener;
+    private volatile DD1DepotCatalog catalog = DD1DepotCatalog.empty();
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService operations = Executors.newSingleThreadExecutor();
     private final ExecutorService callbackLoop = Executors.newSingleThreadExecutor();
@@ -279,12 +280,61 @@ public final class DD1SteamSession implements Closeable {
                     packageApps.put(entry.getKey(), appIds);
                 }
             }
+            catalog = readCatalog();
             publish(events.packagesResolved(packageApps,
                 System.currentTimeMillis() - startedAt));
         }
         catch (Exception error) {
             fail(error);
         }
+    }
+
+    // Which depot holds which DLC, and the version Steam is offering, live in the
+    // game's own PICS entry rather than in the packages the account owns.
+    private DD1DepotCatalog readCatalog() {
+        try {
+            AsyncJobMultiple.ResultSet<PICSProductInfoCallback> result = apps
+                .picsGetProductInfo(Collections.singletonList(
+                    new PICSRequest(DD1SteamEvents.APP_ID, 0L)), Collections.emptyList())
+                .runBlock();
+            if (result.getFailed()) return DD1DepotCatalog.empty();
+
+            List<DD1DepotCatalog.Row> rows = new ArrayList<>();
+            for (PICSProductInfoCallback page : result.getResults()) {
+                for (Map.Entry<Integer, PICSProductInfo> entry : page.getApps().entrySet()) {
+                    for (KeyValue depot : entry.getValue().getKeyValues().get("depots").getChildren()) {
+                        int depotId = asId(depot.getName());
+                        if (depotId <= 0) continue;
+                        rows.add(new DD1DepotCatalog.Row(depotId,
+                            asId(depot.get("dlcappid").asString()),
+                            depot.get("config").get("oslist").asString(),
+                            depot.get("manifests").get("public").get("gid").asString()));
+                    }
+                }
+            }
+            return DD1DepotCatalog.of(rows);
+        }
+        catch (Exception error) {
+            // A catalogue that could not be read only costs the offer to add or
+            // update a DLC, and the sign-in it happens during must not fail with
+            // it. An empty one shows on the screen as nothing known about any
+            // version, which is the truth.
+            return DD1DepotCatalog.empty();
+        }
+    }
+
+    // Names that are words - "branches", "workshopdepot" - are not depots.
+    private static int asId(String name) {
+        try {
+            return Integer.parseInt(name);
+        }
+        catch (RuntimeException notAnId) {
+            return 0;
+        }
+    }
+
+    public synchronized DD1DepotCatalog catalog() {
+        return catalog;
     }
 
     private void onDisconnected(DisconnectedCallback callback) {

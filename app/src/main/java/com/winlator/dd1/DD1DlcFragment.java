@@ -128,10 +128,40 @@ public class DD1DlcFragment extends Fragment {
         List<Integer> missing = new ArrayList<>(selection.selected());
         missing.removeAll(installed);
 
+        // Installed is not the same as current: a DLC Steam has since updated is
+        // on disk at a version the record remembers, and only the record can tell.
+        List<Integer> outdated = new ArrayList<>();
+        DD1DepotCatalog catalog = installService.depotCatalog();
+        File filesDir = requireContext().getFilesDir();
+        DD1DlcVersions.adopt(filesDir, installed, catalog);
+        java.util.Map<Integer, String> known = DD1DlcVersions.installed(filesDir);
+        for (int appId : installed) {
+            if (!selection.isSelected(appId)) continue;
+            String offered = catalog.manifestOf(appId);
+            if (offered == null) continue;
+            if (!offered.equals(known.get(appId))) outdated.add(appId);
+        }
+
         TextView pending = view.findViewById(R.id.TVDlcMissing);
         pending.setVisibility(missing.isEmpty() ? View.GONE : View.VISIBLE);
         if (!missing.isEmpty())
             pending.setText(getString(R.string.dd1_dlc_missing, names(missing)));
+
+        TextView stale = view.findViewById(R.id.TVDlcOutdated);
+        stale.setVisibility(outdated.isEmpty() ? View.GONE : View.VISIBLE);
+        if (!outdated.isEmpty())
+            stale.setText(getString(R.string.dd1_dlc_outdated, names(outdated)));
+
+        List<Integer> fetchable = new ArrayList<>(missing);
+        fetchable.addAll(outdated);
+        Button fetch = view.findViewById(R.id.BTDlcFetch);
+        fetch.setVisibility(fetchable.isEmpty() ? View.GONE : View.VISIBLE);
+        fetch.setOnClickListener(v -> {
+            installService.downloadDlc(fetchable);
+            // The download reports itself on the home screen, which is where the
+            // log and the progress bar live.
+            requireActivity().getSupportFragmentManager().popBackStack();
+        });
 
         Button apply = view.findViewById(R.id.BTDlcApply);
         apply.setVisibility(removable.isEmpty() ? View.GONE : View.VISIBLE);
@@ -145,6 +175,9 @@ public class DD1DlcFragment extends Fragment {
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.dd1_dlc_apply, (dialog, which) -> {
                 DlcInstallFilter.apply(gameDir, selection.selected());
+                // Content that is gone has no version, and leaving the line would
+                // report an install that is not there.
+                DD1DlcVersions.forget(requireContext().getFilesDir(), removable);
                 renderList();
             })
             .show();

@@ -41,6 +41,23 @@
         android:textSize="12sp"
         android:visibility="gone" />
 
+    <TextView
+        android:id="@+id/TVDlcOutdated"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="?attr/colorSecondaryText"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/BTDlcFetch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/dd1_dlc_fetch"
+        android:visibility="gone" />
+
     <Button
         android:id="@+id/BTDlcApply"
         android:layout_width="match_parent"
