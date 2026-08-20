@@ -34,7 +34,13 @@ public class DD1DlcFragment extends Fragment {
     private boolean serviceBound;
     // Ownership arrives seconds after the service starts, so the list has to be
     // told when it lands: drawn once on binding, it read "no DLC found" for good.
-    private final DD1InstallService.Listener installListener = snapshot -> renderList();
+    // Waiting on Steam and having nothing to show are different things, and only
+    // the phase tells them apart.
+    private DD1InstallPhase phase = DD1InstallPhase.RESTORING;
+    private final DD1InstallService.Listener installListener = snapshot -> {
+        phase = snapshot.phase;
+        renderList();
+    };
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
@@ -90,8 +96,11 @@ public class DD1DlcFragment extends Fragment {
 
         DlcSelection selection = installService.dlcSelection();
         List<Integer> owned = selection.owned();
+        DD1DlcPane pane = DD1DlcPane.from(phase, !owned.isEmpty());
+        view.findViewById(R.id.PBDlcLoading)
+            .setVisibility(pane == DD1DlcPane.LOADING ? View.VISIBLE : View.GONE);
         view.findViewById(R.id.TVDlcEmpty)
-            .setVisibility(owned.isEmpty() ? View.VISIBLE : View.GONE);
+            .setVisibility(pane == DD1DlcPane.EMPTY ? View.VISIBLE : View.GONE);
 
         // The same rows the home screen offers on a first install, store artwork
         // and all: the cover is how anyone recognises which DLC this is.

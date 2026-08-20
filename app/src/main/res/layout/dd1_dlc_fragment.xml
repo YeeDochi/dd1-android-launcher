@@ -10,6 +10,15 @@
 
     <include layout="@layout/dd1_screen_header" />
 
+    <ProgressBar
+        android:id="@+id/PBDlcLoading"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="24dp"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/TVDlcEmpty"
         android:layout_width="match_parent"
