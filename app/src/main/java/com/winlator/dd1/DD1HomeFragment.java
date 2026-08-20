@@ -407,6 +407,11 @@ public class DD1HomeFragment extends Fragment {
     }
 
     private void launch(Activity activity, Container container, File executable) {
+        // Before the game gets a chance to write, and only when the saves have
+        // moved since the last one, because three slots are all there are.
+        if (DD1SavePolicy.worthTaking(activity.getFilesDir()))
+            DD1SaveSnapshots.take(activity.getFilesDir(), System.currentTimeMillis());
+
         File gameDir = new File(activity.getFilesDir(), "game");
         if (!container.getDrives().contains(gameDir.getPath())) {
             container.setDrives(container.getDrives()+"G:"+gameDir.getPath());
