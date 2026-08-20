@@ -255,7 +255,11 @@ public class DD1HomeFragment extends Fragment {
         }
         else if (snapshot.phase == DD1InstallPhase.DOWNLOADING ||
                 snapshot.phase == DD1InstallPhase.VERIFYING) {
-            show(R.id.LLDownloadBar, R.id.BTCancelDownload);
+            show(R.id.LLDownloadBar);
+            // Verifying moves the finished tree into place. There is nothing left
+            // to call off by then, and stopping halfway would leave the install
+            // half promoted.
+            if (snapshot.phase == DD1InstallPhase.DOWNLOADING) show(R.id.BTCancelDownload);
             ProgressBar progress = rootView.findViewById(R.id.PBDownload);
             progress.setIndeterminate(snapshot.totalBytes <= 0);
             if (snapshot.totalBytes > 0)
