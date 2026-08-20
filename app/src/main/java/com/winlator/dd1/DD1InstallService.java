@@ -54,13 +54,15 @@ public final class DD1InstallService extends Service {
     private volatile CountDownLatch completion;
     private volatile boolean cancelled;
     private volatile boolean ownsGame;
+    private volatile boolean downloading;
+    private volatile long lastHeard;
     private DD1SteamSession steam;
 
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
-        steam = new DD1SteamSession(this, this::publish);
+        steam = new DD1SteamSession(this, this::publishFromSteam);
         steam.restore();
     }
 
@@ -108,6 +110,7 @@ public final class DD1InstallService extends Service {
     public synchronized void download() {
         if (!ownsGame || downloader != null) return;
         cancelled = false;
+        downloading = true;
         keepAlive(R.string.dd1_install_downloading);
         publish(downloadSnapshot(0, 0, 0, getString(R.string.dd1_state_starting), null));
         worker.execute(this::runDownload);
@@ -115,6 +118,7 @@ public final class DD1InstallService extends Service {
 
     public void cancel() {
         cancelled = true;
+        downloading = false;
         DepotDownloader active;
         CountDownLatch waiting;
         synchronized (this) {
@@ -169,8 +173,7 @@ public final class DD1InstallService extends Service {
     private void runDownload() {
         AtomicReference<Throwable> failure = new AtomicReference<>();
         completion = new CountDownLatch(1);
-        File staging = new File(getFilesDir(), "staging/game");
-        staging.mkdirs();
+        File staging = DD1Installer.beginDownload(getFilesDir());
         try {
             downloader = new DepotDownloader(steam.client(), steam.licenses(), false,
                 false, 2, 1, 1, true);
@@ -181,7 +184,7 @@ public final class DD1InstallService extends Service {
                 "public", "", false, "windows", false, "64", false, "english",
                 false, Collections.emptyList(), Collections.emptyList(), false, false));
             downloader.finishAdding();
-            completion.await();
+            awaitCompletion();
             if (cancelled) return;
             if (failure.get() != null) throw failure.get();
 
@@ -200,11 +203,28 @@ public final class DD1InstallService extends Service {
                 ? error.getClass().getSimpleName() : error.getMessage()));
         }
         finally {
+            downloading = false;
             if (downloader != null) downloader.close();
             downloader = null;
             completion = null;
             stopForeground(true);
             stopSelf();
+        }
+    }
+
+    // Steam hands out a list of content servers and some of them accept the
+    // connection and then never answer. The downloader has no read timeout, so a
+    // manifest request that goes quiet leaves the whole job waiting forever and
+    // the screen saying it is still preparing. A retry draws different servers,
+    // so the useful thing to do is give up and say so.
+    private static final long STALL_MILLIS = 3 * 60 * 1000L;
+
+    private void awaitCompletion() throws InterruptedException {
+        lastHeard = System.currentTimeMillis();
+        while (!completion.await(20, java.util.concurrent.TimeUnit.SECONDS)) {
+            if (cancelled) return;
+            if (System.currentTimeMillis() - lastHeard > STALL_MILLIS)
+                throw new IllegalStateException(getString(R.string.dd1_state_stalled));
         }
     }
 
@@ -227,6 +247,17 @@ public final class DD1InstallService extends Service {
         log.append(detail);
         return new DD1InstallSnapshot(DD1InstallPhase.ERROR, 0, 0, 0,
             detail, null, null, log.visibleLines());
+    }
+
+    // Steam resends its license list whenever it pleases, and the ownership sweep
+    // that follows ends on READY_TO_INSTALL. Taken at face value during a download
+    // that counts as idle, so publish() stopped the service, onDestroy() called
+    // cancel(), and the download died at whatever byte it had reached with the
+    // screen back on the download button and nothing said about it. Only news
+    // that actually ends the session gets through while bytes are moving.
+    private void publishFromSteam(DD1InstallSnapshot value) {
+        if (downloading && !value.phase.interruptsDownload()) return;
+        publish(value);
     }
 
     private void publish(DD1InstallSnapshot value) {
@@ -277,7 +308,9 @@ public final class DD1InstallService extends Service {
     private Notification notification(String text, int percent) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(getString(R.string.app_name))
+            // One UI folds a title that repeats the app label into the header and
+            // drops the text line with it, so the game's name goes here instead.
+            .setContentTitle(getString(R.string.dd1_home_title))
             .setContentText(text)
             .setContentIntent(PendingIntent.getActivity(this, 0,
                 new Intent(this, DD1Activity.class), PendingIntent.FLAG_UPDATE_CURRENT))
@@ -293,11 +326,18 @@ public final class DD1InstallService extends Service {
                 && value.phase != DD1InstallPhase.VERIFYING) return;
         int percent = value.totalBytes > 0
             ? (int)(value.downloadedBytes * 100 / value.totalBytes) : -1;
-        String shown = value.message + "|" + percent;
-        if (shown.equals(lastNotification)) return;
-        lastNotification = shown;
+        // The bar alone leaves no way to tell a slow download from a stuck one,
+        // and the allocation stage has no figure at all, so the shade carries the
+        // same words as the screen.
+        String text = value.message;
+        if (value.phase == DD1InstallPhase.DOWNLOADING) {
+            String detail = DD1HomeFragment.progressSummary(value);
+            text += " · " + (detail != null ? detail : getString(R.string.dd1_state_preparing));
+        }
+        if (text.equals(lastNotification)) return;
+        lastNotification = text;
         NotificationManager manager = getSystemService(NotificationManager.class);
-        if (manager != null) manager.notify(1, notification(value.message, percent));
+        if (manager != null) manager.notify(1, notification(text, percent));
     }
 
     private void createNotificationChannel() {
@@ -316,6 +356,7 @@ public final class DD1InstallService extends Service {
 
         @Override
         public void onStatusUpdate(String message) {
+            lastHeard = System.currentTimeMillis();
             log.append(message);
             progress.onStatus(message);
             publish(new DD1InstallSnapshot(DD1InstallPhase.DOWNLOADING,
@@ -325,6 +366,7 @@ public final class DD1InstallService extends Service {
 
         @Override
         public void onFileCompleted(int depotId, String fileName, float percent) {
+            lastHeard = System.currentTimeMillis();
             log.append(fileName);
             progress.onDepotSeen(depotId);
             publish(downloadSnapshot(describe(), fileName));
@@ -332,14 +374,15 @@ public final class DD1InstallService extends Service {
 
         @Override
         public void onChunkCompleted(int depotId, float percent, long bytes, long uncompressed) {
-            progress.onDepotProgress(depotId, percent);
+            lastHeard = System.currentTimeMillis();
+            progress.onDepotProgress(depotId, percent, bytes);
             publish(downloadSnapshot(describe(), snapshot.currentFile));
         }
 
         @Override
         public void onDepotCompleted(int depotId, long bytes, long uncompressed) {
             log.append("Depot " + depotId + " completed");
-            progress.onDepotFinished(depotId);
+            progress.onDepotFinished(depotId, bytes);
             publish(downloadSnapshot(describe(), snapshot.currentFile));
         }
 

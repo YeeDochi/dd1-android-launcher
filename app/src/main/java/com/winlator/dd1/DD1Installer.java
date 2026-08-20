@@ -6,6 +6,7 @@ public final class DD1Installer {
     private DD1Installer() {}
 
     private static final String COMPLETE_MARKER = "download-complete";
+    private static final String ATTEMPT_MARKER = "download-started";
 
     // The downloader writes this once it has handed over every depot. Without it
     // a staging tree is a download that stopped partway, and promoting that gives
@@ -16,6 +17,28 @@ public final class DD1Installer {
             new File(filesDir, "staging/" + COMPLETE_MARKER).createNewFile();
         }
         catch (java.io.IOException ignored) {}
+    }
+
+    // The downloader trusts whatever it finds on disk when it resumes: a depot
+    // whose files are the right size is reported complete with zero bytes
+    // transferred, so a file left half written by a killed process is accepted
+    // for good and the install is quietly broken. Only a download that ended in
+    // a working install may be built on; an interrupted one takes its staging
+    // tree with it, at the cost of fetching the whole 4 GB again.
+    public static File beginDownload(File filesDir) {
+        File stagingRoot = new File(filesDir, "staging");
+        File staging = new File(stagingRoot, "game");
+        File attempt = new File(stagingRoot, ATTEMPT_MARKER);
+        if (attempt.isFile()) {
+            delete(staging);
+            new File(stagingRoot, COMPLETE_MARKER).delete();
+        }
+        staging.mkdirs();
+        try {
+            attempt.createNewFile();
+        }
+        catch (java.io.IOException ignored) {}
+        return staging;
     }
 
     public static Result activate(File filesDir) {
@@ -37,6 +60,7 @@ public final class DD1Installer {
         }
         delete(previous);
         new File(stagingRoot, COMPLETE_MARKER).delete();
+        new File(stagingRoot, ATTEMPT_MARKER).delete();
         return new Result(true, null);
     }
 

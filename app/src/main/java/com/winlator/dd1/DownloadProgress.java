@@ -30,12 +30,15 @@ public final class DownloadProgress {
         if (matcher.find()) known.add(Integer.parseInt(matcher.group(1)));
     }
 
-    // Only bytes actually moving advance the figures. Resuming makes the
-    // downloader walk every depot it already has, finishing each at once, and
-    // letting that drive the display sent it straight to the last part with
-    // gigabytes still to come.
-    public void onDepotProgress(int depotId, float reported) {
+    // Only bytes actually moving advance the figures, and transferred bytes are
+    // the one signal that says so. The downloader allocates every file before it
+    // fetches any content and reports each depot complete at the end of that
+    // stage carrying no bytes at all; a resumed download walks the depots it
+    // already has the same way. Believing either sent the figure straight to 9/9
+    // with 4 GB still to come.
+    public void onDepotProgress(int depotId, float reported, long bytes) {
         if (depotId > 0) known.add(depotId);
+        if (bytes <= 0) return;
         if (depotId > 0 && depotId != currentDepot) {
             currentDepot = depotId;
             currentPercent = -1;
@@ -43,17 +46,16 @@ public final class DownloadProgress {
         if (reported > 0) currentPercent = percent(reported);
     }
 
-    // A depot walked over during the resume sweep: it counts towards the total
-    // but says nothing about where the download is.
+    // A depot walked over during allocation or the resume sweep: it counts
+    // towards the total but says nothing about where the download is.
     public void onDepotSeen(int depotId) {
         if (depotId > 0) known.add(depotId);
     }
 
-    public void onDepotFinished(int depotId) {
-        if (depotId > 0) {
-            finished.add(depotId);
-            known.add(depotId);
-        }
+    public void onDepotFinished(int depotId, long bytes) {
+        if (depotId > 0) known.add(depotId);
+        if (bytes <= 0) return;
+        finished.add(depotId);
         if (depotId == currentDepot) currentPercent = -1;
     }
 
@@ -65,10 +67,9 @@ public final class DownloadProgress {
         return finished.size();
     }
 
-    // "3/9" once the manifests have been seen: where the depot in hand sits in
-    // the list, not how many have finished. A resumed download validates the
-    // parts it already has and finishes them at once, which sent a tally
-    // straight to 9/9 while gigabytes were still to come.
+    // "3/9" once the manifests have been seen: where the part receiving bytes
+    // sits in the list. Until the first byte moves it reads "1/9", which is the
+    // truth during allocation.
     public String part() {
         int total = known.size();
         int current = 0;

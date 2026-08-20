@@ -43,6 +43,36 @@ public class DD1InstallCompletionTest {
         assertFalse(DD1Installer.activate(second).success);
     }
 
+    // The downloader reports a depot complete with zero bytes transferred when
+    // its files are already the right size on disk, so a tree left behind by a
+    // killed process would be accepted as finished and quietly ship a broken
+    // install.
+    @Test
+    public void aDownloadInterruptedMidFlightIsNotResumed() throws IOException {
+        File files = staging();
+        DD1Installer.beginDownload(files);
+        assertTrue("the attempt is on record",
+            new File(files, "staging/download-started").isFile());
+
+        File leftover = new File(files, "staging/game/_windows/win64/Darkest.exe");
+        assertTrue(leftover.isFile());
+        DD1Installer.beginDownload(files);
+
+        assertFalse("the interrupted tree is gone", leftover.exists());
+        assertTrue(new File(files, "staging/game").isDirectory());
+    }
+
+    @Test
+    public void aDownloadThatBecameAnInstallLeavesNothingToDiscard() throws IOException {
+        File files = staging();
+        DD1Installer.beginDownload(files);
+        DD1Installer.markDownloadComplete(files);
+        assertTrue(DD1Installer.activate(files).success);
+
+        assertFalse("nothing is left on record for the next download to discard",
+            new File(files, "staging/download-started").exists());
+    }
+
     private File staging() throws IOException {
         File files = folder.newFolder();
         File game = new File(files, "staging/game");

@@ -38,6 +38,7 @@
     <string name="dd1_state_failed">Steam 작업이 실패했습니다</string>
     <string name="dd1_state_starting">다운로드 시작</string>
     <string name="dd1_state_part">%s 번째</string>
+    <string name="dd1_state_stalled">Steam이 응답을 멈췄습니다. 다시 시도하세요</string>
     <string name="dd1_state_verifying">받은 게임 검사 중</string>
     <string name="dd1_state_ready_to_play">플레이 준비 완료</string>
     <string name="dd1_state_preparing">준비 중</string>

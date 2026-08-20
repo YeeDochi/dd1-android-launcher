@@ -9,5 +9,13 @@ public enum DD1InstallPhase {
     DOWNLOADING,
     VERIFYING,
     READY,
-    ERROR
+    ERROR;
+
+    // Steam talks about the account while the download runs: it resends its
+    // license list, the ownership sweep follows, and the phase it ends on is one
+    // the service reads as idle. Only news that genuinely ends the session may
+    // interrupt bytes that are moving.
+    public boolean interruptsDownload() {
+        return this == SIGNED_OUT || this == ERROR;
+    }
 }

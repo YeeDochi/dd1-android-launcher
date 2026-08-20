@@ -39,6 +39,7 @@
     <string name="dd1_state_failed">Steam operation failed</string>
     <string name="dd1_state_starting">Starting download</string>
     <string name="dd1_state_part">Part %s</string>
+    <string name="dd1_state_stalled">Steam stopped answering; try again</string>
     <string name="dd1_state_verifying">Verifying downloaded game</string>
     <string name="dd1_state_ready_to_play">Ready to play</string>
     <string name="dd1_state_preparing">Preparing</string>
