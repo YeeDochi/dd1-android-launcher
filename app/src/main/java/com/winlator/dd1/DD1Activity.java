@@ -33,6 +33,10 @@ public class DD1Activity extends AppCompatActivity {
             closeDrawer();
             showScreen(new DD1SavesFragment());
         });
+        findViewById(R.id.BTDrawerWorkshop).setOnClickListener(v -> {
+            closeDrawer();
+            showScreen(new DD1WorkshopFragment());
+        });
         findViewById(R.id.BTDrawerSettings).setOnClickListener(v -> {
             closeDrawer();
             showScreen(new DD1SettingsFragment());

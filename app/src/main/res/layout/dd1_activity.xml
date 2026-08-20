@@ -50,6 +50,16 @@
             android:textColor="?attr/colorPrimaryText" />
 
         <Button
+            android:id="@+id/BTDrawerWorkshop"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:gravity="center_vertical|start"
+            android:paddingStart="16dp"
+            android:text="@string/dd1_workshop"
+            android:textColor="?attr/colorPrimaryText" />
+
+        <Button
             android:id="@+id/BTDrawerSettings"
             style="?android:attr/borderlessButtonStyle"
             android:layout_width="match_parent"
@@ -58,9 +68,6 @@
             android:paddingStart="16dp"
             android:text="@string/dd1_settings"
             android:textColor="?attr/colorPrimaryText" />
-
-        <!-- The workshop lands here: one block and one listener, because the
-             drawer pushes screens rather than dialogs. -->
 
         <View
             android:layout_width="match_parent"

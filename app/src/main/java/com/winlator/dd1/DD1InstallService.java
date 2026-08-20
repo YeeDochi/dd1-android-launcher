@@ -111,7 +111,7 @@ public final class DD1InstallService extends Service {
 
     public void refreshWorkshop() {
         if (!ownsGame) {
-            publishWorkshop(DD1WorkshopSnapshot.error("Sign in to Steam first"));
+            publishWorkshop(DD1WorkshopSnapshot.error(getString(R.string.dd1_workshop_sign_in)));
             return;
         }
         if (workshopSnapshot.phase == DD1WorkshopSnapshot.Phase.SYNCING) return;
