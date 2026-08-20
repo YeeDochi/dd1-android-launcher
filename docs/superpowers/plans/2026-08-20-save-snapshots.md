@@ -846,3 +846,27 @@ nothing about it is automatic.
 A screen for the snapshots - listing them and restoring one - is also left out.
 The snapshots are on disk and `adb` can read them, which is enough to be worth
 having before the UI exists.
+
+## Rules the cloud plan inherits
+
+`iunius612/StS2-Launcher_Mod_Manager` (MIT) is an Android launcher for another
+Steam game that reached this problem first and documents what went wrong before
+it was fixed. Three of its conclusions are constraints on our cloud plan, and
+they are not in our design doc:
+
+- **An unknown cloud state is not an empty one.** Its sync used to let fresh
+  defaults overwrite real progress; it now blocks until the cloud listing is
+  actually known and falls back to local-only when it is not. Ours must do the
+  same: no cloud listing means no upload and no delete, not "the cloud has
+  nothing".
+- **One funnel for cloud writes,** with the empty and abnormal ones refused
+  there. Scattering that check is how one path ends up without it - which is
+  exactly how this project shipped 3.7 GB of zeros once already.
+- **Timestamps decide nothing.** Its upstream synced on mtime and lost saves.
+  Ours compares SHA-1, which Task 2 already produces.
+
+It also keeps one manual full-tree backup indefinitely, separate from the
+FIFO-capped automatic ones. Worth having eventually: our three snapshots are
+app-private, so a player without `adb` cannot get a campaign back out.
+
+No code is taken from it. The credit is in `NOTICE`.

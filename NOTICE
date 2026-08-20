@@ -13,3 +13,10 @@ This project is based on Winlator 11.1:
 
 Winlator is licensed under LGPL-2.1. Bundled Wine, Box64, Mesa and other
 components retain their respective upstream licenses and notices.
+
+The launcher's save synchronization rules follow ground worked out by:
+- StS2-Launcher_Mod_Manager: https://github.com/iunius612/StS2-Launcher_Mod_Manager
+  MIT. An Android launcher for another Steam game, whose documented save
+  failures shaped ours: an unknown cloud state must not be read as an empty
+  one, every cloud write goes through one guarded funnel, and a conflict is a
+  choice the player makes. No code was taken.
