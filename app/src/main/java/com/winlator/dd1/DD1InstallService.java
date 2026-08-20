@@ -17,7 +17,9 @@ import androidx.core.app.NotificationCompat;
 import com.winlator.R;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +33,10 @@ import in.dragonbra.javasteam.depotdownloader.data.DownloadItem;
 public final class DD1InstallService extends Service {
     public interface Listener {
         void onSnapshot(DD1InstallSnapshot snapshot);
+    }
+
+    public interface WorkshopListener {
+        void onSnapshot(DD1WorkshopSnapshot snapshot);
     }
 
     public final class LocalBinder extends Binder {
@@ -47,9 +53,13 @@ public final class DD1InstallService extends Service {
     private String lastNotification;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final DD1InstallLog log = new DD1InstallLog(1000);
+    private final DD1InstallLog workshopLog = new DD1InstallLog(300);
 
     private volatile DD1InstallSnapshot snapshot = DD1InstallSnapshot.restoring();
     private volatile Listener listener;
+    private volatile WorkshopListener workshopListener;
+    private volatile DD1WorkshopSnapshot workshopSnapshot = DD1WorkshopSnapshot.loading();
+    private volatile List<ModSyncPlan.Subscribed> workshopSubscriptions = Collections.emptyList();
     private volatile DepotDownloader downloader;
     private volatile CountDownLatch completion;
     private volatile boolean cancelled;
@@ -88,6 +98,57 @@ public final class DD1InstallService extends Service {
 
     public void removeObserver(Listener listener) {
         if (this.listener == listener) this.listener = null;
+    }
+
+    public void observeWorkshop(WorkshopListener listener) {
+        workshopListener = listener;
+        listener.onSnapshot(workshopSnapshot);
+    }
+
+    public void removeWorkshopObserver(WorkshopListener listener) {
+        if (workshopListener == listener) workshopListener = null;
+    }
+
+    public void refreshWorkshop() {
+        if (!ownsGame) {
+            publishWorkshop(DD1WorkshopSnapshot.error("Sign in to Steam first"));
+            return;
+        }
+        if (workshopSnapshot.phase == DD1WorkshopSnapshot.Phase.SYNCING) return;
+        publishWorkshop(DD1WorkshopSnapshot.loading());
+        steam.workshop().whenComplete((subscriptions, error) -> worker.execute(() -> {
+            if (error != null) {
+                publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
+                return;
+            }
+            workshopSubscriptions = Collections.unmodifiableList(new ArrayList<>(subscriptions));
+            publishWorkshop(DD1WorkshopSnapshot.ready(workshopSubscriptions,
+                DD1Workshop.scan(getFilesDir())));
+        }));
+    }
+
+    public synchronized void syncWorkshop() {
+        if (downloader != null || !workshopSnapshot.syncable()) return;
+        List<ModSyncPlan.Subscribed> items = new ArrayList<>(workshopSnapshot.syncItems());
+        cancelled = false;
+        downloading = true;
+        keepAlive(R.string.dd1_install_downloading);
+        worker.execute(() -> runWorkshop(items));
+    }
+
+    public void deleteMod(String directoryName) {
+        if (downloader != null) return;
+        worker.execute(() -> {
+            try {
+                DD1Workshop.delete(getFilesDir(), directoryName);
+                workshopLog.append("Deleted " + directoryName);
+                publishWorkshop(DD1WorkshopSnapshot.ready(workshopSubscriptions,
+                    DD1Workshop.scan(getFilesDir())));
+            }
+            catch (Exception error) {
+                publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
+            }
+        });
     }
 
     public void startQr() {
@@ -174,6 +235,69 @@ public final class DD1InstallService extends Service {
 
     public DD1CloudSaves cloudSaves() {
         return new DD1CloudSaves(steam.cloud());
+    }
+
+    private void runWorkshop(List<ModSyncPlan.Subscribed> items) {
+        DD1WorkshopSnapshot base = workshopSnapshot;
+        try {
+            int done = 0;
+            for (ModSyncPlan.Subscribed item : items) {
+                AtomicReference<Throwable> failure = new AtomicReference<>();
+                completion = new CountDownLatch(1);
+                File staging = DD1Workshop.staging(getFilesDir(), item.publishedFileId);
+                workshopLog.append("Downloading " + item.title);
+                publishWorkshop(base.syncing(item.title, done * 100 / items.size(),
+                    workshopLog.visibleLines()));
+                try {
+                    downloader = new DepotDownloader(steam.client(), steam.licenses(), false,
+                        false, 2, 1, 1, true);
+                    downloader.addListener(new WorkshopProgressListener(base, item, done,
+                        items.size(), failure));
+                    downloader.add(DD1WorkshopCatalog.download(item.publishedFileId,
+                        staging.getAbsolutePath()));
+                    downloader.finishAdding();
+                    awaitCompletion();
+                    if (cancelled) return;
+                    if (failure.get() != null) throw failure.get();
+                    DD1Workshop.promote(getFilesDir(), item.publishedFileId, item.updatedAt,
+                        item.title);
+                    workshopLog.append("Installed " + item.title);
+                }
+                catch (Throwable error) {
+                    workshopLog.append(item.title + ": " + reason(error));
+                }
+                finally {
+                    if (downloader != null) downloader.close();
+                    downloader = null;
+                    completion = null;
+                }
+                done++;
+            }
+            publishWorkshop(DD1WorkshopSnapshot.ready(workshopSubscriptions,
+                DD1Workshop.scan(getFilesDir())));
+        }
+        catch (Throwable error) {
+            publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
+        }
+        finally {
+            downloading = false;
+            stopForeground(true);
+            stopSelf();
+        }
+    }
+
+    private void publishWorkshop(DD1WorkshopSnapshot value) {
+        workshopSnapshot = value;
+        main.post(() -> {
+            WorkshopListener current = workshopListener;
+            if (current != null) current.onSnapshot(workshopSnapshot);
+        });
+    }
+
+    private static String reason(Throwable error) {
+        while (error.getCause() != null) error = error.getCause();
+        String message = error.getMessage();
+        return message == null || message.isEmpty() ? error.getClass().getSimpleName() : message;
     }
 
     public java.util.List<Integer> ownedDlc() {
@@ -437,6 +561,50 @@ public final class DD1InstallService extends Service {
         // The left box says which part is in hand; the log carries the detail.
         private String describe() {
             return getString(R.string.dd1_state_part, progress.part());
+        }
+
+        @Override
+        public void onDownloadCompleted(DownloadItem item) {
+            completion.countDown();
+        }
+
+        @Override
+        public void onDownloadFailed(DownloadItem item, Throwable error) {
+            failure.set(error);
+            completion.countDown();
+        }
+    }
+
+    private final class WorkshopProgressListener implements IDownloadListener {
+        private final DD1WorkshopSnapshot base;
+        private final ModSyncPlan.Subscribed item;
+        private final int done;
+        private final int total;
+        private final AtomicReference<Throwable> failure;
+
+        WorkshopProgressListener(DD1WorkshopSnapshot base, ModSyncPlan.Subscribed item,
+                int done, int total, AtomicReference<Throwable> failure) {
+            this.base = base;
+            this.item = item;
+            this.done = done;
+            this.total = total;
+            this.failure = failure;
+        }
+
+        @Override
+        public void onStatusUpdate(String message) {
+            lastHeard = System.currentTimeMillis();
+            workshopLog.append(message);
+            publishWorkshop(base.syncing(item.title, done * 100 / total,
+                workshopLog.visibleLines()));
+        }
+
+        @Override
+        public void onChunkCompleted(int depotId, float percent, long bytes, long uncompressed) {
+            lastHeard = System.currentTimeMillis();
+            int overall = (int)((done + Math.max(0, Math.min(100, percent)) / 100f)
+                * 100 / total);
+            publishWorkshop(base.syncing(item.title, overall, workshopLog.visibleLines()));
         }
 
         @Override

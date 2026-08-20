@@ -6,6 +6,7 @@ import java.util.List;
 import in.dragonbra.javasteam.enums.EResult;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.PublishedFileDetails;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_GetUserFiles_Request;
+import in.dragonbra.javasteam.depotdownloader.data.PubFileItem;
 
 public final class DD1WorkshopCatalog {
     private DD1WorkshopCatalog() {}
@@ -18,6 +19,11 @@ public final class DD1WorkshopCatalog {
             .setPage(page)
             .setNumperpage(100)
             .build();
+    }
+
+    public static PubFileItem download(long publishedFileId, String stagingPath) {
+        return new PubFileItem(DD1SteamEvents.APP_ID, publishedFileId, false,
+            stagingPath, false, false);
     }
 
     public static List<ModSyncPlan.Subscribed> fromDetails(List<PublishedFileDetails> details) {

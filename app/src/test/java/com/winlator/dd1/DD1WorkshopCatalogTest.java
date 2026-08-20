@@ -11,6 +11,7 @@ import java.util.List;
 
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.PublishedFileDetails;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_GetUserFiles_Request;
+import in.dragonbra.javasteam.depotdownloader.data.PubFileItem;
 
 public class DD1WorkshopCatalogTest {
     @Test
@@ -56,6 +57,18 @@ public class DD1WorkshopCatalogTest {
         assertEquals("subscribed", request.getType());
         assertEquals(3, request.getPage());
         assertEquals(100, request.getNumperpage());
+    }
+
+    @Test
+    public void downloadRequestTargetsOneWorkshopItemWithoutVerifyMode() {
+        PubFileItem item = DD1WorkshopCatalog.download(42, "/staging/42");
+
+        assertEquals(262060, item.getAppId());
+        assertEquals(42L, item.getPubFile());
+        assertEquals("/staging/42", item.getInstallDirectory());
+        assertFalse(item.getInstallToGameNameDirectory());
+        assertFalse(item.getVerify());
+        assertFalse(item.getDownloadManifestOnly());
     }
 
     private static ModSyncPlan.Subscribed convert(PublishedFileDetails detail) {
