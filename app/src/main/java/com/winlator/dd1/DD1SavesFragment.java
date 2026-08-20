@@ -92,16 +92,20 @@ public class DD1SavesFragment extends Fragment {
         if (view != null) view.findViewById(R.id.PBSavesLoading).setVisibility(View.VISIBLE);
         new Thread(() -> {
             DD1CloudSaves saves = installService == null ? null : installService.cloudSaves();
+            // Twice observed: right after sign-on the listing succeeds and comes
+            // back with nothing at all, when sixteen files are up there. An empty
+            // answer this early is not evidence of an empty cloud, so it is asked
+            // again a few times before being taken at its word.
             DD1CloudListing listing = DD1CloudListing.unknown();
-            for (int i = 0; saves != null && i < 10 && !listing.known(); i++) {
+            for (int i = 0; saves != null && i < 10; i++) {
                 listing = saves.list();
-                if (!listing.known()) {
-                    try {
-                        Thread.sleep(3000L);
-                    }
-                    catch (InterruptedException stop) {
-                        return;
-                    }
+                if (listing.known() && !listing.files().isEmpty()) break;
+                if (listing.known() && i >= 2) break;
+                try {
+                    Thread.sleep(3000L);
+                }
+                catch (InterruptedException stop) {
+                    return;
                 }
             }
             final DD1CloudListing answer = listing;
@@ -110,6 +114,13 @@ public class DD1SavesFragment extends Fragment {
                 View current = getView();
                 if (current != null)
                     current.findViewById(R.id.PBSavesLoading).setVisibility(View.GONE);
+                // What the cloud says it holds, by name. Steam does not always
+                // report the folder a file is in, and when it does not there are
+                // no slots to show - so the names go on the record.
+                log(getString(R.string.dd1_saves_cloud) + ": "
+                    + (answer.known() ? answer.files().size() + " files"
+                        : getString(R.string.dd1_saves_cloud_unknown)));
+                for (DD1SaveSummary.Entry file : answer.files()) log("  " + file.path);
                 render();
             });
         }).start();
@@ -144,13 +155,18 @@ public class DD1SavesFragment extends Fragment {
         snapshots.removeAllViews();
         SimpleDateFormat when = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
         for (File snapshot : DD1SaveSnapshots.kept(filesDir)) {
+            String taken;
             try {
-                snapshots.addView(note(
-                    when.format(new Date(Long.parseLong(snapshot.getName())))));
+                taken = when.format(new Date(Long.parseLong(snapshot.getName())));
             }
             catch (NumberFormatException notASnapshot) {
-                // A directory nobody wrote on purpose is not a snapshot.
+                continue;
             }
+            View row = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dd1_snapshot_row, null, false);
+            ((TextView)row.findViewById(R.id.TVSnapshot)).setText(taken);
+            row.setOnClickListener(v -> confirmRestore(snapshot, taken));
+            snapshots.addView(row);
         }
     }
 
@@ -166,21 +182,27 @@ public class DD1SavesFragment extends Fragment {
             .inflate(R.layout.dd1_save_slot_row, null, false);
         ((TextView)row.findViewById(R.id.TVSlotName)).setText(name);
 
-        TextView localText = row.findViewById(R.id.TVSlotLocal);
-        Button upload = row.findViewById(R.id.BTSlotUpload);
-        localText.setText(local == null ? getString(R.string.dd1_saves_none) : describe(local));
-        upload.setVisibility(local == null ? View.GONE : View.VISIBLE);
-        if (local != null) upload.setOnClickListener(v -> upload(local));
+        // The box is the button, so a side with nothing in it is not one: it
+        // still shows, so the row keeps its shape, but it does not invite a press.
+        View localBox = row.findViewById(R.id.LLSlotLocal);
+        ((TextView)row.findViewById(R.id.TVSlotLocal)).setText(
+            local == null ? getString(R.string.dd1_saves_none) : describe(local));
+        row.findViewById(R.id.TVSlotLocalArrow)
+            .setVisibility(local == null ? View.INVISIBLE : View.VISIBLE);
+        localBox.setEnabled(local != null);
+        if (local != null) localBox.setOnClickListener(v -> upload(local));
 
-        TextView cloudText = row.findViewById(R.id.TVSlotCloud);
-        Button download = row.findViewById(R.id.BTSlotDownload);
         boolean inCloud = DD1SaveSlots.cloudSlotNames(cloud).contains(name);
+        View cloudBox = row.findViewById(R.id.LLSlotCloud);
+        TextView cloudText = row.findViewById(R.id.TVSlotCloud);
         cloudText.setText(!cloud.known() ? getString(R.string.dd1_saves_cloud_unknown)
             : inCloud ? getString(R.string.dd1_saves_reading)
             : getString(R.string.dd1_saves_none));
-        download.setVisibility(inCloud ? View.VISIBLE : View.GONE);
+        row.findViewById(R.id.TVSlotCloudArrow)
+            .setVisibility(inCloud ? View.VISIBLE : View.INVISIBLE);
+        cloudBox.setEnabled(inCloud);
         if (inCloud) {
-            download.setOnClickListener(v -> download(name));
+            cloudBox.setOnClickListener(v -> download(name));
             describeCloud(name, cloudText);
         }
         return row;
@@ -290,6 +312,21 @@ public class DD1SavesFragment extends Fragment {
                 }
             });
         }).start();
+    }
+
+    private void confirmRestore(File snapshot, String taken) {
+        new AlertDialog.Builder(requireContext(), R.style.DD1Dialog)
+            .setTitle(R.string.dd1_saves_restore_title)
+            .setMessage(getString(R.string.dd1_saves_restore, taken))
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                boolean back = DD1SaveSnapshots.restore(
+                    requireContext().getFilesDir(), snapshot);
+                log(back ? getString(R.string.dd1_saves_restored, taken)
+                    : getString(R.string.dd1_saves_restore_failed));
+                render();
+            })
+            .show();
     }
 
     // The staged slot is described before anything is replaced, so the choice is

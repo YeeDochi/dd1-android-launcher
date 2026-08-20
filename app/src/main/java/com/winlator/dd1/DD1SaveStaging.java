@@ -47,7 +47,12 @@ public final class DD1SaveStaging {
         // A staged slot with no readable game file in it is not a save, and
         // replacing a real one with it would be the whole disaster in one step.
         if (DD1SaveSlot.of(staged) == null) return false;
-        if (DD1SaveSnapshots.take(filesDir, System.currentTimeMillis()) == null) return false;
+        // Only when the tree has moved since the last one: three slots are all
+        // there are, and spending them on copies of the same state pushes out the
+        // one worth going back to.
+        if (DD1SavePolicy.worthTaking(filesDir)
+                && DD1SaveSnapshots.take(filesDir, System.currentTimeMillis()) == null)
+            return false;
 
         File live = new File(DD1Saves.root(filesDir), slot);
         delete(live);

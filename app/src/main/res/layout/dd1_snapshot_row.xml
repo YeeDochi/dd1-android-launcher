@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A snapshot is the whole save tree at a moment, so pressing one puts the whole
+     tree back. The arrow points backwards for the same reason the others point up
+     and down: it says what pressing does. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/LLSnapshot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="6dp"
+    android:background="?attr/colorSecondarySurface"
+    android:foreground="?android:attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="10dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:text="↺"
+        android:textColor="?attr/colorAccent"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/TVSnapshot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="?attr/colorPrimaryText"
+        android:textSize="13sp" />
+</LinearLayout>

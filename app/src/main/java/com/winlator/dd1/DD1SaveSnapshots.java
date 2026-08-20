@@ -39,6 +39,41 @@ public final class DD1SaveSnapshots {
         return target;
     }
 
+    // The other half of the promise: a snapshot nobody can go back to is
+    // decoration. A snapshot is the whole save tree, so restoring one is a whole
+    // tree too. What it replaces is snapshotted first, which makes going back
+    // itself reversible.
+    public static boolean restore(File filesDir, File snapshot) {
+        if (!DD1Saves.isSaveTree(snapshot)) return false;
+        // Only when the tree has moved since the last snapshot. Three is all the
+        // ring holds, so going back twice must not spend two of them on states
+        // that were already kept.
+        if (DD1SavePolicy.worthTaking(filesDir)
+                && take(filesDir, System.currentTimeMillis()) == null)
+            return false;
+
+        File root = DD1Saves.root(filesDir);
+        File spare = new File(dir(filesDir), "restoring");
+        delete(spare);
+        // Copied aside first: a copy that fails part way must not have eaten the
+        // tree it was replacing.
+        if (!spare.mkdirs() || !copy(snapshot, spare)) {
+            delete(spare);
+            return false;
+        }
+        delete(root);
+        if (root.getParentFile() != null) root.getParentFile().mkdirs();
+        if (spare.renameTo(root)) return true;
+
+        // The rename is a rename within one directory and should not fail, but if
+        // it does the tree is already gone, so put it back the slow way rather
+        // than leave the player with nothing.
+        root.mkdirs();
+        boolean recovered = copy(spare, root);
+        delete(spare);
+        return recovered;
+    }
+
     public static List<File> kept(File filesDir) {
         List<File> snapshots = new ArrayList<>();
         File[] entries = dir(filesDir).listFiles();

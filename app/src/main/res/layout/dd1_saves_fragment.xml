@@ -11,79 +11,94 @@
     android:paddingEnd="16dp"
     android:paddingBottom="12dp">
 
-    <include layout="@layout/dd1_screen_header" />
-
+    <!-- The header sits inside the left column, the way the home screen has it,
+         so the log panel starts level with the title instead of under it. -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="8dp"
+        android:layout_height="match_parent"
         android:orientation="horizontal">
 
-        <ScrollView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="45">
+            android:layout_weight="45"
+            android:orientation="vertical">
 
+            <include layout="@layout/dd1_screen_header" />
+
+            <ProgressBar
+                android:id="@+id/PBSavesLoading"
+                style="?android:attr/progressBarStyleLarge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="12dp"
+                android:visibility="gone" />
+
+            <!-- Said once above the list rather than in every card: with ten
+                 slots the labels would be the loudest thing on the screen. -->
             <LinearLayout
+                android:id="@+id/LLSlotHeader"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="horizontal"
+                android:visibility="gone">
 
-                <ProgressBar
-                    android:id="@+id/PBSavesLoading"
-                    style="?android:attr/progressBarStyleLarge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="12dp"
-                    android:visibility="gone" />
+                <!-- The same width the slot's name takes in a row, so the two
+                     labels sit over the two boxes. -->
+                <View
+                    android:layout_width="72dp"
+                    android:layout_height="1dp" />
 
-                <!-- Said once above the list rather than in every card: with ten
-                     slots the labels would be the loudest thing on the screen. -->
-                <LinearLayout
-                    android:id="@+id/LLSlotHeader"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:orientation="horizontal"
-                    android:visibility="gone">
+                <TextView
+                    style="@style/DD1SectionTitle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginTop="0dp"
+                    android:paddingStart="10dp"
+                    android:text="@string/dd1_saves_local" />
 
-                    <TextView
-                        style="@style/DD1SectionTitle"
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_marginTop="0dp"
-                        android:text="@string/dd1_saves_local" />
+                <TextView
+                    style="@style/DD1SectionTitle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginTop="0dp"
+                    android:layout_marginStart="8dp"
+                    android:paddingStart="10dp"
+                    android:text="@string/dd1_saves_cloud" />
+            </LinearLayout>
 
-                    <TextView
-                        style="@style/DD1SectionTitle"
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_marginTop="0dp"
-                        android:layout_marginStart="12dp"
-                        android:text="@string/dd1_saves_cloud" />
-                </LinearLayout>
+            <!-- The slots scroll on their own so that ten of them cannot push the
+                 snapshots off the bottom of the screen. -->
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
 
                 <LinearLayout
                     android:id="@+id/LLSlots"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical" />
+            </ScrollView>
 
-                <TextView
-                    style="@style/DD1SectionTitle"
-                    android:text="@string/dd1_saves_snapshots" />
+            <TextView
+                style="@style/DD1SectionTitle"
+                android:layout_marginTop="12dp"
+                android:text="@string/dd1_saves_snapshots" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxHeight="132dp">
 
                 <LinearLayout
                     android:id="@+id/LLSnapshots"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical" />
-            </LinearLayout>
-        </ScrollView>
+            </ScrollView>
+        </LinearLayout>
 
         <ScrollView
             android:id="@+id/SVSavesLog"

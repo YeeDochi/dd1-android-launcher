@@ -54,6 +54,10 @@
     <string name="dd1_saves_asking">Waiting for your choice</string>
     <string name="dd1_saves_kept_local">Kept the save on this device</string>
     <string name="dd1_saves_replaced">%1$s replaced</string>
+    <string name="dd1_saves_restore_title">Go back to this snapshot</string>
+    <string name="dd1_saves_restore">Every save on this device becomes what it was at %1$s. What is there now is snapshotted first, so this can be undone.</string>
+    <string name="dd1_saves_restored">Went back to %1$s</string>
+    <string name="dd1_saves_restore_failed">Could not go back</string>
     <string name="dd1_saves_snapshots">Snapshots</string>
     <string name="dd1_saves_sent">Sent %1$d files</string>
     <string name="dd1_saves_send_failed">Steam did not take the save</string>

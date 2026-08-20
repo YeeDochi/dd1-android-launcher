@@ -53,6 +53,10 @@
     <string name="dd1_saves_asking">선택을 기다립니다</string>
     <string name="dd1_saves_kept_local">이 기기의 세이브를 그대로 두었습니다</string>
     <string name="dd1_saves_replaced">%1$s을(를) 바꿨습니다</string>
+    <string name="dd1_saves_restore_title">이 스냅샷으로 되돌립니다</string>
+    <string name="dd1_saves_restore">이 기기의 모든 세이브가 %1$s 시점으로 돌아갑니다. 지금 상태는 먼저 스냅샷으로 남으니 이 되돌리기도 되돌릴 수 있습니다.</string>
+    <string name="dd1_saves_restored">%1$s 시점으로 되돌렸습니다</string>
+    <string name="dd1_saves_restore_failed">되돌릴 수 없었습니다</string>
     <string name="dd1_saves_snapshots">스냅샷</string>
     <string name="dd1_saves_sent">%1$d개 파일을 보냈습니다</string>
     <string name="dd1_saves_send_failed">Steam이 세이브를 받지 않았습니다</string>

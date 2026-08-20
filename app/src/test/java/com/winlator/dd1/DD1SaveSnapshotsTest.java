@@ -1,6 +1,7 @@
 package com.winlator.dd1;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -64,6 +65,34 @@ public class DD1SaveSnapshotsTest {
 
         assertEquals(1, DD1SaveSnapshots.kept(files).size());
         assertEquals(6, new File(snapshot, "profile_0/persist.game.json").length());
+    }
+
+    // A snapshot nobody can go back to is decoration. Restoring one is the other
+    // half of the promise, and it snapshots the state it is about to replace so
+    // that going back is itself reversible.
+    @Test
+    public void restoringPutsASnapshotBackAndKeepsWhatItReplaced() throws IOException {
+        File files = folder.newFolder();
+        save(files, "an early campaign");
+        File early = DD1SaveSnapshots.take(files, 1000L);
+        save(files, "much later");
+
+        assertTrue(DD1SaveSnapshots.restore(files, early));
+
+        assertEquals("an early campaign".length(),
+            new File(DD1Saves.root(files), "profile_0/persist.game.json").length());
+        assertEquals(2, DD1SaveSnapshots.kept(files).size());
+    }
+
+    @Test
+    public void restoringSomethingThatIsNotASnapshotIsRefused() throws IOException {
+        File files = folder.newFolder();
+        save(files, "the only campaign");
+
+        assertFalse(DD1SaveSnapshots.restore(files, new File(files, "nowhere")));
+
+        assertEquals("the only campaign".length(),
+            new File(DD1Saves.root(files), "profile_0/persist.game.json").length());
     }
 
     private static void save(File files, String content) throws IOException {
