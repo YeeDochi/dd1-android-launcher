@@ -60,6 +60,8 @@ public final class DD1InstallService extends Service {
     private volatile WorkshopListener workshopListener;
     private volatile DD1WorkshopSnapshot workshopSnapshot = DD1WorkshopSnapshot.loading();
     private volatile List<ModSyncPlan.Subscribed> workshopSubscriptions = Collections.emptyList();
+    private volatile List<DD1WorkshopItem> workshopBrowse = Collections.emptyList();
+    private volatile int workshopBrowseGeneration;
     private volatile DepotDownloader downloader;
     private volatile CountDownLatch completion;
     private volatile boolean cancelled;
@@ -127,9 +129,83 @@ public final class DD1InstallService extends Service {
                 return;
             }
             workshopSubscriptions = Collections.unmodifiableList(new ArrayList<>(subscriptions));
-            publishWorkshop(DD1WorkshopSnapshot.ready(workshopSubscriptions,
-                DD1Workshop.scan(getFilesDir())));
+            publishWorkshop(joinedWorkshop());
+            if (workshopBrowse.isEmpty()) browseWorkshop("", 0, false);
         }));
+    }
+
+    public void browseWorkshop(String query, int sort, boolean more) {
+        if (!ownsGame) {
+            publishWorkshop(workshopSnapshot.browseFailed(
+                getString(R.string.dd1_workshop_sign_in)));
+            return;
+        }
+        int page = more ? workshopSnapshot.page + 1 : 1;
+        int generation = ++workshopBrowseGeneration;
+        publishWorkshop(workshopSnapshot.browseLoading(query, sort, page));
+        steam.browseWorkshop(query, sort, page).whenComplete((result, error) ->
+            worker.execute(() -> {
+                if (generation != workshopBrowseGeneration) return;
+                if (error != null) {
+                    publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
+                    return;
+                }
+                List<DD1WorkshopItem> items = more
+                    ? new ArrayList<>(workshopBrowse) : new ArrayList<>();
+                items.addAll(result.items);
+                workshopBrowse = Collections.unmodifiableList(items);
+                publishWorkshop(joinedWorkshop().withBrowse(workshopBrowse, query, sort, page,
+                    result.total, false, null));
+            }));
+    }
+
+    public void subscribeWorkshop(long publishedFileId) {
+        DD1WorkshopSnapshot.Card card = workshopSnapshot.findBrowse(publishedFileId);
+        if (!ownsGame || downloader != null || card == null || card.subscribed) return;
+        steam.subscribe(publishedFileId).whenComplete((ignored, error) -> worker.execute(() -> {
+            if (error != null) {
+                publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
+                return;
+            }
+            List<ModSyncPlan.Subscribed> subscriptions = new ArrayList<>(workshopSubscriptions);
+            subscriptions.add(new ModSyncPlan.Subscribed(card.item.publishedFileId,
+                card.item.title, card.item.updatedAt, card.item.downloadable));
+            workshopSubscriptions = Collections.unmodifiableList(subscriptions);
+            publishWorkshop(joinedWorkshop());
+            syncWorkshop();
+        }));
+    }
+
+    public void unsubscribeWorkshop(long publishedFileId) {
+        if (!ownsGame || downloader != null) return;
+        steam.unsubscribe(publishedFileId).whenComplete((ignored, error) -> worker.execute(() -> {
+            if (error != null) {
+                publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
+                return;
+            }
+            DD1WorkshopSnapshot.Row row = workshopSnapshot.find(publishedFileId);
+            try {
+                if (row != null && row.installed)
+                    DD1Workshop.delete(getFilesDir(), row.directoryName, row.disabled);
+            }
+            catch (Exception deleteError) {
+                publishWorkshop(workshopSnapshot.browseFailed(reason(deleteError)));
+                return;
+            }
+            List<ModSyncPlan.Subscribed> subscriptions = new ArrayList<>();
+            for (ModSyncPlan.Subscribed item : workshopSubscriptions)
+                if (item.publishedFileId != publishedFileId) subscriptions.add(item);
+            workshopSubscriptions = Collections.unmodifiableList(subscriptions);
+            publishWorkshop(joinedWorkshop());
+        }));
+    }
+
+    public void enableMod(String directoryName) {
+        moveMod(directoryName, true);
+    }
+
+    public void disableMod(String directoryName) {
+        moveMod(directoryName, false);
     }
 
     public synchronized void syncWorkshop() {
@@ -143,12 +219,12 @@ public final class DD1InstallService extends Service {
 
     public void deleteMod(String directoryName) {
         if (downloader != null) return;
+        DD1WorkshopSnapshot.Row row = workshopSnapshot.findDirectory(directoryName);
         worker.execute(() -> {
             try {
-                DD1Workshop.delete(getFilesDir(), directoryName);
+                DD1Workshop.delete(getFilesDir(), directoryName, row != null && row.disabled);
                 workshopLog.append("Deleted " + directoryName);
-                publishWorkshop(DD1WorkshopSnapshot.ready(workshopSubscriptions,
-                    DD1Workshop.scan(getFilesDir())));
+                publishWorkshop(joinedWorkshop());
             }
             catch (Exception error) {
                 publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
@@ -279,7 +355,9 @@ public final class DD1InstallService extends Service {
                 done++;
             }
             publishWorkshop(DD1WorkshopSnapshot.ready(workshopSubscriptions,
-                DD1Workshop.scan(getFilesDir())));
+                DD1Workshop.scan(getFilesDir())).withBrowse(workshopBrowse,
+                    workshopSnapshot.query, workshopSnapshot.sort, workshopSnapshot.page,
+                    workshopSnapshot.total, false, workshopSnapshot.browseError));
         }
         catch (Throwable error) {
             publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
@@ -296,6 +374,27 @@ public final class DD1InstallService extends Service {
         main.post(() -> {
             WorkshopListener current = workshopListener;
             if (current != null) current.onSnapshot(workshopSnapshot);
+        });
+    }
+
+    private DD1WorkshopSnapshot joinedWorkshop() {
+        return DD1WorkshopSnapshot.ready(workshopSubscriptions, DD1Workshop.scan(getFilesDir()))
+            .withBrowse(workshopBrowse, workshopSnapshot.query, workshopSnapshot.sort,
+                workshopSnapshot.page, workshopSnapshot.total, false,
+                workshopSnapshot.browseError);
+    }
+
+    private void moveMod(String directoryName, boolean enable) {
+        if (downloader != null) return;
+        worker.execute(() -> {
+            try {
+                if (enable) DD1Workshop.enable(getFilesDir(), directoryName);
+                else DD1Workshop.disable(getFilesDir(), directoryName);
+                publishWorkshop(joinedWorkshop());
+            }
+            catch (Exception error) {
+                publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
+            }
         });
     }
 

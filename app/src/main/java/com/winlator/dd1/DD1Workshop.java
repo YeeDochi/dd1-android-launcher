@@ -78,7 +78,13 @@ public final class DD1Workshop {
     }
 
     public static void delete(File filesDir, String directoryName) throws IOException {
-        File mods = new File(filesDir, "game/mods").getCanonicalFile();
+        delete(filesDir, directoryName, false);
+    }
+
+    public static void delete(File filesDir, String directoryName, boolean disabled)
+            throws IOException {
+        File mods = new File(filesDir, disabled ? "game/mods-disabled" : "game/mods")
+            .getCanonicalFile();
         if (directoryName == null || directoryName.isEmpty() || new File(directoryName).isAbsolute())
             throw new IOException("Invalid mod directory");
         File target = new File(mods, directoryName).getCanonicalFile();

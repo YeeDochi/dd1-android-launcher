@@ -60,6 +60,42 @@ public class DD1WorkshopSnapshotTest {
         assertFalse(snapshot.syncable());
     }
 
+    @Test
+    public void browseCardsJoinSubscriptionInstallAndDisabledState() throws Exception {
+        File files = folder.newFolder();
+        workshop(files, 42, 7, "Old");
+        DD1Workshop.disable(files, "42");
+        DD1WorkshopItem item = new DD1WorkshopItem(42, "Musketeer", "A hero",
+            "https://cdn/42.jpg", 123, 77, .9f, 8, true);
+
+        DD1WorkshopSnapshot snapshot = DD1WorkshopSnapshot.ready(Collections.singletonList(
+            new ModSyncPlan.Subscribed(42, "Musketeer", 8, true)),
+            DD1Workshop.scan(files)).withBrowse(Collections.singletonList(item),
+                "mus", 0, 1, 1, false, null);
+
+        DD1WorkshopSnapshot.Card card = snapshot.findBrowse(42);
+        assertTrue(card.subscribed);
+        assertTrue(card.installed);
+        assertTrue(card.disabled);
+        assertTrue(card.updateAvailable);
+        assertEquals("https://cdn/42.jpg", card.item.previewUrl);
+        assertEquals("mus", snapshot.query);
+        assertEquals(1, snapshot.total);
+    }
+
+    @Test
+    public void browseFailureKeepsPreviousCards() {
+        DD1WorkshopItem item = new DD1WorkshopItem(9, "Old result", "", "", 0, 0,
+            0, 1, false);
+        DD1WorkshopSnapshot snapshot = DD1WorkshopSnapshot.ready(Collections.emptyList(),
+            Collections.emptyList()).withBrowse(Collections.singletonList(item), "old", 0,
+                1, 1, false, null).browseFailed("offline");
+
+        assertEquals("Old result", snapshot.findBrowse(9).item.title);
+        assertEquals("offline", snapshot.browseError);
+        assertFalse(snapshot.browseLoading);
+    }
+
     private static void workshop(File files, long id, long updated, String title) throws Exception {
         File mod = new File(files, "game/mods/" + id);
         mod.mkdirs();

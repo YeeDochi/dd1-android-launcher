@@ -167,6 +167,18 @@ public class DD1WorkshopTest {
         assertTrue(DD1Workshop.scan(files).get(0).disabled);
     }
 
+    @Test
+    public void deleteCanTargetTheDisabledRootWithoutTouchingActive() throws Exception {
+        File files = folder.newFolder();
+        mkdir(files, "game/mods/same-name");
+        mkdir(files, "game/mods-disabled/same-name");
+
+        DD1Workshop.delete(files, "same-name", true);
+
+        assertTrue(new File(files, "game/mods/same-name").isDirectory());
+        assertFalse(new File(files, "game/mods-disabled/same-name").exists());
+    }
+
     private static File mkdir(File root, String path) {
         File result = new File(root, path);
         assertTrue(result.mkdirs());
