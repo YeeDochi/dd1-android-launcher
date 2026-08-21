@@ -210,6 +210,46 @@ Drawer → **Settings**. The defaults are safe; these are worth changing:
 A tap leaves the cursor where it touched, which is how tooltips appear: touch an
 item and the game describes it.
 
+## If something goes wrong
+
+**The game runs but its picture is black.** If the interface and the narration
+draw but the dungeon or the estate does not, that is the graphics driver. DD1
+draws the world into a framebuffer and lights it with a shader, and the interface
+does not go through that path - which is why one shows and the other does not.
+
+**Read the two lines under `Graphics` at the bottom of Settings.** They name the
+GPU and the drivers in force, like this:
+
+```
+Adreno (TM) 830
+turnip,gladio
+```
+
+Quote those two lines in the issue. Most of the time they are enough to narrow it
+down. Also worth having:
+
+- **Device model and Android version** - Settings, About phone, Software
+  information
+- **A screenshot of the black screen.** What draws and what does not is the
+  clue: interface-only and everything-black have different causes
+- **Where it happens** - from the start, or only in the dungeon while the estate
+  is fine
+
+A log is better still. From a PC with the phone on USB:
+
+```
+adb logcat -d > dd1.log
+```
+
+**A save will not upload.** The log on the save screen says what was sent and
+what was refused, and `adb logcat -d | grep DD1Cloud` carries the reason Steam
+gave, verbatim. Paste that line.
+
+**The game says a DLC is missing.** Open the content screen: it lists what the
+account owns and what has not been downloaded yet. If it is listed but not
+downloaded, fetch it there. If a DLC you own is not listed at all, that is a bug
+in the launcher - please report it.
+
 ## Requirements
 
 - ARM64 Android device, Android 8 or newer
