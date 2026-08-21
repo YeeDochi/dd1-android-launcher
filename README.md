@@ -70,17 +70,117 @@ down says so rather than half-restoring.
 
 ## Getting it running
 
-1. **Install the APK** from [Releases](../../releases). Android will warn about
-   an app from outside the store, and about its compatibility — both are
-   expected, and the second one is explained under [Notes](#notes).
-2. **Sign in to Steam.** Scan the QR code with the Steam mobile app, or type an
-   account and password and approve the request on your phone. Nothing is stored
-   but the refresh token Steam hands back, encrypted with the Android Keystore.
-3. **Pick your DLC** from the list of what the account owns, and press download.
-   Only what is ticked is fetched. About 4 GB over Wi-Fi; leave the screen on and
-   the app in front, and read the byte count rather than the percentage.
-4. **Press Play.** The first launch unpacks the runtime and takes a few minutes.
-   After that it goes straight in.
+From an empty phone to a party in a dungeon. Everything here happens on one
+screen; the drawer at the top left holds the rest.
+
+### 1. Install the APK
+
+Download it from [Releases](../../releases) and open it. Android asks twice:
+once to allow an app from outside the store, and once about compatibility.
+
+> **"This app was built for an older version of Android"**
+> Expected, and not a mistake. Android 10 and newer forbid running programs out
+> of an app's own data directory, which is exactly where Wine and Box64 have to
+> be unpacked. Staying on the older target is what keeps the runtime legal to
+> execute. Press through it.
+
+### 2. Sign in to Steam
+
+The launcher opens on a sign-in panel. Two ways in:
+
+- **QR** — press *Sign in on another device* and scan the code with the Steam
+  mobile app. Nothing is typed on the phone.
+- **Account and password** — type them, then approve the request in Steam Guard.
+
+> **What is kept**
+> Only the refresh token Steam hands back, encrypted with the Android Keystore.
+> The password is never stored and never written to a log.
+
+The log on the right reports what it found: `Reading N Steam licenses`, then
+`Darkest Dungeon ownership verified`. DLC is counted across every package on the
+account, so a bundle bought years ago still shows up.
+
+### 3. Choose the DLC, then download
+
+The right half fills with the DLC the account owns, all ticked. **Untick what
+you do not want before pressing download** — unticked DLC is never fetched, so
+a change of mind afterwards means downloading it separately.
+
+> **Butcher's Circus** is multiplayer only and needs Steam networking that does
+> not work here. Leaving it out saves about 540 MB.
+
+Press **Download the game and owned DLC**. What to watch while it runs:
+
+| On screen | What it means |
+|---|---|
+| `3/8 번째` · `3/8` | Which depot of how many is in hand. The parts are wildly uneven — the base game alone is most of the 4 GB and can sit on one number for twenty minutes |
+| The percentage | Per depot, not overall. It drops back when a part finishes; that is normal |
+| The log | The file being written right now. This is the honest progress: if names keep scrolling, bytes are moving |
+| The notification | The same figures in the shade, so the screen can go dark |
+
+> **Use Wi-Fi.** On mobile data the Steam content servers handed out answer
+> small requests and never answer large ones, and the download stalls with no
+> way to tell it from a dead connection. This is not something the launcher can
+> fix — the servers are assigned by Steam.
+
+Cancelling returns to the DLC list with nothing lost but the bytes. A download
+that fails leaves the install untouched: staging is discarded, never merged
+half-finished.
+
+### 4. Press Play
+
+The first launch unpacks the runtime and can take a few minutes on the
+*Preparing the runtime* screen. After that it goes straight to the game.
+
+The game creates its own save on first run, so a fresh estate is normal. If you
+already have one, bring it down before you play — see below.
+
+### 5. Bring saves down from Steam Cloud
+
+Drawer → **Saves**. Each profile slot shows what is on the phone beside what is
+in Steam Cloud, so a transfer is always a deliberate act in a named direction.
+
+| | |
+|---|---|
+| ↓ beside a cloud slot | Download it onto the phone |
+| ↑ beside a device slot | Upload the phone's copy |
+| **Snapshots** | Automatic copies taken before anything is overwritten |
+
+A slot that cannot be downloaded whole says so and changes nothing — half a save
+is a save nobody can load. Steam sometimes lists a file it has no content for,
+usually in a slot never really played; that slot reports *unreadable* and the
+rest are unaffected.
+
+> Play on one device at a time. Steam Cloud has no way to merge two estates.
+
+### 6. Mods
+
+Drawer → **Mod manager**. Subscriptions made anywhere — including on a PC — are
+pulled down when the screen opens, and anything unsubscribed there is removed
+here.
+
+| Tab | What it holds |
+|---|---|
+| **Workshop** | Search by name, or paste a Workshop URL or ID. Sort by popularity, date or rating; the grid button cycles 2, 3 and 4 columns. Tap a card for the full description and screenshots |
+| **My mods** | What is installed, what has an update waiting, and what is switched off. **Import ZIP** adds a mod by hand |
+
+Downloads run one at a time and the notification says which: `3/12 · Plague
+Doctor skins mod · 42%`. Nothing is swapped into the game until a mod has
+arrived whole, and nothing is touched while the game is running.
+
+Then turn mods on **inside the game**, on the campaign screen — that list is
+part of the save, and the launcher does not edit saves.
+
+### 7. Make it last
+
+Drawer → **Settings**. The defaults are safe; these are worth changing:
+
+| Setting | Why |
+|---|---|
+| **Resolution → 1280x720** | The game renders 720p anyway. Fewer pixels, 24 °C off the hottest core, no visible difference |
+| **Processor cores → Efficiency cores only** | The largest single win. See [Battery](#battery) |
+| **Screen refresh rate → 60 Hz while playing** | The panel runs at 120 Hz whatever the game does |
+| **Faster instruction translation** | Leave it **off**. It buys speed the game spends on frames nobody sees, and costs 7 %/h |
 
 ## Playing by touch
 
