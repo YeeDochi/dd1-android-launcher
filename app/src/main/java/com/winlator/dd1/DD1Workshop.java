@@ -1,16 +1,22 @@
 package com.winlator.dd1;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public final class DD1Workshop {
     private static final String MARKER = ".dd1-workshop";
+    private static final long MAX_IMPORT_BYTES = 512L * 1024 * 1024;
 
     public static final class Mod {
         public final String directoryName;
@@ -100,6 +106,43 @@ public final class DD1Workshop {
         move(filesDir, directoryName, "mods-disabled", "mods");
     }
 
+    public static String importZip(File filesDir, InputStream input, String sourceName)
+            throws IOException {
+        File staging = new File(filesDir, "local-import-staging");
+        deleteTree(staging);
+        if (!staging.mkdirs()) throw new IOException("Cannot create import staging directory");
+        try {
+            extractZip(input, staging);
+            File payload = payload(staging);
+            File marker = new File(payload, MARKER);
+            if (marker.exists() && !marker.delete())
+                throw new IOException("Cannot remove Workshop marker from local mod");
+
+            String directoryName = importName(sourceName);
+            File mods = new File(filesDir, "game/mods").getCanonicalFile();
+            File disabled = new File(filesDir, "game/mods-disabled/" + directoryName);
+            File destination = new File(mods, directoryName).getCanonicalFile();
+            if (!mods.equals(destination.getParentFile())) throw new IOException("Invalid mod name");
+            if (destination.exists() || disabled.exists())
+                throw new IOException("A mod with this name already exists");
+            if (!mods.isDirectory() && !mods.mkdirs())
+                throw new IOException("Cannot create mods directory");
+            if (!payload.renameTo(destination)) throw new IOException("Cannot install local mod");
+            return directoryName;
+        }
+        finally {
+            deleteTree(staging);
+        }
+    }
+
+    public static void removeUnsubscribed(File filesDir, Collection<Long> subscribedIds)
+            throws IOException {
+        for (Mod mod : scan(filesDir)) {
+            if (mod.publishedFileId != 0 && !subscribedIds.contains(mod.publishedFileId))
+                delete(filesDir, mod.directoryName, mod.disabled);
+        }
+    }
+
     private static Mod read(File directory, boolean disabled) {
         try {
             List<String> lines = Files.readAllLines(new File(directory, MARKER).toPath(),
@@ -147,6 +190,47 @@ public final class DD1Workshop {
     private static byte[] marker(long id, long updatedAt, String title) {
         String safeTitle = title == null ? Long.toString(id) : title.replace('\n', ' ').replace('\r', ' ');
         return (id + "\n" + updatedAt + "\n" + safeTitle + "\n").getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static void extractZip(InputStream input, File staging) throws IOException {
+        String root = staging.getCanonicalPath() + File.separator;
+        long total = 0;
+        byte[] buffer = new byte[64 * 1024];
+        try (ZipInputStream zip = new ZipInputStream(input)) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                File target = new File(staging, entry.getName()).getCanonicalFile();
+                if (!target.getPath().startsWith(root))
+                    throw new IOException("ZIP contains an unsafe path");
+                if (entry.isDirectory()) {
+                    if (!target.isDirectory() && !target.mkdirs())
+                        throw new IOException("Cannot create imported directory");
+                }
+                else {
+                    File parent = target.getParentFile();
+                    if (!parent.isDirectory() && !parent.mkdirs())
+                        throw new IOException("Cannot create imported directory");
+                    try (FileOutputStream output = new FileOutputStream(target)) {
+                        int read;
+                        while ((read = zip.read(buffer)) != -1) {
+                            total += read;
+                            if (total > MAX_IMPORT_BYTES)
+                                throw new IOException("ZIP expands beyond 512 MB");
+                            output.write(buffer, 0, read);
+                        }
+                    }
+                }
+                zip.closeEntry();
+            }
+        }
+    }
+
+    private static String importName(String sourceName) {
+        String name = sourceName == null ? "" : sourceName.trim();
+        if (name.toLowerCase(java.util.Locale.ROOT).endsWith(".zip"))
+            name = name.substring(0, name.length() - 4).trim();
+        name = name.replaceAll("[^A-Za-z0-9._ -]", "_");
+        return name.isEmpty() || name.equals(".") || name.equals("..") ? "imported-mod" : name;
     }
 
     private static void rejectLinks(File file) throws IOException {

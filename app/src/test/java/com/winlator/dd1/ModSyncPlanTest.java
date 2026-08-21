@@ -55,7 +55,7 @@ public class ModSyncPlanTest {
     }
 
     @Test
-    public void unsubscribedItemBecomesAnOrphanAndIsNeverDeleted() {
+    public void unsubscribedItemIsMarkedAsAnOrphanForRemoval() {
         ModSyncPlan plan = ModSyncPlan.of(
             Collections.emptyList(), Arrays.asList(installed(7, OLD, true)));
 

@@ -61,8 +61,15 @@
     <LinearLayout android:id="@+id/LLWorkshopInstalled" android:layout_width="match_parent"
         android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical"
         android:visibility="gone">
-        <Button android:id="@+id/BTWorkshopSync" style="@style/DD1Action"
-            android:text="@string/dd1_workshop_sync" android:visibility="gone" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button android:id="@+id/BTWorkshopImport" style="@style/DD1Action"
+                android:layout_width="0dp" android:layout_weight="1"
+                android:text="@string/dd1_workshop_import" />
+            <Button android:id="@+id/BTWorkshopSync" style="@style/DD1Action"
+                android:layout_width="0dp" android:layout_weight="1"
+                android:text="@string/dd1_workshop_sync" android:visibility="gone" />
+        </LinearLayout>
         <ProgressBar android:id="@+id/PBWorkshopProgress"
             style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:max="100" android:visibility="gone" />

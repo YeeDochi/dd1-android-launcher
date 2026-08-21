@@ -23,6 +23,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.fragment.app.Fragment;
 
 import com.winlator.R;
@@ -37,6 +39,10 @@ public final class DD1WorkshopFragment extends Fragment {
     private boolean bound;
     private boolean storeTab = true;
     private final ExecutorService images = Executors.newSingleThreadExecutor();
+    private final ActivityResultLauncher<String[]> importZip = registerForActivityResult(
+        new ActivityResultContracts.OpenDocument(), uri -> {
+            if (service != null && uri != null) service.importMod(uri);
+        });
     private final DD1InstallService.WorkshopListener listener = this::renderSnapshot;
     private final ServiceConnection connection = new ServiceConnection();
 
@@ -97,6 +103,8 @@ public final class DD1WorkshopFragment extends Fragment {
         view.findViewById(R.id.BTWorkshopSync).setOnClickListener(v -> {
             if (service != null) service.syncWorkshop();
         });
+        view.findViewById(R.id.BTWorkshopImport).setOnClickListener(v ->
+            importZip.launch(new String[] {"application/zip", "application/octet-stream"}));
         showTab(true);
     }
 
@@ -221,6 +229,7 @@ public final class DD1WorkshopFragment extends Fragment {
         progress.setProgress(snapshot.progress);
         Button sync = view.findViewById(R.id.BTWorkshopSync);
         sync.setVisibility(snapshot.syncable() ? View.VISIBLE : View.GONE);
+        view.findViewById(R.id.BTWorkshopImport).setEnabled(!syncing);
 
         TextView message = view.findViewById(R.id.TVWorkshopMessage);
         String text = snapshot.message;

@@ -73,8 +73,7 @@ public final class ModSyncPlan {
             else plan.disabledUpdate.add(item);
         }
 
-        // Whatever the account no longer subscribes to stays on disk until the
-        // user says otherwise.
+        // The caller removes these only after Steam returned a complete subscription list.
         plan.orphan.addAll(local.values());
         return plan;
     }

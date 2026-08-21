@@ -7,18 +7,23 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.provider.OpenableColumns;
 
 import androidx.core.app.NotificationCompat;
 
 import com.winlator.R;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -129,8 +134,19 @@ public final class DD1InstallService extends Service {
                 return;
             }
             workshopSubscriptions = Collections.unmodifiableList(new ArrayList<>(subscriptions));
-            publishWorkshop(joinedWorkshop());
+            try {
+                HashSet<Long> subscribedIds = new HashSet<>();
+                for (ModSyncPlan.Subscribed item : subscriptions)
+                    subscribedIds.add(item.publishedFileId);
+                DD1Workshop.removeUnsubscribed(getFilesDir(), subscribedIds);
+                publishWorkshop(joinedWorkshop());
+            }
+            catch (Exception cleanupError) {
+                publishWorkshop(DD1WorkshopSnapshot.error(reason(cleanupError)));
+                return;
+            }
             if (workshopBrowse.isEmpty()) browseWorkshop("", 0, false);
+            syncWorkshop();
         }));
     }
 
@@ -224,6 +240,21 @@ public final class DD1InstallService extends Service {
             try {
                 DD1Workshop.delete(getFilesDir(), directoryName, row != null && row.disabled);
                 workshopLog.append("Deleted " + directoryName);
+                publishWorkshop(joinedWorkshop());
+            }
+            catch (Exception error) {
+                publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
+            }
+        });
+    }
+
+    public void importMod(Uri uri) {
+        if (uri == null || downloader != null) return;
+        worker.execute(() -> {
+            try (InputStream input = getContentResolver().openInputStream(uri)) {
+                if (input == null) throw new IllegalStateException("Cannot open selected ZIP");
+                String directory = DD1Workshop.importZip(getFilesDir(), input, displayName(uri));
+                workshopLog.append("Imported " + directory);
                 publishWorkshop(joinedWorkshop());
             }
             catch (Exception error) {
@@ -396,6 +427,19 @@ public final class DD1InstallService extends Service {
                 publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
             }
         });
+    }
+
+    private String displayName(Uri uri) {
+        try (Cursor cursor = getContentResolver().query(uri,
+                new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                String name = cursor.getString(0);
+                if (name != null && !name.isEmpty()) return name;
+            }
+        }
+        catch (Exception ignored) {}
+        String fallback = uri.getLastPathSegment();
+        return fallback == null ? "imported-mod.zip" : fallback;
     }
 
     private static String reason(Throwable error) {

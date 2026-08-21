@@ -10,10 +10,15 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Collections;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class DD1WorkshopTest {
     @Rule public TemporaryFolder folder = new TemporaryFolder();
@@ -179,6 +184,60 @@ public class DD1WorkshopTest {
         assertFalse(new File(files, "game/mods-disabled/same-name").exists());
     }
 
+    @Test
+    public void importsAZipAsALocalMod() throws Exception {
+        File files = folder.newFolder();
+
+        String directory = DD1Workshop.importZip(files,
+            new ByteArrayInputStream(zip("wrapped/project.xml", "<Project/>")),
+            "My Mod.zip");
+
+        assertEquals("My Mod", directory);
+        assertTrue(new File(files, "game/mods/My Mod/project.xml").isFile());
+        assertEquals(0L, DD1Workshop.scan(files).get(0).publishedFileId);
+    }
+
+    @Test
+    public void importRejectsPathsOutsideStaging() throws Exception {
+        File files = folder.newFolder();
+
+        expectIOException(() -> DD1Workshop.importZip(files,
+            new ByteArrayInputStream(zip("../outside", "bad")), "Bad.zip"));
+
+        assertFalse(new File(files, "outside").exists());
+        assertFalse(new File(files, "local-import-staging").exists());
+    }
+
+    @Test
+    public void importNeverOverwritesAnExistingMod() throws Exception {
+        File files = folder.newFolder();
+        File existing = mkdir(files, "game/mods/My Mod");
+        touch(new File(existing, "old"));
+
+        expectIOException(() -> DD1Workshop.importZip(files,
+            new ByteArrayInputStream(zip("project.xml", "<Project/>")), "My Mod.zip"));
+
+        assertTrue(new File(existing, "old").isFile());
+    }
+
+    @Test
+    public void removesOnlyWorkshopModsMissingFromSubscriptions() throws Exception {
+        File files = folder.newFolder();
+        File kept = mkdir(files, "game/mods/42");
+        Files.write(new File(kept, ".dd1-workshop").toPath(),
+            "42\n7\nKept\n".getBytes(StandardCharsets.UTF_8));
+        File removed = mkdir(files, "game/mods-disabled/43");
+        Files.write(new File(removed, ".dd1-workshop").toPath(),
+            "43\n7\nRemoved\n".getBytes(StandardCharsets.UTF_8));
+        mkdir(files, "game/mods/local");
+
+        DD1Workshop.removeUnsubscribed(files, Collections.singleton(42L));
+
+        assertTrue(kept.isDirectory());
+        assertFalse(removed.exists());
+        assertTrue(new File(files, "game/mods/local").isDirectory());
+    }
+
     private static File mkdir(File root, String path) {
         File result = new File(root, path);
         assertTrue(result.mkdirs());
@@ -187,6 +246,16 @@ public class DD1WorkshopTest {
 
     private static void touch(File file) throws IOException {
         Files.write(file.toPath(), new byte[] {1});
+    }
+
+    private static byte[] zip(String name, String body) throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
+            zip.putNextEntry(new ZipEntry(name));
+            zip.write(body.getBytes(StandardCharsets.UTF_8));
+            zip.closeEntry();
+        }
+        return bytes.toByteArray();
     }
 
     private static void expectIOException(Throwing action) throws Exception {

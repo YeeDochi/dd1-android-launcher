@@ -84,6 +84,7 @@
     <string name="dd1_workshop_unsubscribe_message">%s will be unsubscribed on Steam and removed from this device.</string>
     <string name="dd1_workshop_refresh">Refresh</string>
     <string name="dd1_workshop_sync">Install updates</string>
+    <string name="dd1_workshop_import">Import ZIP</string>
     <string name="dd1_workshop_delete">Delete</string>
     <string name="dd1_workshop_delete_title">Delete this mod</string>
     <string name="dd1_workshop_delete_message">%s will be removed from this device. A campaign using it may stop loading correctly.</string>

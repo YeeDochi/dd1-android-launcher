@@ -83,6 +83,7 @@
     <string name="dd1_workshop_unsubscribe_message">Steam에서 %s 구독을 해제하고 이 기기의 파일도 삭제합니다.</string>
     <string name="dd1_workshop_refresh">새로고침</string>
     <string name="dd1_workshop_sync">설치 및 업데이트</string>
+    <string name="dd1_workshop_import">ZIP 가져오기</string>
     <string name="dd1_workshop_delete">삭제</string>
     <string name="dd1_workshop_delete_title">이 모드를 삭제합니다</string>
     <string name="dd1_workshop_delete_message">%s을(를) 이 기기에서 지웁니다. 이 모드를 쓰는 캠페인은 정상적으로 열리지 않을 수 있습니다.</string>
