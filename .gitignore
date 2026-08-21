@@ -5,3 +5,6 @@
 local.properties
 **/build/
 TODO.md
+
+# Built APKs; 168 MB each, they do not belong in history.
+dist/
