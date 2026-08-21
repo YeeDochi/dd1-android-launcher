@@ -378,7 +378,8 @@ public final class DD1SteamSession implements Closeable {
             }
             catalog = readCatalog();
             publish(events.packagesResolved(packageApps,
-                System.currentTimeMillis() - startedAt));
+                System.currentTimeMillis() - startedAt,
+                new ArrayList<>(catalog.dlcAppIds())));
         }
         catch (Exception error) {
             fail(error);

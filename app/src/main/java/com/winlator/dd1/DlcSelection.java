@@ -8,13 +8,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-// Which owned DLC the launcher installs. Ownership comes from Steam, the choice
-// comes from the user, and anything bought later is included until they say
-// otherwise.
+// Which owned DLC the launcher installs. Which appids are DLC of this game comes
+// from Steam's own depot table, ownership comes from Steam, and the choice comes
+// from the user; anything bought later is included until they say otherwise.
+// The names below are only names - a DLC missing from them is still offered,
+// because a list somebody typed out is not a list of what exists. The Musketeer
+// was owned, had a depot, and went unseen here for exactly that reason.
 public final class DlcSelection {
     private static final Map<Integer, String> NAMES = new LinkedHashMap<>();
 
     static {
+        NAMES.put(445700, "The Musketeer");
         NAMES.put(580100, "The Crimson Court");
         NAMES.put(702540, "The Shieldbreaker");
         NAMES.put(735730, "The Color of Madness");
@@ -34,9 +38,12 @@ public final class DlcSelection {
 
     // The stored value lists what the user turned off, so content bought after
     // the choice was made still arrives selected.
-    public static DlcSelection parse(String stored, Collection<Integer> ownedAppIds) {
+    public static DlcSelection parse(String stored, Collection<Integer> ownedAppIds,
+            Collection<Integer> dlcAppIds) {
         DlcSelection selection = new DlcSelection();
-        for (int appId : NAMES.keySet()) {
+        // Ownership is read across every package the account holds, so it names
+        // other games too. What belongs to this one is what its depot table says.
+        for (int appId : dlcAppIds) {
             if (ownedAppIds.contains(appId)) selection.owned.add(appId);
         }
         if (stored != null) {

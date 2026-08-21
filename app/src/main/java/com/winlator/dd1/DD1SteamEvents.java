@@ -43,12 +43,14 @@ public final class DD1SteamEvents {
     }
 
     public synchronized DD1InstallSnapshot packagesResolved(Map<Integer, List<Integer>> packageApps,
-            long elapsedMillis) {
+            long elapsedMillis, List<Integer> dlcAppIds) {
         log.append("Ownership check took " + (elapsedMillis / 1000) + "s");
         boolean owned = DD1Ownership.ownsApp(packageApps, APP_ID);
         ownedDlc = DD1Ownership.ownedAppIds(packageApps);
         log.append(owned ? "Darkest Dungeon ownership verified" : "Darkest Dungeon is not owned");
-        if (owned) log.append("Owned DLC: " + DlcSelection.parse(null, ownedDlc).owned().size());
+        if (owned) log.append("Owned DLC: "
+            + DlcSelection.parse(null, ownedDlc, dlcAppIds).owned().size()
+            + " of " + dlcAppIds.size());
         return update(owned ? DD1InstallPhase.READY_TO_INSTALL : DD1InstallPhase.NOT_OWNED,
             text(owned ? R.string.dd1_state_ready_to_install : R.string.dd1_state_not_owned), null);
     }

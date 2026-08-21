@@ -461,7 +461,8 @@ public final class DD1InstallService extends Service {
     }
 
     public DlcSelection dlcSelection() {
-        return DlcSelection.parse(preferences().getString("dlc_excluded", null), ownedDlc());
+        return DlcSelection.parse(preferences().getString("dlc_excluded", null), ownedDlc(),
+            steam.catalog().dlcAppIds());
     }
 
     public void saveDlcSelection(DlcSelection selection) {

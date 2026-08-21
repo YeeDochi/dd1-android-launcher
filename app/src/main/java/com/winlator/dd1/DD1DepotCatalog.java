@@ -63,6 +63,12 @@ public final class DD1DepotCatalog {
         return depots;
     }
 
+    // Which appids Steam itself calls DLC of this game: the ones its depot table
+    // names. This is the list, not a list somebody typed out.
+    public java.util.Set<Integer> dlcAppIds() {
+        return Collections.unmodifiableSet(byAppId.keySet());
+    }
+
     // 0 when this account's DLC has no windows depot, which is not something to
     // guess a number for.
     public int depotOf(int dlcAppId) {

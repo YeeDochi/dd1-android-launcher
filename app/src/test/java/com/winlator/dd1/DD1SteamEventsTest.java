@@ -10,6 +10,9 @@ import com.winlator.R;
 import org.junit.Test;
 
 public class DD1SteamEventsTest {
+    private static final java.util.List<Integer> DLC =
+        Arrays.asList(445700, 580100);
+
     @Test
     public void ownedPackagesEnableInstallOnlyAfterLoginAndPics() {
         DD1SteamEvents events = new DD1SteamEvents(id -> "message " + id);
@@ -17,7 +20,7 @@ public class DD1SteamEventsTest {
         assertEquals(DD1InstallPhase.AUTHENTICATING, events.authStarted("url").phase);
         assertEquals(DD1InstallPhase.AUTHENTICATING, events.loggedOn().phase);
         assertEquals(DD1InstallPhase.READY_TO_INSTALL,
-            events.packagesResolved(Collections.singletonMap(1, Arrays.asList(262060)), 0L).phase);
+            events.packagesResolved(Collections.singletonMap(1, Arrays.asList(262060)), 0L, DLC).phase);
     }
 
     @Test
@@ -26,7 +29,7 @@ public class DD1SteamEventsTest {
         events.loggedOn();
 
         assertEquals(DD1InstallPhase.NOT_OWNED,
-            events.packagesResolved(Collections.singletonMap(1, Arrays.asList(10)), 0L).phase);
+            events.packagesResolved(Collections.singletonMap(1, Arrays.asList(10)), 0L, DLC).phase);
     }
 
     @Test
