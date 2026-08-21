@@ -47,6 +47,8 @@ public class DD1WorkshopFragmentTest {
                 assertNotNull(activity.findViewById(R.id.TIWorkshopSearch));
                 assertNotNull(activity.findViewById(R.id.BTWorkshopTabStore));
                 assertNotNull(activity.findViewById(R.id.BTWorkshopTabInstalled));
+                assertTrue(activity.findViewById(R.id.BTWorkshopSearch).getLayoutParams().width
+                    >= 80 * activity.getResources().getDisplayMetrics().density);
                 assertEquals(0, activity.getResources().getIdentifier(
                     "TVWorkshopLog", "id", activity.getPackageName()));
 
