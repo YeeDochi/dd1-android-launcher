@@ -130,4 +130,7 @@
     <string name="dd1_state_preparing">Preparing</string>
     <string name="dd1_open_source">Open source</string>
     <string name="dd1_open_source_notice">Runs on the Winlator runtime (LGPL-2.1), which bundles Wine and Box64. Mod Hub interaction patterns reference StS2 Launcher Mod Manager (MIT). Full notices ship in THIRD_PARTY_NOTICES.</string>
+    <string name="dd1_performance">Performance</string>
+    <string name="dd1_box64_performance">Faster instruction translation</string>
+    <string name="dd1_box64_performance_hint">Lets box64 skip checks it normally makes while turning the game’s x86 code into ARM. It can crash or corrupt the picture on some scenes; turn it back off if anything looks wrong. Applies on the next launch.</string>
 </resources>

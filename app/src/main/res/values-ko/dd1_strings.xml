@@ -129,4 +129,7 @@
     <string name="dd1_state_preparing">준비 중</string>
     <string name="dd1_open_source">오픈소스</string>
     <string name="dd1_open_source_notice">Winlator 런타임(LGPL-2.1) 위에서 동작하며, Wine과 Box64를 포함합니다. 모드 화면 구성은 StS2 Launcher Mod Manager(MIT)를 참고했습니다. 전문은 THIRD_PARTY_NOTICES에 있습니다.</string>
+    <string name="dd1_performance">성능</string>
+    <string name="dd1_box64_performance">명령어 번역 빠르게</string>
+    <string name="dd1_box64_performance_hint">box64가 게임의 x86 코드를 ARM으로 바꾸면서 평소 하던 검사를 건너뜁니다. 일부 장면에서 튕기거나 화면이 깨질 수 있으니 이상하면 다시 끄십시오. 다음 실행부터 적용됩니다.</string>
 </resources>

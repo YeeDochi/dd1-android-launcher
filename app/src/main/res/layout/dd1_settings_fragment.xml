@@ -49,6 +49,22 @@
 
             <TextView
                 style="@style/DD1SectionTitle"
+                android:text="@string/dd1_performance" />
+
+            <CheckBox
+                android:id="@+id/CBBox64Performance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/dd1_box64_performance" />
+
+            <TextView
+                android:id="@+id/TVBox64Hint"
+                style="@style/DD1Meta"
+                android:text="@string/dd1_box64_performance_hint" />
+
+            <TextView
+                style="@style/DD1SectionTitle"
                 android:text="@string/dd1_open_source" />
 
             <TextView

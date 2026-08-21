@@ -13,6 +13,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.winlator.R;
+import com.winlator.box64.Box64Preset;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
 
@@ -46,6 +47,7 @@ public class DD1SettingsFragment extends Fragment {
         buildLanguage(view.findViewById(R.id.RGLanguage));
         buildResolution(view.findViewById(R.id.RGResolution),
             view.findViewById(R.id.TVResolutionHint));
+        buildBox64Preset(view.findViewById(R.id.CBBox64Performance));
     }
 
     private void buildLanguage(RadioGroup group) {
@@ -63,9 +65,7 @@ public class DD1SettingsFragment extends Fragment {
     }
 
     private void buildResolution(RadioGroup group, TextView hint) {
-        ContainerManager manager = new ContainerManager(requireContext());
-        Container container = manager.getContainers().isEmpty()
-            ? null : manager.getContainers().get(0);
+        Container container = firstContainer();
         if (container == null) {
             hint.setText(R.string.dd1_resolution_unavailable);
             return;
@@ -85,6 +85,28 @@ public class DD1SettingsFragment extends Fragment {
             container.setScreenSize(chosen);
             container.saveData();
         });
+    }
+
+    // Lowering the resolution cost 9% of the battery and 24C off the hottest core,
+    // which says the draw is in translating instructions rather than drawing
+    // pixels. This is the only knob on that side, and it trades safety for it, so
+    // it is off by default and says what it risks.
+    private void buildBox64Preset(android.widget.CheckBox toggle) {
+        Container container = firstContainer();
+        if (container == null) {
+            toggle.setEnabled(false);
+            return;
+        }
+        toggle.setChecked(Box64Preset.PERFORMANCE.equals(container.getBox64Preset()));
+        toggle.setOnCheckedChangeListener((ignored, checked) -> {
+            container.setBox64Preset(checked ? Box64Preset.PERFORMANCE : Box64Preset.DEFAULT);
+            container.saveData();
+        });
+    }
+
+    private Container firstContainer() {
+        ContainerManager manager = new ContainerManager(requireContext());
+        return manager.getContainers().isEmpty() ? null : manager.getContainers().get(0);
     }
 
     private RadioButton choice(String label, boolean checked) {
