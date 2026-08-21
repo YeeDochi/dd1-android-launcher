@@ -4,10 +4,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Instrumentation;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
+import android.os.PatternMatcher;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.GridLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Button;
 
@@ -15,6 +22,7 @@ import androidx.fragment.app.Fragment;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.winlator.R;
 
@@ -76,6 +84,8 @@ public class DD1WorkshopFragmentTest {
                 GridLayout cards = activity.findViewById(R.id.GLWorkshopCards);
                 assertTrue(((GridLayout.LayoutParams)cards.getChildAt(0)
                     .getLayoutParams()).topMargin > 0);
+                assertEquals(ImageView.ScaleType.FIT_CENTER,
+                    ((ImageView)activity.findViewById(R.id.IVWorkshopCard)).getScaleType());
                 cards.getChildAt(0).performClick();
                 assertNotNull(workshop.detailDialog);
                 assertEquals("Crimson Court", ((TextView)workshop.detailDialog.findViewById(
@@ -84,17 +94,36 @@ public class DD1WorkshopFragmentTest {
                     R.id.TVWorkshopDetailDescription)).getText().toString());
                 assertEquals(2, ((LinearLayout)workshop.detailDialog.findViewById(
                     R.id.LLWorkshopDetailPictures)).getChildCount());
+                assertEquals(ImageView.ScaleType.FIT_CENTER,
+                    ((ImageView)workshop.detailDialog.findViewById(
+                        R.id.IVWorkshopDetailHero)).getScaleType());
+                assertEquals(ImageView.ScaleType.FIT_CENTER,
+                    ((ImageView)((LinearLayout)workshop.detailDialog.findViewById(
+                        R.id.LLWorkshopDetailPictures)).getChildAt(0)).getScaleType());
                 Button subscribe = workshop.detailDialog.findViewById(
                     R.id.BTWorkshopDetailSubscribe);
                 Button close = workshop.detailDialog.findViewById(R.id.BTWorkshopDetailClose);
+                Button web = workshop.detailDialog.findViewById(R.id.BTWorkshopDetailWeb);
                 assertEquals(activity.getString(R.string.dd1_workshop_subscribe),
                     subscribe.getText().toString());
                 assertTrue(subscribe.getBackground() != null);
                 assertTrue(close.getBackground() != null);
                 assertTrue(subscribe.getMinimumHeight() >= 48
                     * activity.getResources().getDisplayMetrics().density);
-                assertEquals(subscribe, ((LinearLayout)subscribe.getParent()).getChildAt(0));
-                assertEquals(close, ((LinearLayout)close.getParent()).getChildAt(1));
+                assertEquals(web, ((LinearLayout)subscribe.getParent()).getChildAt(0));
+                assertEquals(subscribe, ((LinearLayout)subscribe.getParent()).getChildAt(1));
+                assertEquals(close, ((LinearLayout)close.getParent()).getChildAt(2));
+                IntentFilter webFilter = new IntentFilter(Intent.ACTION_VIEW);
+                webFilter.addDataScheme("https");
+                webFilter.addDataAuthority("steamcommunity.com", null);
+                webFilter.addDataPath("/sharedfiles/filedetails/", PatternMatcher.PATTERN_LITERAL);
+                Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
+                Instrumentation.ActivityMonitor monitor = new Instrumentation.ActivityMonitor(
+                    webFilter, null, true);
+                instrumentation.addMonitor(monitor);
+                web.performClick();
+                assertEquals(1, monitor.getHits());
+                instrumentation.removeMonitor(monitor);
                 workshop.detailDialog.dismiss();
 
                 context.getSharedPreferences("dd1", Context.MODE_PRIVATE).edit()
@@ -118,6 +147,15 @@ public class DD1WorkshopFragmentTest {
                 assertEquals(2, saved);
                 assertEquals(2,
                     ((GridLayout)activity.findViewById(R.id.GLWorkshopCards)).getColumnCount());
+                View rotate = activity.findViewById(R.id.BTWorkshopRotate);
+                LinearLayout controls = (LinearLayout)rotate.getParent();
+                assertEquals(rotate, controls.getChildAt(controls.getChildCount() - 1));
+                int expected = activity.getResources().getConfiguration().orientation
+                    == Configuration.ORIENTATION_LANDSCAPE
+                    ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                    : ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
+                rotate.performClick();
+                assertEquals(expected, activity.getRequestedOrientation());
             });
         }
         DD1Workshop.delete(context.getFilesDir(), "local-fixture", true);

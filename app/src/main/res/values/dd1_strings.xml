@@ -73,6 +73,8 @@
     <string name="dd1_workshop_detail_updated">Updated %s</string>
     <string name="dd1_workshop_no_description">No description provided.</string>
     <string name="dd1_workshop_close">Close</string>
+    <string name="dd1_workshop_open_web">View on web</string>
+    <string name="dd1_workshop_no_browser">No web browser is available.</string>
     <string name="dd1_workshop_sort_popular">Popular</string>
     <string name="dd1_workshop_sort_newest">Newest</string>
     <string name="dd1_workshop_sort_trending">Trending</string>
@@ -88,6 +90,7 @@
     <string name="dd1_workshop_unsubscribe_message">%s will be unsubscribed on Steam and removed from this device.</string>
     <string name="dd1_workshop_refresh">Refresh</string>
     <string name="dd1_workshop_columns_action">Grid: %d columns. Tap to change.</string>
+    <string name="dd1_workshop_rotate">Rotate screen</string>
     <string name="dd1_workshop_sync">Install updates</string>
     <string name="dd1_workshop_import">Import ZIP</string>
     <string name="dd1_workshop_delete">Delete</string>

@@ -72,6 +72,8 @@
     <string name="dd1_workshop_detail_updated">업데이트 %s</string>
     <string name="dd1_workshop_no_description">등록된 설명이 없습니다.</string>
     <string name="dd1_workshop_close">닫기</string>
+    <string name="dd1_workshop_open_web">웹에서 보기</string>
+    <string name="dd1_workshop_no_browser">웹 브라우저를 열 수 없습니다.</string>
     <string name="dd1_workshop_sort_popular">인기순</string>
     <string name="dd1_workshop_sort_newest">최신 등록</string>
     <string name="dd1_workshop_sort_trending">급상승</string>
@@ -87,6 +89,7 @@
     <string name="dd1_workshop_unsubscribe_message">Steam에서 %s 구독을 해제하고 이 기기의 파일도 삭제합니다.</string>
     <string name="dd1_workshop_refresh">새로고침</string>
     <string name="dd1_workshop_columns_action">현재 %d열. 눌러서 변경합니다.</string>
+    <string name="dd1_workshop_rotate">화면 회전</string>
     <string name="dd1_workshop_sync">설치 및 업데이트</string>
     <string name="dd1_workshop_import">ZIP 가져오기</string>
     <string name="dd1_workshop_delete">삭제</string>

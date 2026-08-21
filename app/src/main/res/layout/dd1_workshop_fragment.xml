@@ -45,6 +45,13 @@
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:padding="9dp" android:src="@drawable/icon_action_bar_grid"
                 android:tint="?attr/colorAccent" />
+            <ImageButton android:id="@+id/BTWorkshopRotate" android:layout_width="40dp"
+                android:layout_height="40dp" android:layout_marginStart="8dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/dd1_workshop_rotate"
+                android:padding="9dp"
+                android:src="@android:drawable/ic_menu_always_landscape_portrait"
+                android:tint="?attr/colorAccent" />
         </LinearLayout>
         <TextView android:id="@+id/TVWorkshopStoreMessage" style="@style/DD1Meta"
             android:padding="8dp" android:visibility="gone" />

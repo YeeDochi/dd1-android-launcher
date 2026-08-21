@@ -3,7 +3,11 @@ package com.winlator.dd1;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ActivityNotFoundException;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.LayoutInflater;
@@ -19,6 +23,7 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -93,6 +98,11 @@ public final class DD1WorkshopFragment extends Fragment {
         setColumnCount(view, columnCount());
         view.findViewById(R.id.BTWorkshopColumns).setOnClickListener(v ->
             setColumnCount(view, columnCount() == 4 ? 2 : columnCount() + 1));
+        view.findViewById(R.id.BTWorkshopRotate).setOnClickListener(v ->
+            requireActivity().setRequestedOrientation(
+                getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
+                    ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                    : ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE));
         EditText search = view.findViewById(R.id.TIWorkshopSearch);
         search.setOnEditorActionListener((v, action, event) -> {
             if (action != EditorInfo.IME_ACTION_SEARCH) return false;
@@ -311,6 +321,18 @@ public final class DD1WorkshopFragment extends Fragment {
         AlertDialog dialog = new AlertDialog.Builder(requireContext(), R.style.DD1Dialog)
             .setView(content).create();
         detailDialog = dialog;
+        content.findViewById(R.id.BTWorkshopDetailWeb).setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(
+                "https://steamcommunity.com/sharedfiles/filedetails/?id="
+                    + item.publishedFileId));
+            try {
+                startActivity(intent);
+            }
+            catch (ActivityNotFoundException e) {
+                Toast.makeText(requireContext(), R.string.dd1_workshop_no_browser,
+                    Toast.LENGTH_SHORT).show();
+            }
+        });
         Button action = content.findViewById(R.id.BTWorkshopDetailSubscribe);
         action.setText(card.subscribed ? R.string.dd1_workshop_unsubscribe
             : R.string.dd1_workshop_subscribe);
@@ -371,7 +393,7 @@ public final class DD1WorkshopFragment extends Fragment {
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, height);
             params.setMargins(margin, 0, margin, 0);
             picture.setLayoutParams(params);
-            picture.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            picture.setScaleType(ImageView.ScaleType.FIT_CENTER);
             picture.setBackgroundResource(android.R.color.darker_gray);
             picture.setContentDescription(getString(R.string.dd1_workshop_preview));
             picture.setOnClickListener(v -> loadImage(hero, url));
