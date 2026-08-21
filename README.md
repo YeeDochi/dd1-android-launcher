@@ -1,5 +1,7 @@
 # DD1 Android Launcher
 
+**English** · [한국어](README.ko.md)
+
 An Android launcher that installs and runs a user-owned Windows copy of Darkest
 Dungeon through the Winlator runtime — Wine and Box64 on the device. Sign in to
 Steam, the launcher downloads the build the account owns, and one button starts
