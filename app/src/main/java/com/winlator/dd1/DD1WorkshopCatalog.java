@@ -20,7 +20,7 @@ public final class DD1WorkshopCatalog {
         return CPublishedFile_GetUserFiles_Request.newBuilder()
             .setSteamid(steamId)
             .setAppid(DD1SteamEvents.APP_ID)
-            .setType("subscribed")
+            .setType("mysubscriptions")
             .setPage(page)
             .setNumperpage(100)
             .build();

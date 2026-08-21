@@ -58,7 +58,7 @@ public class DD1WorkshopCatalogTest {
 
         assertEquals(765L, request.getSteamid());
         assertEquals(262060, request.getAppid());
-        assertEquals("subscribed", request.getType());
+        assertEquals("mysubscriptions", request.getType());
         assertEquals(3, request.getPage());
         assertEquals(100, request.getNumperpage());
     }
