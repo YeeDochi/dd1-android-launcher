@@ -7,8 +7,11 @@ Dungeon through the Winlator runtime — Wine and Box64 on the device. Sign in t
 Steam, the launcher downloads the build the account owns, and one button starts
 the game.
 
-No game, DLC, Workshop, save, or Steam account data ships in the APK or this
-repository. Not affiliated with Red Hook Studios or Valve.
+> **Unofficial.** Not made by, endorsed by, or affiliated with Red Hook Studios
+> or Valve. It is not a port of Darkest Dungeon and contains none of it: no game
+> files, no DLC, no art, no audio, no save or Steam account data, in the APK or
+> in this repository. It downloads nothing you do not already own, modifies no
+> game binary, and is free.
 
 <p align="center">
   <img src="docs/screenshots/01-home.png" width="80%" alt="Home screen with the owned DLC list">
@@ -96,12 +99,16 @@ rewrite pass over the extracted tree.
 the app data directory, which is exactly where the runtime unpacks box64 and
 Wine. The compatibility warning Android shows for this is expected.
 
-## Status
+## What this is not
 
-Not published. Red Hook's EULA reserves derivative works, and an official iPad
-edition exists, so this stays private until they answer a written request.
-Build and test freely; do not release, and do not call it a port — it is a
-launcher on the Winlator runtime.
+Darkest Dungeon belongs to Red Hook Studios, and their EULA licenses it for
+personal gameplay. That is exactly what this does: it runs the Windows build you
+bought, unmodified, on hardware you own. It is not a port and does not
+redistribute the game — without your own Steam account that owns it, this
+launcher has nothing to run.
+
+An official iPad edition exists. If you want Darkest Dungeon on a tablet and
+that fits your device, buy it there; it is the version Red Hook made money on.
 
 ## Upstream and licenses
 

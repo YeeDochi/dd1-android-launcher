@@ -4,18 +4,22 @@ An Android launcher that installs and runs the owner's copy of Darkest Dungeon
 through the Winlator runtime. The user signs in to Steam, the launcher downloads
 the Windows build they own, and one Play button starts the game.
 
-The game runs today on a Galaxy S25. What is missing is touch input, save
-synchronisation and the mod manager.
+The game runs today on a Galaxy S25. Touch input, save synchronisation and the
+mod manager all work and have been exercised on real devices.
 
 ## Boundaries
 
 - **No game data ships here.** No Darkest Dungeon files, art or FMOD binaries in
   the APK or the repository. Store artwork is fetched at runtime into the cache
   directory only.
-- **Publication is blocked** until Red Hook answers a written request. Red Hook's
-  EULA forbids derivative works without written approval, and an official iPad
-  edition exists. Build and test freely; do not release, and do not call this a
-  port - it is a launcher on the Winlator runtime.
+- **Going public is the owner's call, and only the owner's.** The repository is
+  private. Never change its visibility, publish a release, or push anywhere
+  public without being asked for that specific act.
+- **Do not call this a port** - it is a launcher on the Winlator runtime, and the
+  wording matters. Red Hook's EULA reserves derivative works and an official iPad
+  edition exists, so what keeps this defensible is that it ships no game data,
+  modifies no game binary, carries no Red Hook trademark in its name, and earns
+  nothing. Keep every one of those true.
 - Winlator is under its own licence; keep `THIRD_PARTY_NOTICES` and attribution
   intact.
 
