@@ -41,7 +41,6 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
 
     private float lastX;
     private float lastY;
-    private boolean hovering;
     private boolean escaping;
     private boolean typing;
 
@@ -198,7 +197,6 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
                     return true;
                 }
                 if (!insidePicture(lastX, lastY)) return true;
-                hovering = false;
                 gesture.down(lastX, lastY, now);
                 postDelayed(hold, TouchGesture.HOLD_MILLIS);
                 return true;
@@ -225,7 +223,6 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
                 }
                 removeCallbacks(hold);
                 gesture.up(lastX, lastY, now);
-                hovering = false;
                 return true;
             default:
                 return false;
@@ -380,7 +377,7 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         // ponytail: if this ever needs to hold against more of the runtime, listen
         // for window modifications instead of leaning on touches.
         xServer.getRenderer().setCursorVisible(false);
-        float[] point = XForm.transformPoint(xform(), x, y + TouchGesture.hoverOffset(hovering));
+        float[] point = XForm.transformPoint(xform(), x, y);
         xServer.injectPointerMove((int)point[0], (int)point[1]);
     }
 
@@ -400,12 +397,14 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
             xServer.injectPointerButtonRelease(Pointer.Button.BUTTON_LEFT), CLICK_MILLIS);
     }
 
-    // The gesture says nothing about where the pointer goes, so lifting it clear
-    // of the fingertip is this side's job, and it has to happen at once or the
-    // tooltip opens under the hand and stays there.
+    // Using an item on a hero is a right click, and holding still is what asks
+    // for one. The cursor stays exactly where the finger rested: there is no
+    // tooltip to keep clear of, because a tap already leaves the cursor on what
+    // it touched and the game shows it there.
     @Override
-    public void onHoverStart() {
-        hovering = true;
-        onMove(lastX, lastY);
+    public void onSecondaryClick() {
+        xServer.injectPointerButtonPress(Pointer.Button.BUTTON_RIGHT);
+        postDelayed(() ->
+            xServer.injectPointerButtonRelease(Pointer.Button.BUTTON_RIGHT), CLICK_MILLIS);
     }
 }

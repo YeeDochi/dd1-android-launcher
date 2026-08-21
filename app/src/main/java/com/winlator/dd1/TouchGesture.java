@@ -10,29 +10,22 @@ public final class TouchGesture {
 
         void onRelease();
 
-        void onHoverStart();
+        void onSecondaryClick();
     }
 
     // Far enough that the finger meant to travel rather than to sit still.
     private static final float SLOP = 16f;
 
-    // Long enough that an ordinary tap is never read as a request for a tooltip.
-    // The caller needs it to know when to run the clock.
+    // Long enough that an ordinary tap is never read as a request for a right
+    // click. The caller needs it to know when to run the clock.
     public static final long HOLD_MILLIS = 350L;
-
-    // How far above the fingertip the cursor sits while hovering, in pixels.
-    public static final float HOVER_LIFT = 48f;
-
-    public static float hoverOffset(boolean hovering) {
-        return hovering ? -HOVER_LIFT : 0f;
-    }
 
     private final Listener listener;
     private float downX;
     private float downY;
     private long downAt;
     private boolean pressed;
-    private boolean hovering;
+    private boolean held;
 
     public TouchGesture(Listener listener) {
         this.listener = listener;
@@ -43,12 +36,12 @@ public final class TouchGesture {
         downY = y;
         downAt = timeMillis;
         pressed = false;
-        hovering = false;
+        held = false;
         listener.onMove(x, y);
     }
 
     public void move(float x, float y, long timeMillis) {
-        if (!pressed && !hovering) {
+        if (!pressed && !held) {
             if (Math.hypot(x - downX, y - downY) < SLOP) return;
             listener.onPress();
             pressed = true;
@@ -60,16 +53,17 @@ public final class TouchGesture {
     // landed on the way down could not be taken back once the touch turns out to
     // be a hold.
     public void up(float x, float y, long timeMillis) {
-        if (hovering) return;
+        if (held) return;
         if (!pressed) listener.onPress();
         listener.onRelease();
     }
 
     // The hold cannot be noticed by a finger that is doing nothing, so the caller
-    // drives a clock.
+    // drives a clock. One hold is one click: the finger is free afterwards and
+    // lifting adds nothing.
     public void tick(long timeMillis) {
-        if (pressed || hovering || timeMillis - downAt < HOLD_MILLIS) return;
-        hovering = true;
-        listener.onHoverStart();
+        if (pressed || held || timeMillis - downAt < HOLD_MILLIS) return;
+        held = true;
+        listener.onSecondaryClick();
     }
 }

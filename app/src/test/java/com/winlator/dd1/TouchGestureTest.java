@@ -14,7 +14,7 @@ public class TouchGestureTest {
         @Override public void onMove(float x, float y) { events.add("move " + (int)x + "," + (int)y); }
         @Override public void onPress() { events.add("press"); }
         @Override public void onRelease() { events.add("release"); }
-        @Override public void onHoverStart() { events.add("hover"); }
+        @Override public void onSecondaryClick() { events.add("right"); }
     });
 
     // The pointer has to arrive before the button does, or the click lands
@@ -39,46 +39,40 @@ public class TouchGestureTest {
             "move 100,100", "press", "move 160,100", "release"), events);
     }
 
-    // Skill and trinket descriptions only exist under a resting cursor, so a
-    // hold has to park the pointer without ever clicking - releasing must not
-    // click either, or every tooltip would also activate what it described.
+    // Using an item on a hero is a right click and nothing else in this game is,
+    // so holding still is what asks for one. The hold was parking the cursor for
+    // tooltips before, which turned out to be work nobody needed: the cursor
+    // stays where a tap left it, so a tap already opens the tooltip.
     @Test
-    public void holdingStillStartsHoverWithoutPressing() {
+    public void holdingStillAsksForARightClick() {
         gesture.down(100, 100, 0);
         gesture.tick(600);
         gesture.up(100, 100, 700);
 
-        assertEquals(Arrays.asList("move 100,100", "hover"), events);
+        assertEquals(Arrays.asList("move 100,100", "right"), events);
     }
 
-    // Reading one tooltip and then the next should not need a new hold, so the
-    // pointer keeps following the finger once hovering has begun.
+    // One hold is one right click. Letting the finger wander afterwards must not
+    // fire another, and lifting must not add a left click on top.
     @Test
-    public void hoverKeepsTrackingTheFingerWithoutClicking() {
+    public void aHoldClicksOnceAndTheFingerIsFreeAfterwards() {
         gesture.down(100, 100, 0);
         gesture.tick(600);
-        gesture.move(140, 120, 700);
-        gesture.up(140, 120, 800);
+        gesture.tick(900);
+        gesture.move(140, 120, 950);
+        gesture.up(140, 120, 1000);
 
-        assertEquals(Arrays.asList("move 100,100", "hover", "move 140,120"), events);
+        assertEquals(Arrays.asList("move 100,100", "right", "move 140,120"), events);
     }
 
     // A finger resting on glass is never quite still, and that wobble must not
     // be mistaken for the beginning of a drag.
     @Test
-    public void aSlowTapWithoutRealMovementStillHovers() {
+    public void aSlowTapWithoutRealMovementStillRightClicks() {
         gesture.down(10, 10, 0);
         gesture.move(12, 11, 100);
         gesture.tick(600);
 
-        assertEquals(Arrays.asList("move 10,10", "hover"), events);
-    }
-
-    // The tooltip appears at the cursor, so a cursor under the fingertip puts the
-    // text under the hand holding the phone.
-    @Test
-    public void theCursorSitsAboveTheFingerWhileHovering() {
-        assertEquals(0f, TouchGesture.hoverOffset(false), 0.01);
-        assertEquals(-TouchGesture.HOVER_LIFT, TouchGesture.hoverOffset(true), 0.01);
+        assertEquals(Arrays.asList("move 10,10", "right"), events);
     }
 }
