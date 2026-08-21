@@ -217,6 +217,26 @@ public final class DD1SteamSession implements Closeable {
         return future;
     }
 
+    public CompletableFuture<DD1WorkshopItem> workshopDetail(long publishedFileId) {
+        CompletableFuture<DD1WorkshopItem> future = new CompletableFuture<>();
+        operations.execute(() -> {
+            try {
+                ServiceMethodResponse<CPublishedFile_GetDetails_Response.Builder> response =
+                    publishedFiles.getDetails(DD1WorkshopCatalog.fullDetails(publishedFileId))
+                        .runBlock();
+                requireOk(response);
+                List<DD1WorkshopItem> items = DD1WorkshopCatalog.fullItems(
+                    response.getBody().getPublishedfiledetailsList());
+                if (items.isEmpty()) throw new IllegalStateException("Workshop item not found");
+                future.complete(items.get(0));
+            }
+            catch (Throwable error) {
+                future.completeExceptionally(error);
+            }
+        });
+        return future;
+    }
+
     public CompletableFuture<Void> subscribe(long publishedFileId) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         operations.execute(() -> {

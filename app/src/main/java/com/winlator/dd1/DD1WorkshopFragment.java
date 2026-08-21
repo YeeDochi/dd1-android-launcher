@@ -31,6 +31,8 @@ import com.winlator.R;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.text.DateFormat;
+import java.util.Date;
 
 public final class DD1WorkshopFragment extends Fragment {
     private static final int[] SORTS = {0, 1, 3, 12, 21};
@@ -39,6 +41,7 @@ public final class DD1WorkshopFragment extends Fragment {
     private DD1InstallService service;
     private boolean bound;
     private boolean storeTab = true;
+    AlertDialog detailDialog;
     private final ExecutorService images = Executors.newSingleThreadExecutor();
     private final ActivityResultLauncher<String[]> importZip = registerForActivityResult(
         new ActivityResultContracts.OpenDocument(), uri -> {
@@ -132,6 +135,7 @@ public final class DD1WorkshopFragment extends Fragment {
 
     @Override
     public void onDestroy() {
+        if (detailDialog != null) detailDialog.dismiss();
         images.shutdownNow();
         super.onDestroy();
     }
@@ -219,6 +223,7 @@ public final class DD1WorkshopFragment extends Fragment {
             }
             action.setEnabled(!busy && item.item.downloadable);
             loadImage(card.findViewById(R.id.IVWorkshopCard), item.item);
+            card.setOnClickListener(v -> showDetail(item.item));
             grid.addView(card);
         }
         Button more = view.findViewById(R.id.BTWorkshopMore);
@@ -281,18 +286,87 @@ public final class DD1WorkshopFragment extends Fragment {
     }
 
     private void loadImage(ImageView image, DD1WorkshopItem item) {
-        if (item.previewUrl == null || item.previewUrl.isEmpty()) return;
-        image.setTag(item.publishedFileId);
+        loadImage(image, item.previewUrl);
+    }
+
+    private void loadImage(ImageView image, String url) {
+        if (url == null || url.isEmpty()) return;
+        image.setTag(url);
         images.execute(() -> {
             Context context = getContext();
             if (context == null) return;
-            Bitmap bitmap = DD1WorkshopImages.fetch(context.getCacheDir(), item.previewUrl);
+            Bitmap bitmap = DD1WorkshopImages.fetch(context.getCacheDir(), url);
             if (bitmap == null) return;
             image.post(() -> {
-                if (Long.valueOf(item.publishedFileId).equals(image.getTag()))
-                    image.setImageBitmap(bitmap);
+                if (url.equals(image.getTag())) image.setImageBitmap(bitmap);
             });
         });
+    }
+
+    void showDetail(DD1WorkshopItem item) {
+        View content = LayoutInflater.from(requireContext()).inflate(
+            R.layout.dd1_workshop_detail, null, false);
+        renderDetail(content, item);
+        AlertDialog dialog = new AlertDialog.Builder(requireContext(), R.style.DD1Dialog)
+            .setView(content).setNegativeButton(R.string.dd1_workshop_close, null).create();
+        detailDialog = dialog;
+        dialog.setOnDismissListener(ignored -> {
+            if (detailDialog == dialog) detailDialog = null;
+        });
+        dialog.setOnShowListener(ignored -> dialog.getWindow().setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        dialog.show();
+
+        DD1InstallService current = service;
+        if (current == null) {
+            content.findViewById(R.id.PBWorkshopDetail).setVisibility(View.GONE);
+            return;
+        }
+        current.workshopDetail(item.publishedFileId).whenComplete((full, error) ->
+            content.post(() -> {
+                if (detailDialog != dialog || !dialog.isShowing()) return;
+                content.findViewById(R.id.PBWorkshopDetail).setVisibility(View.GONE);
+                if (full != null) renderDetail(content, full);
+            }));
+    }
+
+    private void renderDetail(View view, DD1WorkshopItem item) {
+        ((TextView)view.findViewById(R.id.TVWorkshopDetailTitle)).setText(item.title);
+        ((TextView)view.findViewById(R.id.TVWorkshopDetailMeta)).setText(getString(
+            R.string.dd1_workshop_detail_meta, item.subscriptions, formatSize(item.fileSize),
+            item.score * 100));
+        TextView updated = view.findViewById(R.id.TVWorkshopDetailUpdated);
+        updated.setVisibility(item.updatedAt > 0 ? View.VISIBLE : View.GONE);
+        if (item.updatedAt > 0) updated.setText(getString(R.string.dd1_workshop_detail_updated,
+            DateFormat.getDateInstance(DateFormat.MEDIUM).format(new Date(item.updatedAt * 1000))));
+        String description = DD1WorkshopDescription.clean(item.description);
+        ((TextView)view.findViewById(R.id.TVWorkshopDetailDescription)).setText(
+            description.isEmpty() ? getString(R.string.dd1_workshop_no_description) : description);
+
+        ImageView hero = view.findViewById(R.id.IVWorkshopDetailHero);
+        hero.setVisibility(item.previewUrl == null || item.previewUrl.isEmpty()
+            ? View.GONE : View.VISIBLE);
+        loadImage(hero, item.previewUrl);
+        LinearLayout gallery = view.findViewById(R.id.LLWorkshopDetailPictures);
+        gallery.removeAllViews();
+        int width = Math.round(220 * getResources().getDisplayMetrics().density);
+        int height = Math.round(124 * getResources().getDisplayMetrics().density);
+        int margin = Math.round(5 * getResources().getDisplayMetrics().density);
+        for (int i = 1; i < item.previewUrls.size(); i++) {
+            String url = item.previewUrls.get(i);
+            ImageView picture = new ImageView(requireContext());
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, height);
+            params.setMargins(margin, 0, margin, 0);
+            picture.setLayoutParams(params);
+            picture.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            picture.setBackgroundResource(android.R.color.darker_gray);
+            picture.setContentDescription(getString(R.string.dd1_workshop_preview));
+            picture.setOnClickListener(v -> loadImage(hero, url));
+            loadImage(picture, url);
+            gallery.addView(picture);
+        }
+        view.findViewById(R.id.HSVWorkshopDetailPictures).setVisibility(
+            gallery.getChildCount() == 0 ? View.GONE : View.VISIBLE);
     }
 
     private String cardState(DD1WorkshopSnapshot.Card card) {

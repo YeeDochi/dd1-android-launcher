@@ -55,6 +55,17 @@ public final class DD1WorkshopCatalog {
             .build();
     }
 
+    public static CPublishedFile_GetDetails_Request fullDetails(long publishedFileId) {
+        return CPublishedFile_GetDetails_Request.newBuilder()
+            .addPublishedfileids(publishedFileId)
+            .setAppid(DD1SteamEvents.APP_ID)
+            .setIncludevotes(true)
+            .setIncludetags(true)
+            .setIncludeadditionalpreviews(true)
+            .setShortDescription(false)
+            .build();
+    }
+
     public static CPublishedFile_Subscribe_Request subscribe(long publishedFileId) {
         return CPublishedFile_Subscribe_Request.newBuilder()
             .setPublishedfileid(publishedFileId)
@@ -96,17 +107,13 @@ public final class DD1WorkshopCatalog {
 
     public static List<DD1WorkshopItem> items(List<PublishedFileDetails> details) {
         List<DD1WorkshopItem> result = new ArrayList<>();
-        for (PublishedFileDetails detail : details) {
-            boolean downloadable = detail.getResult() == EResult.OK.code()
-                && detail.getConsumerAppid() == DD1SteamEvents.APP_ID
-                && detail.getHcontentFile() != 0;
-            String title = detail.getTitle().isEmpty()
-                ? Long.toString(detail.getPublishedfileid()) : detail.getTitle();
-            result.add(new DD1WorkshopItem(detail.getPublishedfileid(), title,
-                detail.getShortDescription(), detail.getPreviewUrl(), detail.getFileSize(),
-                detail.getSubscriptions(), detail.hasVoteData() ? detail.getVoteData().getScore() : 0,
-                Integer.toUnsignedLong(detail.getTimeUpdated()), downloadable));
-        }
+        for (PublishedFileDetails detail : details) result.add(item(detail, false));
+        return result;
+    }
+
+    public static List<DD1WorkshopItem> fullItems(List<PublishedFileDetails> details) {
+        List<DD1WorkshopItem> result = new ArrayList<>();
+        for (PublishedFileDetails detail : details) result.add(item(detail, true));
         return result;
     }
 
@@ -126,5 +133,25 @@ public final class DD1WorkshopCatalog {
 
     private static long positive(long value) {
         return value > 0 ? value : 0;
+    }
+
+    private static DD1WorkshopItem item(PublishedFileDetails detail, boolean full) {
+        boolean downloadable = detail.getResult() == EResult.OK.code()
+            && detail.getConsumerAppid() == DD1SteamEvents.APP_ID
+            && detail.getHcontentFile() != 0;
+        String title = detail.getTitle().isEmpty()
+            ? Long.toString(detail.getPublishedfileid()) : detail.getTitle();
+        List<String> previews = new ArrayList<>();
+        if (!detail.getPreviewUrl().isEmpty()) previews.add(detail.getPreviewUrl());
+        if (full) {
+            for (PublishedFileDetails.Preview preview : detail.getPreviewsList())
+                if (!preview.getUrl().isEmpty() && !previews.contains(preview.getUrl()))
+                    previews.add(preview.getUrl());
+        }
+        return new DD1WorkshopItem(detail.getPublishedfileid(), title,
+            full ? detail.getFileDescription() : detail.getShortDescription(),
+            detail.getPreviewUrl(), detail.getFileSize(), detail.getSubscriptions(),
+            detail.hasVoteData() ? detail.getVoteData().getScore() : 0,
+            Integer.toUnsignedLong(detail.getTimeUpdated()), downloadable, previews);
     }
 }

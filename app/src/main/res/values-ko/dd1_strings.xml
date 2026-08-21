@@ -68,6 +68,10 @@
     <string name="dd1_workshop_search">검색</string>
     <string name="dd1_workshop_more">더 보기</string>
     <string name="dd1_workshop_preview">Workshop 미리보기</string>
+    <string name="dd1_workshop_detail_meta">구독자 %1$,d명 · %2$s · 긍정 평가 %3$.0f%%</string>
+    <string name="dd1_workshop_detail_updated">업데이트 %s</string>
+    <string name="dd1_workshop_no_description">등록된 설명이 없습니다.</string>
+    <string name="dd1_workshop_close">닫기</string>
     <string name="dd1_workshop_sort_popular">인기순</string>
     <string name="dd1_workshop_sort_newest">최신 등록</string>
     <string name="dd1_workshop_sort_trending">급상승</string>

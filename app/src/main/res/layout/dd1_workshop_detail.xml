@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="20dp">
+
+    <TextView android:id="@+id/TVWorkshopDetailTitle"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textColor="?attr/colorPrimaryText" android:textSize="22sp"
+        android:textStyle="bold" />
+    <ProgressBar android:id="@+id/PBWorkshopDetail"
+        style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:indeterminate="true" />
+
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <ImageView android:id="@+id/IVWorkshopDetailHero"
+                android:layout_width="match_parent" android:layout_height="240dp"
+                android:layout_marginTop="12dp" android:background="?attr/colorPrimarySurface"
+                android:contentDescription="@string/dd1_workshop_preview"
+                android:scaleType="centerCrop" />
+            <HorizontalScrollView android:id="@+id/HSVWorkshopDetailPictures"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="10dp" android:scrollbars="none"
+                android:visibility="gone">
+                <LinearLayout android:id="@+id/LLWorkshopDetailPictures"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
+            <TextView android:id="@+id/TVWorkshopDetailMeta" style="@style/DD1Meta"
+                android:layout_marginTop="14dp" />
+            <TextView android:id="@+id/TVWorkshopDetailUpdated" style="@style/DD1Meta"
+                android:layout_marginTop="4dp" />
+            <TextView android:id="@+id/TVWorkshopDetailDescription"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="18dp" android:lineSpacingExtra="3dp"
+                android:textColor="?attr/colorPrimaryText" android:textIsSelectable="true"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

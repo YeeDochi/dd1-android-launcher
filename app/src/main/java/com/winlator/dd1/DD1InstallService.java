@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
@@ -261,6 +262,10 @@ public final class DD1InstallService extends Service {
                 publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
             }
         });
+    }
+
+    public CompletableFuture<DD1WorkshopItem> workshopDetail(long publishedFileId) {
+        return steam.workshopDetail(publishedFileId);
     }
 
     public void startQr() {

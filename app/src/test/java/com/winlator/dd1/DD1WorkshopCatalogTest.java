@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.PublishedFileDetails;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.PublishedFileDetails.Preview;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_GetUserFiles_Request;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_QueryFiles_Request;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_GetDetails_Request;
@@ -136,6 +137,32 @@ public class DD1WorkshopCatalogTest {
         assertEquals(262060, subscribe.getAppid());
         assertEquals(42L, unsubscribe.getPublishedfileid());
         assertEquals(262060, unsubscribe.getAppid());
+    }
+
+    @Test
+    public void fullDetailRequestsDescriptionAndAdditionalPictures() {
+        CPublishedFile_GetDetails_Request request = DD1WorkshopCatalog.fullDetails(42);
+
+        assertEquals(42L, request.getPublishedfileids(0));
+        assertFalse(request.getShortDescription());
+        assertTrue(request.getIncludeadditionalpreviews());
+    }
+
+    @Test
+    public void fullDetailKeepsDescriptionAndPictureOrder() {
+        PublishedFileDetails detail = PublishedFileDetails.newBuilder()
+            .setPublishedfileid(42).setTitle("Musketeer")
+            .setFileDescription("[b]Full description[/b]")
+            .setPreviewUrl("https://cdn/hero.jpg")
+            .addPreviews(Preview.newBuilder().setUrl("https://cdn/one.jpg"))
+            .addPreviews(Preview.newBuilder().setUrl("https://cdn/two.jpg"))
+            .setConsumerAppid(262060).setHcontentFile(99).setResult(1).build();
+
+        DD1WorkshopItem item = DD1WorkshopCatalog.fullItems(Arrays.asList(detail)).get(0);
+
+        assertEquals("[b]Full description[/b]", item.description);
+        assertEquals(Arrays.asList("https://cdn/hero.jpg", "https://cdn/one.jpg",
+            "https://cdn/two.jpg"), item.previewUrls);
     }
 
     private static ModSyncPlan.Subscribed convert(PublishedFileDetails detail) {

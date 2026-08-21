@@ -8,6 +8,7 @@ import android.content.Context;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.GridLayout;
+import android.widget.LinearLayout;
 
 import androidx.fragment.app.Fragment;
 import androidx.test.core.app.ActivityScenario;
@@ -59,8 +60,10 @@ public class DD1WorkshopFragmentTest {
                 DD1WorkshopSnapshot snapshot = DD1WorkshopSnapshot.ready(
                     Collections.emptyList(), DD1Workshop.scan(context.getFilesDir()))
                     .withBrowse(Arrays.asList(
-                        new DD1WorkshopItem(1, "Crimson Court", "", "", 10, 4,
-                            .9f, 1, true),
+                        new DD1WorkshopItem(1, "Crimson Court", "[b]DLC info[/b]",
+                            "https://cdn/hero.jpg", 10, 4, .9f, 1, true,
+                            Arrays.asList("https://cdn/hero.jpg", "https://cdn/one.jpg",
+                                "https://cdn/two.jpg")),
                         new DD1WorkshopItem(2, "Musketeer", "", "", 20, 8,
                             .8f, 1, true)), "", 0, 1, 2, false, null);
                 workshop.renderSnapshot(snapshot);
@@ -72,6 +75,15 @@ public class DD1WorkshopFragmentTest {
                 GridLayout cards = activity.findViewById(R.id.GLWorkshopCards);
                 assertTrue(((GridLayout.LayoutParams)cards.getChildAt(0)
                     .getLayoutParams()).topMargin > 0);
+                cards.getChildAt(0).performClick();
+                assertNotNull(workshop.detailDialog);
+                assertEquals("Crimson Court", ((TextView)workshop.detailDialog.findViewById(
+                    R.id.TVWorkshopDetailTitle)).getText().toString());
+                assertEquals("DLC info", ((TextView)workshop.detailDialog.findViewById(
+                    R.id.TVWorkshopDetailDescription)).getText().toString());
+                assertEquals(2, ((LinearLayout)workshop.detailDialog.findViewById(
+                    R.id.LLWorkshopDetailPictures)).getChildCount());
+                workshop.detailDialog.dismiss();
 
                 activity.findViewById(R.id.BTWorkshopTabInstalled).performClick();
                 workshop.renderSnapshot(snapshot);

@@ -69,6 +69,10 @@
     <string name="dd1_workshop_search">Search</string>
     <string name="dd1_workshop_more">Load more</string>
     <string name="dd1_workshop_preview">Workshop preview</string>
+    <string name="dd1_workshop_detail_meta">%1$,d subscribers · %2$s · %3$.0f%% positive</string>
+    <string name="dd1_workshop_detail_updated">Updated %s</string>
+    <string name="dd1_workshop_no_description">No description provided.</string>
+    <string name="dd1_workshop_close">Close</string>
     <string name="dd1_workshop_sort_popular">Popular</string>
     <string name="dd1_workshop_sort_newest">Newest</string>
     <string name="dd1_workshop_sort_trending">Trending</string>
