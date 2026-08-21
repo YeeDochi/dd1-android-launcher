@@ -147,4 +147,11 @@
         <item>60 Hz while playing</item>
     </string-array>
     <string name="dd1_graphics">Graphics</string>
+    <string name="dd1_state_code_email">Steam sent a code to your email</string>
+    <string name="dd1_state_code_authenticator">Steam wants your authenticator code</string>
+    <string name="dd1_steam_code">Steam Guard code</string>
+    <string name="dd1_steam_code_submit">Continue</string>
+    <string name="dd1_steam_code_email_hint">Enter the code Steam emailed to %s.</string>
+    <string name="dd1_steam_code_app_hint">Enter the code from the Steam mobile app.</string>
+    <string name="dd1_steam_code_wrong">That code was not accepted. Try again.</string>
 </resources>

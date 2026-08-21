@@ -146,4 +146,11 @@
         <item>게임 중 60Hz</item>
     </string-array>
     <string name="dd1_graphics">그래픽</string>
+    <string name="dd1_state_code_email">Steam이 이메일로 코드를 보냈습니다</string>
+    <string name="dd1_state_code_authenticator">인증기 코드가 필요합니다</string>
+    <string name="dd1_steam_code">Steam Guard 코드</string>
+    <string name="dd1_steam_code_submit">확인</string>
+    <string name="dd1_steam_code_email_hint">%s(으)로 온 코드를 입력하십시오.</string>
+    <string name="dd1_steam_code_app_hint">Steam 모바일 앱에 있는 코드를 입력하십시오.</string>
+    <string name="dd1_steam_code_wrong">코드가 맞지 않습니다. 다시 입력하십시오.</string>
 </resources>

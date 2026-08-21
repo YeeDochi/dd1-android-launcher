@@ -171,6 +171,33 @@
                 android:contentDescription="@string/dd1_steam_qr"
                 android:visibility="gone" />
 
+            <TextView
+                android:id="@+id/TVSteamCodeHint"
+                style="@style/DD1Meta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
+            <EditText
+                android:id="@+id/ETSteamCode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/dd1_steam_code"
+                android:importantForAutofill="no"
+                android:inputType="textCapCharacters|textNoSuggestions"
+                android:singleLine="true"
+                android:textColor="?attr/colorPrimaryText"
+                android:textColorHint="?attr/colorSecondaryText"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/BTSteamCode"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/dd1_steam_code_submit"
+                android:visibility="gone" />
+
             <EditText
                 android:id="@+id/ETSteamAccount"
                 android:layout_width="match_parent"

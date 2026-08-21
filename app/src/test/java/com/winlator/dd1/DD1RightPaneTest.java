@@ -62,4 +62,14 @@ public class DD1RightPaneTest {
         assertEquals(DD1RightPane.INSTALL,
             DD1RightPane.from(DD1InstallPhase.VERIFYING, true));
     }
+
+    // A Steam Guard code is something to answer, so the pane has to be the one
+    // with the box in it and not the blank "checking" half-screen.
+    @Test
+    public void aCodeToTypeIsSomethingToShow() {
+        assertEquals(DD1RightPane.SIGN_IN,
+            DD1RightPane.from(DD1InstallPhase.AUTHENTICATING, false, true));
+        assertEquals(DD1RightPane.SIGN_IN,
+            DD1RightPane.from(DD1InstallPhase.AUTHENTICATING, true, true));
+    }
 }

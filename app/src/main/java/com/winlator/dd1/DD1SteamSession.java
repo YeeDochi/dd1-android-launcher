@@ -73,6 +73,7 @@ public final class DD1SteamSession implements Closeable {
     private final ExecutorService operations = Executors.newSingleThreadExecutor();
     private final ExecutorService callbackLoop = Executors.newSingleThreadExecutor();
     private final List<Closeable> subscriptions = new ArrayList<>();
+    private final DD1CodeRequest codeRequest = new DD1CodeRequest();
 
     private volatile List<License> licenses = Collections.emptyList();
     private volatile boolean closed;
@@ -143,8 +144,16 @@ public final class DD1SteamSession implements Closeable {
         connect();
     }
 
+    // False when Steam was not waiting for one, or the box was empty.
+    public boolean submitCode(String code) {
+        return codeRequest.submit(code);
+    }
+
     public void signOut() {
         signingOut = true;
+        // Whoever is inside Steam's sign-in poll is waiting on this; released
+        // first, or the operations thread never comes back.
+        codeRequest.cancel("Sign-in cancelled");
         restoring = false;
         tokens.clear();
         expectedDisconnect = true;
@@ -250,6 +259,7 @@ public final class DD1SteamSession implements Closeable {
     @Override
     public void close() {
         closed = true;
+        codeRequest.cancel("Session closed");
         expectedDisconnect = true;
         client.disconnect();
         operations.shutdownNow();
@@ -313,7 +323,7 @@ public final class DD1SteamSession implements Closeable {
             details.password = password;
             details.deviceFriendlyName = "DD1 Android Launcher";
             details.persistentSession = true;
-            details.authenticator = new MobileApprovalAuthenticator();
+            details.authenticator = new SteamGuardAuthenticator();
             CredentialsAuthSession session = client.getAuthentication()
                 .beginAuthSessionViaCredentials(details).get();
             AuthPollResult result = session.pollingWaitForResult().get();
@@ -481,15 +491,20 @@ public final class DD1SteamSession implements Closeable {
         return handler;
     }
 
-    private static final class MobileApprovalAuthenticator implements IAuthenticator {
+    // Steam takes one of two roads through Steam Guard: it asks the mobile app to
+    // approve, or it asks for a code. The first is answered here; the second is put
+    // on screen and waits for somebody to type it. Refusing the second, which is
+    // what this did, left every account without the mobile authenticator unable to
+    // sign in at all - the QR needs that same app.
+    private final class SteamGuardAuthenticator implements IAuthenticator {
         @Override
         public CompletableFuture<String> getDeviceCode(boolean previousCodeWasIncorrect) {
-            return failedCode();
+            return ask(DD1SignInCode.authenticator(previousCodeWasIncorrect));
         }
 
         @Override
         public CompletableFuture<String> getEmailCode(String email, boolean previousCodeWasIncorrect) {
-            return failedCode();
+            return ask(DD1SignInCode.email(email, previousCodeWasIncorrect));
         }
 
         @Override
@@ -497,10 +512,10 @@ public final class DD1SteamSession implements Closeable {
             return CompletableFuture.completedFuture(true);
         }
 
-        private static CompletableFuture<String> failedCode() {
-            CompletableFuture<String> result = new CompletableFuture<>();
-            result.completeExceptionally(new IllegalStateException("Steam Guard code entry is not available"));
-            return result;
+        private CompletableFuture<String> ask(DD1SignInCode prompt) {
+            CompletableFuture<String> waiting = codeRequest.open(prompt);
+            publish(events.codeRequested(prompt));
+            return waiting;
         }
     }
 }

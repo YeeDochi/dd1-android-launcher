@@ -97,6 +97,7 @@ public class DD1HomeFragment extends Fragment {
             .setOnClickListener(v -> withService(DD1InstallService::signOut));
         view.findViewById(R.id.BTSteamLogin).setOnClickListener(v -> withService(DD1InstallService::startQr));
         view.findViewById(R.id.BTSteamCredentials).setOnClickListener(v -> startCredentials());
+        view.findViewById(R.id.BTSteamCode).setOnClickListener(v -> submitCode());
         view.findViewById(R.id.BTDownload).setOnClickListener(v -> withService(DD1InstallService::download));
         view.findViewById(R.id.BTRetryDownload).setOnClickListener(v -> withService(DD1InstallService::download));
         view.findViewById(R.id.BTCancelDownload).setOnClickListener(v -> withService(DD1InstallService::cancel));
@@ -221,7 +222,7 @@ public class DD1HomeFragment extends Fragment {
 
         boolean installed = DD1Game.findExecutable(requireContext().getFilesDir()) != null;
         DD1RightPane pane = DD1RightPane.from(snapshot.phase, installed,
-            snapshot.challengeUrl != null);
+            snapshot.challengeUrl != null || snapshot.codePrompt != null);
         setInstallPanelVisible(pane == DD1RightPane.SIGN_IN || pane == DD1RightPane.INSTALL);
         rootView.findViewById(R.id.SVInstallLog)
             .setVisibility(pane == DD1RightPane.LOG ? View.VISIBLE : View.GONE);
@@ -248,6 +249,7 @@ public class DD1HomeFragment extends Fragment {
 
         int[] controls = {R.id.IVSteamQr, R.id.BTSteamLogin, R.id.ETSteamAccount,
             R.id.ETSteamPassword, R.id.BTSteamCredentials, R.id.BTDownload,
+            R.id.TVSteamCodeHint, R.id.ETSteamCode, R.id.BTSteamCode,
             R.id.LLDownloadBar,
             R.id.BTCancelDownload, R.id.BTRetryDownload, R.id.BTSteamSignOut,
             R.id.TVDlcTitle, R.id.SVDlcChoices};
@@ -258,7 +260,8 @@ public class DD1HomeFragment extends Fragment {
                 R.id.BTSteamCredentials);
         }
         else if (snapshot.phase == DD1InstallPhase.AUTHENTICATING) {
-            if (snapshot.challengeUrl != null) {
+            if (snapshot.codePrompt != null) showCodePrompt(snapshot.codePrompt);
+            else if (snapshot.challengeUrl != null) {
                 ImageView qr = rootView.findViewById(R.id.IVSteamQr);
                 qr.setImageBitmap(qr(snapshot.challengeUrl));
                 qr.setVisibility(View.VISIBLE);
@@ -411,6 +414,27 @@ public class DD1HomeFragment extends Fragment {
 
     private void withService(java.util.function.Consumer<DD1InstallService> action) {
         if (installService != null) action.accept(installService);
+    }
+
+    private void showCodePrompt(DD1SignInCode prompt) {
+        TextView hint = rootView.findViewById(R.id.TVSteamCodeHint);
+        String asked = prompt.source == DD1SignInCode.Source.EMAIL
+            ? getString(R.string.dd1_steam_code_email_hint,
+                prompt.emailHint == null ? "" : prompt.emailHint)
+            : getString(R.string.dd1_steam_code_app_hint);
+        // A rejected code is the one thing a person needs told; without it the same
+        // box comes back looking like nothing happened.
+        hint.setText(prompt.previousWasWrong
+            ? getString(R.string.dd1_steam_code_wrong) + " " + asked : asked);
+        EditText code = rootView.findViewById(R.id.ETSteamCode);
+        if (prompt.previousWasWrong) code.getText().clear();
+        show(R.id.TVSteamCodeHint, R.id.ETSteamCode, R.id.BTSteamCode);
+    }
+
+    private void submitCode() {
+        if (installService == null) return;
+        EditText code = rootView.findViewById(R.id.ETSteamCode);
+        if (installService.submitCode(code.getText().toString())) code.getText().clear();
     }
 
     private void startCredentials() {

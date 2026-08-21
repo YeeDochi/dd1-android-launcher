@@ -55,6 +55,20 @@ public final class DD1SteamEvents {
             text(owned ? R.string.dd1_state_ready_to_install : R.string.dd1_state_not_owned), null);
     }
 
+    // Steam wants a Steam Guard code. It is still authenticating - the wait is on
+    // the person now, not on Steam - so the phase does not move; the prompt is
+    // what the screen reads to know it has something to ask for.
+    public synchronized DD1InstallSnapshot codeRequested(DD1SignInCode prompt) {
+        log.append(prompt.source == DD1SignInCode.Source.EMAIL
+            ? "Steam sent a Steam Guard code by email"
+            : "Steam is asking for the authenticator code");
+        snapshot = update(DD1InstallPhase.AUTHENTICATING,
+            text(prompt.source == DD1SignInCode.Source.EMAIL
+                ? R.string.dd1_state_code_email : R.string.dd1_state_code_authenticator),
+            null).asking(prompt);
+        return snapshot;
+    }
+
     public synchronized DD1InstallSnapshot failed(String detail) {
         log.append(detail);
         return update(DD1InstallPhase.ERROR, text(R.string.dd1_state_failed), null);

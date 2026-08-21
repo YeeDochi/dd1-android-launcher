@@ -55,6 +55,47 @@ public class DD1HomeFragmentTest {
         }
     }
 
+    // The accounts this was written for cannot sign in any other way: no mobile
+    // authenticator means no QR either, so if this box does not appear there is no
+    // way in at all.
+    @Test
+    public void aSteamGuardCodeRequestPutsABoxOnScreen() {
+        try (ActivityScenario<DD1Activity> scenario = ActivityScenario.launch(DD1Activity.class)) {
+            scenario.onActivity(activity -> {
+                activity.getSupportFragmentManager().executePendingTransactions();
+                DD1HomeFragment home = (DD1HomeFragment)activity.getSupportFragmentManager()
+                    .findFragmentById(R.id.FLDD1Container);
+
+                home.renderInstallSnapshot(snapshot(DD1InstallPhase.AUTHENTICATING)
+                    .asking(DD1SignInCode.email("player@example.com", false)));
+
+                assertEquals(View.VISIBLE, activity.findViewById(R.id.ETSteamCode).getVisibility());
+                assertEquals(View.VISIBLE, activity.findViewById(R.id.BTSteamCode).getVisibility());
+                assertEquals(View.GONE, activity.findViewById(R.id.IVSteamQr).getVisibility());
+                CharSequence hint = ((android.widget.TextView)activity
+                    .findViewById(R.id.TVSteamCodeHint)).getText();
+                assertTrue("the address Steam mailed is named: " + hint,
+                    hint.toString().contains("player@example.com"));
+
+                // A rejected code has to say so, or the same box comes back looking
+                // like nothing happened.
+                home.renderInstallSnapshot(snapshot(DD1InstallPhase.AUTHENTICATING)
+                    .asking(DD1SignInCode.authenticator(true)));
+                CharSequence again = ((android.widget.TextView)activity
+                    .findViewById(R.id.TVSteamCodeHint)).getText();
+                assertTrue("a rejected code is reported: " + again,
+                    again.toString().contains(activity.getString(R.string.dd1_steam_code_wrong)));
+
+                // And a QR sign-in still shows the QR rather than a code box.
+                home.renderInstallSnapshot(new DD1InstallSnapshot(
+                    DD1InstallPhase.AUTHENTICATING, 0, 0, 0, "qr", null,
+                    "https://s.team/q/1/2", Collections.singletonList("log")));
+                assertEquals(View.GONE, activity.findViewById(R.id.ETSteamCode).getVisibility());
+                assertEquals(View.VISIBLE, activity.findViewById(R.id.IVSteamQr).getVisibility());
+            });
+        }
+    }
+
     private static DD1InstallSnapshot snapshot(DD1InstallPhase phase) {
         return new DD1InstallSnapshot(phase, 1, 2, 1, phase.name(), "file",
             null, Collections.singletonList("log"));

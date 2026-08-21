@@ -274,6 +274,10 @@ public final class DD1InstallService extends Service {
         steam.startCredentials(account, password);
     }
 
+    public boolean submitCode(String code) {
+        return steam.submitCode(code);
+    }
+
     // Steam Mobile approval sends the user to another app; without a started
     // foreground service the unbind on onStop() would destroy the session.
     private void keepAlive(int message) {

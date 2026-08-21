@@ -14,12 +14,13 @@ public enum DD1RightPane {
         return from(phase, gameInstalled, false);
     }
 
-    // Signing in only has something to show while there is a code to scan or a
-    // form to fill; the wait after that is a wait, not a blank half-screen.
+    // Signing in only has something to show while there is something to answer - a
+    // QR to scan, a Steam Guard code to type; the wait after that is a wait, not a
+    // blank half-screen.
     public static DD1RightPane from(DD1InstallPhase phase, boolean gameInstalled,
-            boolean hasChallenge) {
+            boolean somethingToAnswer) {
         if (phase == DD1InstallPhase.RESTORING) return CHECKING;
-        if (phase == DD1InstallPhase.AUTHENTICATING) return hasChallenge ? SIGN_IN : CHECKING;
+        if (phase == DD1InstallPhase.AUTHENTICATING) return somethingToAnswer ? SIGN_IN : CHECKING;
         if (phase == DD1InstallPhase.SIGNED_OUT) return SIGN_IN;
         // Adding one DLC to a game already on disk is still a download. Read as
         // installed-so-nothing-to-do, it showed the log with no progress anywhere

@@ -13,10 +13,19 @@ public final class DD1InstallSnapshot {
     public final String currentFile;
     public final String challengeUrl;
     public final List<String> logLines;
+    // Set only while Steam is waiting for a Steam Guard code.
+    public final DD1SignInCode codePrompt;
 
     public DD1InstallSnapshot(DD1InstallPhase phase, long downloadedBytes,
             long totalBytes, long bytesPerSecond, String message,
             String currentFile, String challengeUrl, List<String> logLines) {
+        this(phase, downloadedBytes, totalBytes, bytesPerSecond, message, currentFile,
+            challengeUrl, logLines, null);
+    }
+
+    private DD1InstallSnapshot(DD1InstallPhase phase, long downloadedBytes,
+            long totalBytes, long bytesPerSecond, String message, String currentFile,
+            String challengeUrl, List<String> logLines, DD1SignInCode codePrompt) {
         this.phase = phase;
         this.downloadedBytes = downloadedBytes;
         this.totalBytes = totalBytes;
@@ -25,6 +34,12 @@ public final class DD1InstallSnapshot {
         this.currentFile = currentFile;
         this.challengeUrl = challengeUrl;
         this.logLines = Collections.unmodifiableList(new ArrayList<>(logLines));
+        this.codePrompt = codePrompt;
+    }
+
+    public DD1InstallSnapshot asking(DD1SignInCode prompt) {
+        return new DD1InstallSnapshot(phase, downloadedBytes, totalBytes, bytesPerSecond,
+            message, currentFile, challengeUrl, logLines, prompt);
     }
 
     public static DD1InstallSnapshot restoring() {
