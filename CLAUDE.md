@@ -12,9 +12,10 @@ mod manager all work and have been exercised on real devices.
 - **No game data ships here.** No Darkest Dungeon files, art or FMOD binaries in
   the APK or the repository. Store artwork is fetched at runtime into the cache
   directory only.
-- **Going public is the owner's call, and only the owner's.** The repository is
-  private. Never change its visibility, publish a release, or push anywhere
-  public without being asked for that specific act.
+- **Publishing is the owner's call, and only the owner's.** The repository is
+  public, so a push is world-readable the moment it lands: push, change the
+  repository's visibility, or publish a release only when asked for that specific
+  act. Read a commit message and a doc as something strangers will read.
 - **Do not call this a port** - it is a launcher on the Winlator runtime, and the
   wording matters. Red Hook's EULA reserves derivative works and an official iPad
   edition exists, so what keeps this defensible is that it ships no game data,
