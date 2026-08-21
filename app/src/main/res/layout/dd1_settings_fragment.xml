@@ -95,6 +95,16 @@
 
             <TextView
                 style="@style/DD1SectionTitle"
+                android:text="@string/dd1_graphics" />
+
+            <TextView
+                android:id="@+id/TVGraphics"
+                style="@style/DD1Meta"
+                android:layout_marginTop="4dp"
+                android:textIsSelectable="true" />
+
+            <TextView
+                style="@style/DD1SectionTitle"
                 android:text="@string/dd1_open_source" />
 
             <TextView

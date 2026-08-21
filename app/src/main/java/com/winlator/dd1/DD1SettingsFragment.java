@@ -16,6 +16,7 @@ import com.winlator.R;
 import com.winlator.box64.Box64Preset;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
+import com.winlator.core.GPUHelper;
 
 import java.util.Arrays;
 import java.util.List;
@@ -50,6 +51,18 @@ public class DD1SettingsFragment extends Fragment {
         buildBox64Preset(view.findViewById(R.id.CBBox64Performance));
         buildCpuBudget(view.findViewById(R.id.RGCpuBudget));
         buildRefreshRate(view.findViewById(R.id.RGRefreshRate));
+        showGraphics(view.findViewById(R.id.TVGraphics));
+    }
+
+    // Which GPU this is and which drivers the profile ended up on. A screen that
+    // will not draw is decided here, and on a device nobody debugging it can
+    // reach, this line is the whole story.
+    private void showGraphics(TextView view) {
+        String renderer = GPUHelper.glGetRenderer(requireContext());
+        Container container = firstContainer();
+        view.setText(renderer + "\n"
+            + (container == null ? DD1GraphicsDriver.forRenderer(renderer)
+                : container.getGraphicsDriver()));
     }
 
     private void buildLanguage(RadioGroup group) {

@@ -145,4 +145,5 @@
         <item>기기 기본값</item>
         <item>게임 중 60Hz</item>
     </string-array>
+    <string name="dd1_graphics">그래픽</string>
 </resources>

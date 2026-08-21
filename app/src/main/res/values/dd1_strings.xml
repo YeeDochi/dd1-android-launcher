@@ -146,4 +146,5 @@
         <item>Whatever the phone chooses</item>
         <item>60 Hz while playing</item>
     </string-array>
+    <string name="dd1_graphics">Graphics</string>
 </resources>

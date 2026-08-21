@@ -33,7 +33,7 @@ import androidx.fragment.app.Fragment;
 
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
-import com.winlator.container.GraphicsDrivers;
+import com.winlator.core.GPUHelper;
 import com.winlator.dd1.DD1Game;
 import com.winlator.dd1.DD1HomeState;
 import com.winlator.dd1.DD1InstallPhase;
@@ -58,6 +58,7 @@ public class DD1HomeFragment extends Fragment {
     private View rootView;
     private boolean creatingProfile;
     private boolean profileCreationFailed;
+    private boolean driverChecked;
     private DD1InstallService installService;
     private boolean serviceBound;
     private DD1InstallSnapshot installSnapshot = DD1InstallSnapshot.restoring();
@@ -144,12 +145,29 @@ public class DD1HomeFragment extends Fragment {
         if (runtimeReady && container == null && !creatingProfile && !profileCreationFailed) {
             creatingProfile = true;
             JSONObject data = new JSONObject(DD1ProfileConfig.create(
-                GraphicsDrivers.getDefaultDriver(activity), Container.getFallbackCPUList()));
+                DD1GraphicsDriver.forRenderer(GPUHelper.glGetRenderer(activity)),
+                Container.getFallbackCPUList()));
             manager.createContainerAsync(data, created -> {
                 creatingProfile = false;
                 profileCreationFailed = created == null;
                 refresh();
             });
+        }
+        // A profile made on an earlier build kept whichever driver was picked
+        // then, and a wrong one has no way out: this screen only ever creates a
+        // profile, never revisits one. Nothing else sets this field, so bringing
+        // it back in line with the device is safe - and has to be revisited the
+        // day the settings screen lets a person choose.
+        // Asked once: reading the renderer blocks the caller until a GL context
+        // comes up, and refresh() runs on every resume and once a second while
+        // the runtime unpacks.
+        else if (container != null && !driverChecked) {
+            driverChecked = true;
+            String belongs = DD1GraphicsDriver.forRenderer(GPUHelper.glGetRenderer(activity));
+            if (!belongs.equals(container.getGraphicsDriver())) {
+                container.setGraphicsDriver(belongs);
+                container.saveData();
+            }
         }
 
         DD1HomeState state = DD1HomeState.from(runtimeReady, executable != null, container != null);
