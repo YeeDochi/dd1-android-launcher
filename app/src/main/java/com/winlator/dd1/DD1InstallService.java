@@ -350,11 +350,19 @@ public final class DD1InstallService extends Service {
         return new DD1CloudSaves(steam.cloud());
     }
 
+    // A PC session can leave a dozen new subscriptions waiting. They are fetched
+    // one after another, and the notification carries the queue position so a
+    // long sync does not look stuck on whichever title is in hand.
+    private volatile int queueIndex;
+    private volatile int queueTotal;
+
     private void runWorkshop(List<ModSyncPlan.Subscribed> items) {
         DD1WorkshopSnapshot base = workshopSnapshot;
+        queueTotal = items.size();
         try {
             int done = 0;
             for (ModSyncPlan.Subscribed item : items) {
+                queueIndex = done + 1;
                 File staging = DD1Workshop.staging(getFilesDir(), item.publishedFileId);
                 workshopLog.append("Downloading " + item.title);
                 publishWorkshop(base.syncing(item.title, done * 100 / items.size(),
@@ -651,13 +659,15 @@ public final class DD1InstallService extends Service {
         if (manager != null) manager.notify(1, notification(text, percent));
     }
 
-    static String workshopNotificationText(String title, int percent) {
-        return title + " · " + Math.max(0, Math.min(100, percent)) + "%";
+    static String workshopNotificationText(int index, int total, String title, int percent) {
+        String queue = total > 1 ? index + "/" + total + " · " : "";
+        return queue + title + " · " + Math.max(0, Math.min(100, percent)) + "%";
     }
 
     private void updateWorkshopNotification(DD1WorkshopSnapshot value) {
         if (value.phase != DD1WorkshopSnapshot.Phase.SYNCING) return;
-        String text = workshopNotificationText(value.message, value.progress);
+        String text = workshopNotificationText(queueIndex, queueTotal, value.message,
+            value.progress);
         if (text.equals(lastNotification)) return;
         lastNotification = text;
         NotificationManager manager = getSystemService(NotificationManager.class);
@@ -731,6 +741,7 @@ public final class DD1InstallService extends Service {
 
         @Override
         public void onDownloadFailed(DownloadItem item, Throwable error) {
+            android.util.Log.e("DD1Install", "Download failed", error);
             failure.set(error);
             completion.countDown();
         }
