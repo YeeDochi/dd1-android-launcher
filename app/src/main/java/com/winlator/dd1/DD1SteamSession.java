@@ -60,6 +60,11 @@ public final class DD1SteamSession implements Closeable {
         requireHandler(in.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud.class);
     private final PublishedFile publishedFiles =
         requireHandler(SteamUnifiedMessages.class).createService(PublishedFile.class);
+    // SteamCloud.commitFileUpload answers a bare boolean and drops the result
+    // Steam sent with it, so the commit goes through the service directly.
+    private final in.dragonbra.javasteam.rpc.service.Cloud cloudService =
+        requireHandler(SteamUnifiedMessages.class)
+            .createService(in.dragonbra.javasteam.rpc.service.Cloud.class);
     private final SteamTokenStore tokens;
     private final DD1SteamEvents events;
     private final Listener listener;
@@ -426,6 +431,10 @@ public final class DD1SteamSession implements Closeable {
 
     public synchronized DD1DepotCatalog catalog() {
         return catalog;
+    }
+
+    public in.dragonbra.javasteam.rpc.service.Cloud cloudService() {
+        return cloudService;
     }
 
     public in.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud cloud() {

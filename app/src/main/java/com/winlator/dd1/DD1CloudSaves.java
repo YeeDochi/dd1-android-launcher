@@ -10,8 +10,6 @@ import java.net.URL;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
 import android.util.Log;
@@ -23,6 +21,14 @@ import in.dragonbra.javasteam.steam.handlers.steamcloud.FileUploadBlockDetails;
 import in.dragonbra.javasteam.steam.handlers.steamcloud.FileUploadInfo;
 import in.dragonbra.javasteam.steam.handlers.steamcloud.HttpHeaders;
 import in.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud;
+import in.dragonbra.javasteam.steam.handlers.steamunifiedmessages.callback.ServiceMethodResponse;
+import in.dragonbra.javasteam.enums.EResult;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient.CCloud_BeginAppUploadBatch_Request;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient.CCloud_BeginAppUploadBatch_Response;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient.CCloud_ClientBeginFileUpload_Request;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient.CCloud_ClientBeginFileUpload_Response;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient.CCloud_ClientCommitFileUpload_Request;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient.CCloud_ClientCommitFileUpload_Response;
 
 // Steam Cloud: what it holds, a file out of it, and a batch of saves into it.
 // Reading answers "we do not know" rather than throwing or coming back empty,
@@ -33,9 +39,11 @@ public final class DD1CloudSaves {
     static final int PLATFORMS_TO_SYNC = -1;
 
     private final SteamCloud cloud;
+    private final in.dragonbra.javasteam.rpc.service.Cloud cloudService;
 
-    public DD1CloudSaves(SteamCloud cloud) {
+    public DD1CloudSaves(SteamCloud cloud, in.dragonbra.javasteam.rpc.service.Cloud cloudService) {
         this.cloud = cloud;
+        this.cloudService = cloudService;
     }
 
     public DD1CloudListing list() {
@@ -136,9 +144,20 @@ public final class DD1CloudSaves {
 
         long batch;
         try {
-            batch = cloud.beginAppUploadBatch(DD1SteamEvents.APP_ID, "DD1 Android",
-                names, Collections.<String>emptyList(), 0L, 0L,
-                kotlinx.coroutines.GlobalScope.INSTANCE).get().getBatchID();
+            ServiceMethodResponse<CCloud_BeginAppUploadBatch_Response.Builder> begun =
+                cloudService.beginAppUploadBatch(
+                    CCloud_BeginAppUploadBatch_Request.newBuilder()
+                        .setAppid(DD1SteamEvents.APP_ID)
+                        .setMachineName("DD1 Android")
+                        .addAllFilesToUpload(names)
+                        .build()).runBlock();
+            if (begun.getResult() != EResult.OK) {
+                Log.e("DD1Cloud", "Upload batch refused: " + begun.getResult());
+                return false;
+            }
+            batch = begun.getBody().getBatchId();
+            Log.i("DD1Cloud", "Batch " + batch + " for " + names.size() + " files, change="
+                + begun.getBody().getAppChangeNumber());
         }
         catch (Exception refused) {
             Log.e("DD1Cloud", "Upload batch refused", refused);
@@ -168,35 +187,110 @@ public final class DD1CloudSaves {
     }
 
     private boolean send(File root, DD1SaveSummary.Entry file, long batch) {
+        byte[] sha1 = null;
+        boolean opened = false;
         try {
             byte[] content = FileUtils.read(new File(root, file.path));
             if (content == null || content.length == 0) return false;
-            byte[] sha1 = MessageDigest.getInstance("SHA-1").digest(content);
+            sha1 = MessageDigest.getInstance("SHA-1").digest(content);
 
-            FileUploadInfo info = cloud.beginFileUpload(DD1SteamEvents.APP_ID,
-                content.length, content.length, sha1, new Date(file.modifiedMillis),
-                file.path, PLATFORMS_TO_SYNC, 0, false, false, null, batch,
-                kotlinx.coroutines.GlobalScope.INSTANCE).get();
+            ServiceMethodResponse<CCloud_ClientBeginFileUpload_Response.Builder> begun =
+                begin(content, sha1, file, batch);
+            // Steam answers a file it already holds at this digest with
+            // DuplicateRequest: there is nothing to send, which is the same thing
+            // as having sent it. Read as a failure it stopped the batch at the
+            // first file that had not changed - and the file that sorts first in a
+            // slot is one that almost never changes, so no save ever went up.
+            if (begun.getResult() == EResult.DuplicateRequest) {
+                Log.i("DD1Cloud", "Already in the cloud: " + file.path);
+                return true;
+            }
+            if (begun.getResult() != EResult.OK) {
+                Log.e("DD1Cloud", "Begin refused: " + file.path
+                    + " result=" + begun.getResult());
+                return false;
+            }
+            opened = true;
+            FileUploadInfo info = new FileUploadInfo(begun.getBody());
             // An encrypted upload needs a key exchange this launcher does not do.
             // Guessing at it would write rubbish into the player's cloud.
             if (info.getEncryptFile()) return false;
 
+            Log.i("DD1Cloud", "Begin " + file.path + " size=" + content.length
+                + " blocks=" + info.getBlockRequests().size());
+
             for (FileUploadBlockDetails block : info.getBlockRequests()) {
-                if (!put(block, content)) {
-                    cloud.commitFileUpload(false, DD1SteamEvents.APP_ID, sha1, file.path,
-                        kotlinx.coroutines.GlobalScope.INSTANCE).get();
-                    return false;
-                }
+                if (!put(block, content)) return false;
             }
-            boolean committed = cloud.commitFileUpload(true, DD1SteamEvents.APP_ID, sha1,
-                file.path, kotlinx.coroutines.GlobalScope.INSTANCE).get();
-            if (!committed) Log.e("DD1Cloud", "Commit rejected: " + file.path);
+            boolean committed = commit(true, sha1, file.path);
+            opened = !committed;
             return committed;
         }
         catch (Exception failed) {
             Log.e("DD1Cloud", "Upload failed: " + file.path, failed);
             return false;
         }
+        finally {
+            // Whatever went wrong, the upload this method opened does not stay
+            // open: the next attempt has to be able to start one.
+            if (opened) abort(sha1, file.path);
+        }
+    }
+
+    private ServiceMethodResponse<CCloud_ClientBeginFileUpload_Response.Builder> begin(
+            byte[] content, byte[] sha1, DD1SaveSummary.Entry file, long batch) {
+        return cloudService.clientBeginFileUpload(
+            CCloud_ClientBeginFileUpload_Request.newBuilder()
+                .setAppid(DD1SteamEvents.APP_ID)
+                .setFileSize(content.length)
+                .setRawFileSize(content.length)
+                .setFileSha(com.google.protobuf.ByteString.copyFrom(sha1))
+                .setTimeStamp(file.modifiedMillis / 1000L)
+                .setFilename(file.path)
+                .setPlatformsToSync(PLATFORMS_TO_SYNC)
+                .setCellId(0)
+                .setCanEncrypt(false)
+                .setIsSharedFile(false)
+                .setUploadBatchId(batch)
+                .build()).runBlock();
+    }
+
+    // Telling Steam the transfer failed is how an upload is given back. It is
+    // not news that anything went wrong - the caller already knows - so its own
+    // failure is not worth stopping for.
+    private void abort(byte[] sha1, String path) {
+        try {
+            Log.i("DD1Cloud", "Abort " + path + " -> " + commitResult(false, sha1, path));
+        }
+        catch (Exception ignored) {
+            Log.e("DD1Cloud", "Could not close the upload for " + path, ignored);
+        }
+    }
+
+    // A rejected commit and a failed request both come back as "not committed"
+    // from SteamCloud, which drops the result Steam sent with it. Which of the two
+    // it is decides whether the fix is here or in what we asked for.
+    private boolean commit(boolean transferSucceeded, byte[] sha1, String path)
+            throws Exception {
+        return commitResult(transferSucceeded, sha1, path) == EResult.OK;
+    }
+
+    private EResult commitResult(boolean transferSucceeded, byte[] sha1, String path)
+            throws Exception {
+        ServiceMethodResponse<CCloud_ClientCommitFileUpload_Response.Builder> response =
+            cloudService.clientCommitFileUpload(
+                CCloud_ClientCommitFileUpload_Request.newBuilder()
+                    .setTransferSucceeded(transferSucceeded)
+                    .setAppid(DD1SteamEvents.APP_ID)
+                    .setFileSha(com.google.protobuf.ByteString.copyFrom(sha1))
+                    .setFilename(path)
+                    .build()).runBlock();
+        if (transferSucceeded && !(response.getResult() == EResult.OK
+                && response.getBody().getFileCommitted()))
+            Log.e("DD1Cloud", "Commit rejected: " + path
+                + " result=" + response.getResult()
+                + " committed=" + response.getBody().getFileCommitted());
+        return response.getResult();
     }
 
     private static boolean put(FileUploadBlockDetails block, byte[] content) {

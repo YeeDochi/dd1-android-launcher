@@ -351,7 +351,7 @@ public final class DD1InstallService extends Service {
     }
 
     public DD1CloudSaves cloudSaves() {
-        return new DD1CloudSaves(steam.cloud());
+        return new DD1CloudSaves(steam.cloud(), steam.cloudService());
     }
 
     // A PC session can leave a dozen new subscriptions waiting. They are fetched
