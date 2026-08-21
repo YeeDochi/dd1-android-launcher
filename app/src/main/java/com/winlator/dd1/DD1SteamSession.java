@@ -42,6 +42,10 @@ import in.dragonbra.javasteam.types.KeyValue;
 import in.dragonbra.javasteam.rpc.service.PublishedFile;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_GetUserFiles_Request;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_GetUserFiles_Response;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_GetDetails_Response;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_QueryFiles_Response;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_Subscribe_Response;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_Unsubscribe_Response;
 
 public final class DD1SteamSession implements Closeable {
     public interface Listener {
@@ -181,6 +185,75 @@ public final class DD1SteamSession implements Closeable {
             }
         });
         return future;
+    }
+
+    public CompletableFuture<DD1WorkshopPage> browseWorkshop(String query, int sort, int page) {
+        CompletableFuture<DD1WorkshopPage> future = new CompletableFuture<>();
+        operations.execute(() -> {
+            try {
+                long directId = DD1WorkshopCatalog.directId(query);
+                if (directId != 0) {
+                    ServiceMethodResponse<CPublishedFile_GetDetails_Response.Builder> response =
+                        publishedFiles.getDetails(DD1WorkshopCatalog.details(directId)).runBlock();
+                    requireOk(response);
+                    List<DD1WorkshopItem> items = DD1WorkshopCatalog.items(
+                        response.getBody().getPublishedfiledetailsList());
+                    future.complete(new DD1WorkshopPage(items, items.size()));
+                }
+                else {
+                    ServiceMethodResponse<CPublishedFile_QueryFiles_Response.Builder> response =
+                        publishedFiles.queryFiles(DD1WorkshopCatalog.query(query, sort, page))
+                            .runBlock();
+                    requireOk(response);
+                    future.complete(new DD1WorkshopPage(DD1WorkshopCatalog.items(
+                        response.getBody().getPublishedfiledetailsList()),
+                        response.getBody().getTotal()));
+                }
+            }
+            catch (Throwable error) {
+                future.completeExceptionally(error);
+            }
+        });
+        return future;
+    }
+
+    public CompletableFuture<Void> subscribe(long publishedFileId) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        operations.execute(() -> {
+            try {
+                ServiceMethodResponse<CPublishedFile_Subscribe_Response.Builder> response =
+                    publishedFiles.subscribe(DD1WorkshopCatalog.subscribe(publishedFileId))
+                        .runBlock();
+                requireOk(response);
+                future.complete(null);
+            }
+            catch (Throwable error) {
+                future.completeExceptionally(error);
+            }
+        });
+        return future;
+    }
+
+    public CompletableFuture<Void> unsubscribe(long publishedFileId) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        operations.execute(() -> {
+            try {
+                ServiceMethodResponse<CPublishedFile_Unsubscribe_Response.Builder> response =
+                    publishedFiles.unsubscribe(DD1WorkshopCatalog.unsubscribe(publishedFileId))
+                        .runBlock();
+                requireOk(response);
+                future.complete(null);
+            }
+            catch (Throwable error) {
+                future.completeExceptionally(error);
+            }
+        });
+        return future;
+    }
+
+    private static void requireOk(ServiceMethodResponse<?> response) {
+        if (response.getResult() != EResult.OK)
+            throw new IllegalStateException("Steam Workshop result " + response.getResult());
     }
 
     public List<License> licenses() {
