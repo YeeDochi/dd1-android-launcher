@@ -21,7 +21,7 @@ the game.
 
 | | |
 |---|---|
-| **Install** | Steam sign-in by QR or password, ownership checked across every package, per-DLC selection, resumable-free atomic install into `files/game` |
+| **Install** | Steam sign-in by QR, or account and password with a phone approval or a Steam Guard code. Ownership checked across every package, the DLC list read from Steam's own table, per-DLC selection, resumable-free atomic install into `files/game` |
 | **Play** | One button. Touch input maps taps, drags and holds onto the game's mouse; the Android IME handles estate naming |
 | **Saves** | Steam Cloud listing per profile slot, download and upload, automatic snapshots before anything is overwritten |
 | **Mods** | Workshop search and browse, subscribe, queued download, update detection, enable/disable, local ZIP import |
