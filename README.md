@@ -25,6 +25,26 @@ the game.
 | **Play** | One button. Touch input maps taps, drags and holds onto the game's mouse; the Android IME handles estate naming |
 | **Saves** | Steam Cloud listing per profile slot, download and upload, automatic snapshots before anything is overwritten |
 | **Mods** | Workshop search and browse, subscribe, queued download, update detection, enable/disable, local ZIP import |
+| **Battery** | Resolution, processor cores and screen refresh rate, each measured against the others rather than guessed at |
+
+### Battery
+
+The game has no frame limit and nothing in the stack can give it one, so it
+renders as fast as the phone allows and spends the battery doing it. Measured on
+a Galaxy S25, off charge:
+
+| Settings | Battery | Hottest core |
+|---|---|---|
+| 1920x1080, all cores, 120 Hz | 24 %/h | 83 °C |
+| 1280x720, all cores, 120 Hz | 21.8 %/h | 59 °C |
+| 1280x720, all cores, faster translation | 28.8 %/h | 63 °C |
+| **1280x720, efficiency cores, 60 Hz** | **14.6 %/h** | **56 °C** |
+
+Two and a half hours of play becomes four and a half. The draw is in translating
+x86, not in drawing pixels, which is why holding the runtime off the fastest
+cores wins where lowering the resolution barely moves it — and why box64's
+faster preset *costs* battery: the game spends every bit of the headroom on
+frames nobody sees.
 
 ### Mod manager
 
