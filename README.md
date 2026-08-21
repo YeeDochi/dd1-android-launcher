@@ -197,6 +197,42 @@ Drawer → **Settings**. The defaults are safe; these are worth changing:
 | **Screen refresh rate → 60 Hz while playing** | The panel runs at 120 Hz whatever the game does |
 | **Faster instruction translation** | Leave it **off**. It buys speed the game spends on frames nobody sees, and costs 7 %/h |
 
+### 8. Updating
+
+**The launcher** takes a new APK installed over the old one. Game files, saves,
+mods and the Steam session all survive. Do not uninstall first - that costs you
+the 4GB again.
+
+**DLC** lives under the drawer, **Content**. When Red Hook patches one, this
+screen says so first.
+
+| Line | Meaning |
+|---|---|
+| `Not downloaded yet: ...` | Owned, but not on this device |
+| `Update available: ...` | Steam has a newer version than the one you hold |
+
+**Fetch selected content** takes both lines and merges them into the install you
+already have. It asks for that DLC's depots rather than the whole game, so it is
+usually minutes. Progress shows in the log and the notification on the home
+screen - the same place the first download reported.
+
+The version of each DLC on the device is recorded outside the game folder, so
+rebuilding the install does not lose track of what is current.
+
+**Workshop mods** are re-read every time the mod manager opens. Whether you
+subscribed on a PC or the author patched a mod, it surfaces here and starts
+fetching what is missing. Three places show how far it has got.
+
+- The **My mods** tab puts an **Update** button on any mod with a newer version
+- **Install and update** appears at the bottom only while something is still
+  pending. Pressing it fills the bar at the bottom of the screen and the bar on
+  the card of the mod being fetched
+- The notification carries the queue position: `3/12 · Plague Doctor skins mod ·
+  42%`. Twelve mods in, you can put the screen away and still know where it is
+
+A mod moves into the game folder only once it has arrived whole. If it is cut
+off, only that mod is fetched again next time; the ones already in stay.
+
 ## Playing by touch
 
 | | |
@@ -217,13 +253,12 @@ draw but the dungeon or the estate does not, that is the graphics driver. DD1
 draws the world into a framebuffer and lights it with a shader, and the interface
 does not go through that path - which is why one shows and the other does not.
 
-**Read the two lines under `Graphics` at the bottom of Settings.** They name the
-GPU and the drivers in force, like this:
+**Drawer, Settings, scroll to the bottom: read the two lines under `Graphics`.**
+They name the GPU and the drivers in force.
 
-```
-Adreno (TM) 830
-turnip,gladio
-```
+<p align="center">
+  <img src="docs/screenshots/08-graphics.png" width="70%" alt="The Graphics entry at the bottom of Settings: GPU name and drivers">
+</p>
 
 Quote those two lines in the issue. Most of the time they are enough to narrow it
 down. Also worth having:
