@@ -68,6 +68,33 @@ down says so rather than half-restoring.
   <img src="docs/screenshots/05-settings.png" width="49%" alt="Settings screen">
 </p>
 
+## Getting it running
+
+1. **Install the APK** from [Releases](../../releases). Android will warn about
+   an app from outside the store, and about its compatibility — both are
+   expected, and the second one is explained under [Notes](#notes).
+2. **Sign in to Steam.** Scan the QR code with the Steam mobile app, or type an
+   account and password and approve the request on your phone. Nothing is stored
+   but the refresh token Steam hands back, encrypted with the Android Keystore.
+3. **Pick your DLC** from the list of what the account owns, and press download.
+   Only what is ticked is fetched. About 4 GB over Wi-Fi; leave the screen on and
+   the app in front, and read the byte count rather than the percentage.
+4. **Press Play.** The first launch unpacks the runtime and takes a few minutes.
+   After that it goes straight in.
+
+## Playing by touch
+
+| | |
+|---|---|
+| **Tap** | Left click |
+| **Drag** | Left click and hold — moving the party, moving items between bags |
+| **Hold still** | Right click — using an item on a hero |
+| **Four fingers** | The launcher's drawer |
+| **ESC** / **ABC** | Escape, and the Android keyboard for naming the estate |
+
+A tap leaves the cursor where it touched, which is how tooltips appear: touch an
+item and the game describes it.
+
 ## Requirements
 
 - ARM64 Android device, Android 8 or newer
