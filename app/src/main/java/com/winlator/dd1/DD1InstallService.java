@@ -284,7 +284,11 @@ public final class DD1InstallService extends Service {
     public synchronized void download() {
         if (!ownsGame || downloader != null) return;
         begin();
-        worker.execute(() -> runDownload(Collections.emptyList(), null));
+        // Ask for the game and the DLC that was actually chosen. Left unsaid,
+        // Steam sends every depot it has and the unwanted ones are deleted at
+        // the end of the install - 530 MB fetched and thrown away on 2026-08-20.
+        java.util.List<Integer> depots = steam.catalog().depotsFor(dlcSelection().selected());
+        worker.execute(() -> runDownload(depots, null));
     }
 
     // Adding or updating one DLC on a game that is already installed. Only the

@@ -49,4 +49,39 @@ public class DD1DepotCatalogTest {
         assertEquals(0, DD1DepotCatalog.empty().depotOf(580100));
         assertNull(DD1DepotCatalog.empty().manifestOf(580100));
     }
+
+    // Steam hands out every depot it has, so an unfiltered download fetched the
+    // DLC nobody asked for and threw it away at the end: 530 MB on 2026-08-20.
+    // The base game carries no dlcappid and is always wanted.
+    @Test
+    public void fetchesTheBaseGameAndOnlyTheChosenDlc() {
+        DD1DepotCatalog catalog = DD1DepotCatalog.of(Arrays.asList(
+            new DD1DepotCatalog.Row(262061, 0, "windows", "aaa"),
+            new DD1DepotCatalog.Row(262062, 0, "windows", "bbb"),
+            new DD1DepotCatalog.Row(262063, 0, "linux", "ccc"),
+            new DD1DepotCatalog.Row(580100, 580100, "windows", "ddd"),
+            new DD1DepotCatalog.Row(702540, 702540, "windows", "eee")));
+
+        assertEquals(Arrays.asList(262061, 262062, 580100),
+            catalog.depotsFor(Arrays.asList(580100)));
+    }
+
+    // Nothing chosen still means the game itself.
+    @Test
+    public void noDlcChosenStillFetchesTheGame() {
+        DD1DepotCatalog catalog = DD1DepotCatalog.of(Arrays.asList(
+            new DD1DepotCatalog.Row(262061, 0, "windows", "aaa"),
+            new DD1DepotCatalog.Row(580100, 580100, "windows", "ddd")));
+
+        assertEquals(Arrays.asList(262061),
+            catalog.depotsFor(java.util.Collections.<Integer>emptyList()));
+    }
+
+    // An empty catalog must not narrow the download to nothing; the caller reads
+    // this as "ask for everything", which is what it did before there was a list.
+    @Test
+    public void anEmptyCatalogAsksForNothingInParticular() {
+        assertEquals(java.util.Collections.emptyList(),
+            DD1DepotCatalog.empty().depotsFor(Arrays.asList(580100)));
+    }
 }

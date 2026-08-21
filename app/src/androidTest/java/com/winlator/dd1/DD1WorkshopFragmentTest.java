@@ -196,4 +196,29 @@ public class DD1WorkshopFragmentTest {
             super.setColumnCount(count);
         }
     }
+
+    // The rotate button asks the activity for portrait, and the activity outlives
+    // the screen that asked. Leaving the mod manager still turned sideways left
+    // every other screen sideways with no control anywhere to undo it.
+    @Test
+    public void leavingTheModManagerGivesTheScreenBackItsOrientation() {
+        try (ActivityScenario<DD1Activity> scenario = ActivityScenario.launch(DD1Activity.class)) {
+            scenario.onActivity(activity -> {
+                activity.toggleDrawer();
+                activity.findViewById(R.id.BTDrawerWorkshop).performClick();
+                activity.getSupportFragmentManager().executePendingTransactions();
+
+                activity.findViewById(R.id.BTWorkshopRotate).performClick();
+                assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT,
+                    activity.getRequestedOrientation());
+
+                activity.toggleDrawer();
+                activity.findViewById(R.id.BTDrawerSettings).performClick();
+                activity.getSupportFragmentManager().executePendingTransactions();
+            });
+            scenario.onActivity(activity -> assertEquals(
+                ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE,
+                activity.getRequestedOrientation()));
+        }
+    }
 }

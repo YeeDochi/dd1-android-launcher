@@ -143,6 +143,20 @@ public final class DD1WorkshopFragment extends Fragment {
         super.onStop();
     }
 
+    // The rotate button is this screen's, but the orientation it sets belongs to
+    // the activity and outlives it. Left as it was, every other screen stayed
+    // sideways with nothing anywhere to turn it back.
+    //
+    // The view, not the fragment, is what goes away here: navigation replaces
+    // the screen onto the back stack, so onDestroy never runs until the activity
+    // does. The activity handles rotation itself, so this does not fire on one.
+    @Override
+    public void onDestroyView() {
+        requireActivity().setRequestedOrientation(
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+        super.onDestroyView();
+    }
+
     @Override
     public void onDestroy() {
         if (detailDialog != null) detailDialog.dismiss();

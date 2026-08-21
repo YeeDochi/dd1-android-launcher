@@ -25,22 +25,42 @@ public final class DD1DepotCatalog {
     }
 
     private final Map<Integer, Row> byAppId;
+    private final List<Row> windowsRows;
 
-    private DD1DepotCatalog(Map<Integer, Row> byAppId) {
+    private DD1DepotCatalog(Map<Integer, Row> byAppId, List<Row> windowsRows) {
         this.byAppId = byAppId;
+        this.windowsRows = windowsRows;
     }
 
     public static DD1DepotCatalog of(List<Row> rows) {
         Map<Integer, Row> windows = new LinkedHashMap<>();
+        List<Row> all = new java.util.ArrayList<>();
         for (Row row : rows) {
-            if (row.dlcAppId <= 0 || !"windows".equals(row.os)) continue;
-            windows.put(row.dlcAppId, row);
+            if (!"windows".equals(row.os)) continue;
+            all.add(row);
+            if (row.dlcAppId > 0) windows.put(row.dlcAppId, row);
         }
-        return new DD1DepotCatalog(windows);
+        return new DD1DepotCatalog(windows, all);
     }
 
     public static DD1DepotCatalog empty() {
-        return new DD1DepotCatalog(Collections.emptyMap());
+        return new DD1DepotCatalog(Collections.emptyMap(), Collections.<Row>emptyList());
+    }
+
+    // Steam hands out every depot it has unless it is told which ones to take,
+    // and an unfiltered download fetched the unwanted DLC and deleted it at the
+    // end. The base game carries no dlcappid and is always part of the answer.
+    //
+    // An empty catalog answers with an empty list on purpose: the downloader
+    // reads that as "no preference" and fetches everything, which is the old
+    // behaviour and the only safe thing to do when the depots are not known yet.
+    public List<Integer> depotsFor(java.util.Collection<Integer> selectedDlc) {
+        List<Integer> depots = new java.util.ArrayList<>();
+        for (Row row : windowsRows) {
+            if (row.dlcAppId <= 0 || selectedDlc.contains(row.dlcAppId))
+                depots.add(row.depotId);
+        }
+        return depots;
     }
 
     // 0 when this account's DLC has no windows depot, which is not something to
