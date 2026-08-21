@@ -21,6 +21,11 @@ public enum DD1RightPane {
         if (phase == DD1InstallPhase.RESTORING) return CHECKING;
         if (phase == DD1InstallPhase.AUTHENTICATING) return hasChallenge ? SIGN_IN : CHECKING;
         if (phase == DD1InstallPhase.SIGNED_OUT) return SIGN_IN;
+        // Adding one DLC to a game already on disk is still a download. Read as
+        // installed-so-nothing-to-do, it showed the log with no progress anywhere
+        // and left Play enabled over a half-merged install.
+        if (phase == DD1InstallPhase.DOWNLOADING || phase == DD1InstallPhase.VERIFYING)
+            return INSTALL;
         if (gameInstalled) return LOG;
         return INSTALL;
     }

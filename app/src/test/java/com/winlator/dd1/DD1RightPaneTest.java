@@ -50,4 +50,16 @@ public class DD1RightPaneTest {
     public void anErrorIsShownWithTheControlsThatCanRecoverFromIt() {
         assertEquals(DD1RightPane.INSTALL, DD1RightPane.from(DD1InstallPhase.ERROR, false));
     }
+
+    // Adding one DLC to a game that is already installed is still a download,
+    // and it was showing the log with Play sitting there enabled: no progress
+    // anywhere, and a button that would start the game on top of a half-merged
+    // install.
+    @Test
+    public void aDownloadOutranksAnInstalledGame() {
+        assertEquals(DD1RightPane.INSTALL,
+            DD1RightPane.from(DD1InstallPhase.DOWNLOADING, true));
+        assertEquals(DD1RightPane.INSTALL,
+            DD1RightPane.from(DD1InstallPhase.VERIFYING, true));
+    }
 }
