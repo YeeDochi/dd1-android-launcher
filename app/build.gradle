@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+// Signing details live outside the repository. Without the file a release build
+// still assembles, unsigned, so a checkout without the key is not broken.
+def keystoreFile = rootProject.file('keystore.properties')
+def keystore = new Properties()
+if (keystoreFile.exists()) keystoreFile.withInputStream { keystore.load(it) }
+
 android {
     namespace 'com.winlator'
     compileSdk 34
@@ -22,7 +28,30 @@ android {
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
 
+    signingConfigs {
+        release {
+            if (keystore['storeFile']) {
+                storeFile rootProject.file(keystore['storeFile'])
+                storePassword keystore['storePassword']
+                keyAlias keystore['keyAlias']
+                keyPassword keystore['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
+        release {
+            // R8 is left off: the runtime reaches its own classes by name and
+            // shrinking them is a whole verification pass of its own.
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (keystore['storeFile']) signingConfig signingConfigs.release
+
+            ndk {
+                abiFilters 'arm64-v8a'
+            }
+        }
+
         debug {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

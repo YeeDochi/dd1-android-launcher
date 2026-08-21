@@ -8,3 +8,7 @@ TODO.md
 
 # Built APKs; 168 MB each, they do not belong in history.
 dist/
+
+# Release signing key and its passwords; never in history.
+keystore.properties
+*.jks
