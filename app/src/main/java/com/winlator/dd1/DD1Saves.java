@@ -2,8 +2,6 @@ package com.winlator.dd1;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 // Where the game keeps its progress, and whether what is there is progress at
@@ -37,12 +35,8 @@ public final class DD1Saves {
             File game = new File(entry, "persist.game.json");
             if (game.isFile() && game.length() > 0) found.add(entry);
         }
-        Collections.sort(found, new Comparator<File>() {
-            @Override
-            public int compare(File left, File right) {
-                return Integer.compare(slotOf(left.getName()), slotOf(right.getName()));
-            }
-        });
+        found.sort((left, right) ->
+            Integer.compare(slotOf(left.getName()), slotOf(right.getName())));
         return found;
     }
 

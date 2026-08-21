@@ -45,10 +45,6 @@ public final class DD1SteamEvents {
     public synchronized DD1InstallSnapshot packagesResolved(Map<Integer, List<Integer>> packageApps,
             long elapsedMillis) {
         log.append("Ownership check took " + (elapsedMillis / 1000) + "s");
-        return packagesResolved(packageApps);
-    }
-
-    public synchronized DD1InstallSnapshot packagesResolved(Map<Integer, List<Integer>> packageApps) {
         boolean owned = DD1Ownership.ownsApp(packageApps, APP_ID);
         ownedDlc = DD1Ownership.ownedAppIds(packageApps);
         log.append(owned ? "Darkest Dungeon ownership verified" : "Darkest Dungeon is not owned");

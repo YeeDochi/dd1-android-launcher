@@ -30,7 +30,7 @@ public class DD1SaveSlotsTest {
             entry("profile_2/persist.town.json"),
             entry("profile_3/persist.game.json")));
 
-        List<DD1SaveSummary.Entry> files = DD1SaveSlots.filesOf(listing, "profile_2");
+        List<DD1SaveSummary.Entry> files = DD1SaveSlots.filesOf(listing, "profile_2", Collections.<String>emptySet());
 
         assertEquals(2, files.size());
         assertEquals("profile_2/persist.game.json", files.get(0).path);
@@ -70,7 +70,7 @@ public class DD1SaveSlotsTest {
             entry("profile_0/persist.options.json")));
 
         assertEquals(2, DD1SaveSlots.filesOf(listing, "profile_0",
-            java.util.Collections.<String>emptySet()).size());
+            Collections.<String>emptySet()).size());
     }
 
     private static DD1SaveSummary.Entry entry(String path) {

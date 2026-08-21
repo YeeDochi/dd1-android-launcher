@@ -1,5 +1,7 @@
 package com.winlator.dd1;
 
+import com.winlator.core.FileUtils;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
@@ -16,7 +18,7 @@ public final class DD1SaveStaging {
     }
 
     public static void clear(File filesDir, String slot) {
-        delete(dir(filesDir, slot));
+        FileUtils.delete(dir(filesDir, slot));
     }
 
     public static boolean put(File filesDir, String slot, String path, byte[] content) {
@@ -55,15 +57,9 @@ public final class DD1SaveStaging {
             return false;
 
         File live = new File(DD1Saves.root(filesDir), slot);
-        delete(live);
+        FileUtils.delete(live);
         File parent = live.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) return false;
         return staged.renameTo(live);
-    }
-
-    private static void delete(File file) {
-        File[] children = file.listFiles();
-        if (children != null) for (File child : children) delete(child);
-        file.delete();
     }
 }

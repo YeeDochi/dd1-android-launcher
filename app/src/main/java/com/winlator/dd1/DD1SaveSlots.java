@@ -2,8 +2,6 @@ package com.winlator.dd1;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -30,17 +28,9 @@ public final class DD1SaveSlots {
             if (slot != null) names.add(slot);
         }
         List<String> sorted = new ArrayList<>(names);
-        Collections.sort(sorted, new Comparator<String>() {
-            @Override
-            public int compare(String left, String right) {
-                return Integer.compare(DD1Saves.slotOf(left), DD1Saves.slotOf(right));
-            }
-        });
+        sorted.sort((left, right) ->
+            Integer.compare(DD1Saves.slotOf(left), DD1Saves.slotOf(right)));
         return sorted;
-    }
-
-    public static List<DD1SaveSummary.Entry> filesOf(DD1CloudListing listing, String slot) {
-        return filesOf(listing, slot, Collections.<String>emptySet());
     }
 
     // Steam named the two files it keeps in the tree's root as though they were

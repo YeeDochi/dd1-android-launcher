@@ -1,9 +1,8 @@
 package com.winlator.dd1;
 
-import java.io.ByteArrayOutputStream;
+import com.winlator.core.FileUtils;
+
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -31,7 +30,7 @@ public final class DD1SaveSlot {
     public static DD1SaveSlot of(File profileDir) {
         File game = new File(profileDir, "persist.game.json");
         if (!game.isFile() || game.length() == 0) return null;
-        return of(profileDir.getName(), read(game));
+        return of(profileDir.getName(), FileUtils.read(game));
     }
 
     // The cloud's copy of a slot can be described the same way for the price of
@@ -76,18 +75,5 @@ public final class DD1SaveSlot {
             return at;
         }
         return -1;
-    }
-
-    private static byte[] read(File file) {
-        try (InputStream in = new FileInputStream(file)) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buffer = new byte[8192];
-            int got;
-            while ((got = in.read(buffer)) > 0) out.write(buffer, 0, got);
-            return out.toByteArray();
-        }
-        catch (Exception unreadable) {
-            return null;
-        }
     }
 }

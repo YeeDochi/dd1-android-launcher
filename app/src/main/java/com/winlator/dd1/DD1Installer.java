@@ -1,5 +1,7 @@
 package com.winlator.dd1;
 
+import com.winlator.core.FileUtils;
+
 import java.io.File;
 
 public final class DD1Installer {
@@ -30,7 +32,7 @@ public final class DD1Installer {
         File staging = new File(stagingRoot, "game");
         File attempt = new File(stagingRoot, ATTEMPT_MARKER);
         if (attempt.isFile()) {
-            delete(staging);
+            FileUtils.delete(staging);
             new File(stagingRoot, COMPLETE_MARKER).delete();
         }
         staging.mkdirs();
@@ -61,14 +63,14 @@ public final class DD1Installer {
 
             installed.mkdirs();
             File target = new File(installed, staged.getName());
-            delete(target);
+            FileUtils.delete(target);
             if (!staged.renameTo(target))
                 return new Result(false, "Unable to install content for " + entry.getKey());
             DD1DlcVersions.record(filesDir, entry.getKey(), entry.getValue());
         }
         // The tree did its job, and leaving the attempt on record would make the
         // next download throw away a staging directory for no reason.
-        delete(new File(filesDir, "staging/game"));
+        FileUtils.delete(new File(filesDir, "staging/game"));
         new File(filesDir, "staging/" + ATTEMPT_MARKER).delete();
         new File(filesDir, "staging/" + COMPLETE_MARKER).delete();
         return new Result(true, null);
@@ -117,14 +119,14 @@ public final class DD1Installer {
 
         File active = new File(filesDir, "game");
         File previous = new File(stagingRoot, "previous-game");
-        delete(previous);
+        FileUtils.delete(previous);
         if (active.exists() && !active.renameTo(previous))
             return new Result(false, "Unable to preserve installed game");
         if (!staging.renameTo(active)) {
             if (previous.exists()) previous.renameTo(active);
             return new Result(false, "Unable to activate downloaded game");
         }
-        delete(previous);
+        FileUtils.delete(previous);
         new File(stagingRoot, COMPLETE_MARKER).delete();
         new File(stagingRoot, ATTEMPT_MARKER).delete();
         return new Result(true, null);
@@ -133,15 +135,9 @@ public final class DD1Installer {
     // Frees the installed game and any interrupted download. The Wine prefix is
     // left alone because the saves live in it.
     public static boolean uninstall(File filesDir) {
-        delete(new File(filesDir, "game"));
-        delete(new File(filesDir, "staging"));
+        FileUtils.delete(new File(filesDir, "game"));
+        FileUtils.delete(new File(filesDir, "staging"));
         return !new File(filesDir, "game").exists() && !new File(filesDir, "staging").exists();
-    }
-
-    private static void delete(File file) {
-        File[] children = file.listFiles();
-        if (children != null) for (File child : children) delete(child);
-        if (file.exists()) file.delete();
     }
 
     public static final class Result {

@@ -17,7 +17,7 @@ public class DD1SteamEventsTest {
         assertEquals(DD1InstallPhase.AUTHENTICATING, events.authStarted("url").phase);
         assertEquals(DD1InstallPhase.AUTHENTICATING, events.loggedOn().phase);
         assertEquals(DD1InstallPhase.READY_TO_INSTALL,
-            events.packagesResolved(Collections.singletonMap(1, Arrays.asList(262060))).phase);
+            events.packagesResolved(Collections.singletonMap(1, Arrays.asList(262060)), 0L).phase);
     }
 
     @Test
@@ -26,7 +26,7 @@ public class DD1SteamEventsTest {
         events.loggedOn();
 
         assertEquals(DD1InstallPhase.NOT_OWNED,
-            events.packagesResolved(Collections.singletonMap(1, Arrays.asList(10))).phase);
+            events.packagesResolved(Collections.singletonMap(1, Arrays.asList(10)), 0L).phase);
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.winlator.dd1;
 
+import com.winlator.core.FileUtils;
+
 import java.io.File;
 import java.util.Collection;
 
@@ -13,7 +15,7 @@ public final class DlcInstallFilter {
         if (entries == null) return;
         for (File entry : entries) {
             int appId = appIdOf(entry.getName());
-            if (appId > 0 && !selected.contains(appId)) delete(entry);
+            if (appId > 0 && !selected.contains(appId)) FileUtils.delete(entry);
         }
     }
 
@@ -40,11 +42,5 @@ public final class DlcInstallFilter {
         catch (NumberFormatException notAnId) {
             return -1;
         }
-    }
-
-    private static void delete(File file) {
-        File[] children = file.listFiles();
-        if (children != null) for (File child : children) delete(child);
-        file.delete();
     }
 }

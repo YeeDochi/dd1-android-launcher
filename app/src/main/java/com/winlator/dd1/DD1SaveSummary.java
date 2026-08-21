@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,12 +40,7 @@ public final class DD1SaveSummary {
     public static List<Entry> of(File root) {
         List<Entry> entries = new ArrayList<>();
         collect(root, "", entries);
-        Collections.sort(entries, new java.util.Comparator<Entry>() {
-            @Override
-            public int compare(Entry left, Entry right) {
-                return left.path.compareTo(right.path);
-            }
-        });
+        entries.sort((left, right) -> left.path.compareTo(right.path));
         return entries;
     }
 

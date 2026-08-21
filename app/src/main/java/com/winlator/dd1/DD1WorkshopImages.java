@@ -36,12 +36,15 @@ public final class DD1WorkshopImages {
         return cached.isFile() ? decode(cached) : null;
     }
 
-    public static synchronized Bitmap fetch(File cacheDir, String url) {
+    // The staging name carries the thread, so two images can be fetched at once.
+    // Two threads after the same image both download it; the rename is atomic and
+    // the loser only wasted bytes.
+    public static Bitmap fetch(File cacheDir, String url) {
         if (url == null || url.isEmpty()) return null;
         Bitmap cached = load(cacheDir, url);
         if (cached != null) return cached;
         File target = file(cacheDir, url);
-        File partial = new File(target.getPath() + ".part");
+        File partial = new File(target.getPath() + "." + Thread.currentThread().getId() + ".part");
         HttpURLConnection connection = null;
         try {
             URL current = checked(url);

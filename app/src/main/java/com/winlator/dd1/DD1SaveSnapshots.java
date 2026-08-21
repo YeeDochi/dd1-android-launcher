@@ -1,5 +1,8 @@
 package com.winlator.dd1;
 
+import com.winlator.core.FileUtils;
+import com.winlator.core.StreamUtils;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -7,8 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 // A copy of the saves taken before anything is allowed to change them. Three are
@@ -27,12 +28,12 @@ public final class DD1SaveSnapshots {
         if (!DD1Saves.isSaveTree(root)) return null;
 
         File target = new File(dir(filesDir), Long.toString(atMillis));
-        delete(target);
+        FileUtils.delete(target);
         if (!target.mkdirs()) return null;
         if (!copy(root, target)) {
             // A half-copied snapshot is worse than none: it would be restored one
             // day and look like a save.
-            delete(target);
+            FileUtils.delete(target);
             return null;
         }
         prune(filesDir);
@@ -54,14 +55,14 @@ public final class DD1SaveSnapshots {
 
         File root = DD1Saves.root(filesDir);
         File spare = new File(dir(filesDir), "restoring");
-        delete(spare);
+        FileUtils.delete(spare);
         // Copied aside first: a copy that fails part way must not have eaten the
         // tree it was replacing.
         if (!spare.mkdirs() || !copy(snapshot, spare)) {
-            delete(spare);
+            FileUtils.delete(spare);
             return false;
         }
-        delete(root);
+        FileUtils.delete(root);
         if (root.getParentFile() != null) root.getParentFile().mkdirs();
         if (spare.renameTo(root)) return true;
 
@@ -70,7 +71,7 @@ public final class DD1SaveSnapshots {
         // than leave the player with nothing.
         root.mkdirs();
         boolean recovered = copy(spare, root);
-        delete(spare);
+        FileUtils.delete(spare);
         return recovered;
     }
 
@@ -81,18 +82,13 @@ public final class DD1SaveSnapshots {
         for (File entry : entries) {
             if (entry.isDirectory() && takenAt(entry) > 0) snapshots.add(entry);
         }
-        Collections.sort(snapshots, new Comparator<File>() {
-            @Override
-            public int compare(File left, File right) {
-                return Long.compare(takenAt(right), takenAt(left));
-            }
-        });
+        snapshots.sort((left, right) -> Long.compare(takenAt(right), takenAt(left)));
         return snapshots;
     }
 
     private static void prune(File filesDir) {
         List<File> snapshots = kept(filesDir);
-        for (int i = KEPT; i < snapshots.size(); i++) delete(snapshots.get(i));
+        for (int i = KEPT; i < snapshots.size(); i++) FileUtils.delete(snapshots.get(i));
     }
 
     private static long takenAt(File snapshot) {
@@ -104,6 +100,8 @@ public final class DD1SaveSnapshots {
         }
     }
 
+    // Not FileUtils.copy: it answers true for a directory it could not read and
+    // skips symbolic links, and restore() deletes the live tree on that answer.
     private static boolean copy(File from, File to) {
         File[] children = from.listFiles();
         if (children == null) return false;
@@ -118,21 +116,12 @@ public final class DD1SaveSnapshots {
     }
 
     private static boolean copyFile(File from, File to) {
-        byte[] buffer = new byte[8192];
         try (InputStream in = new FileInputStream(from);
              OutputStream out = new FileOutputStream(to)) {
-            int read;
-            while ((read = in.read(buffer)) > 0) out.write(buffer, 0, read);
-            return true;
+            return StreamUtils.copy(in, out);
         }
         catch (IOException failed) {
             return false;
         }
-    }
-
-    private static void delete(File file) {
-        File[] children = file.listFiles();
-        if (children != null) for (File child : children) delete(child);
-        file.delete();
     }
 }

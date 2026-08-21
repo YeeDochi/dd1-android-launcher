@@ -1,5 +1,7 @@
 package com.winlator.dd1;
 
+import com.winlator.core.StreamUtils;
+
 import java.io.ByteArrayOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -37,11 +39,7 @@ public final class DD1CloudTransfer {
         if (body.length >= 4 && body[0] == 'P' && body[1] == 'K') {
             try (ZipInputStream zip = new ZipInputStream(new java.io.ByteArrayInputStream(body))) {
                 if (zip.getNextEntry() == null) return body;
-                ByteArrayOutputStream out = new ByteArrayOutputStream(rawSize);
-                byte[] buffer = new byte[8192];
-                int read;
-                while ((read = zip.read(buffer)) > 0) out.write(buffer, 0, read);
-                return out.toByteArray();
+                return StreamUtils.copyToByteArray(zip);
             }
             catch (java.io.IOException brokenZip) {
                 return body;

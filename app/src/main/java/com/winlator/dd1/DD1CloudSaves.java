@@ -1,8 +1,9 @@
 package com.winlator.dd1;
 
-import java.io.ByteArrayOutputStream;
+import com.winlator.core.FileUtils;
+import com.winlator.core.StreamUtils;
+
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -168,7 +169,7 @@ public final class DD1CloudSaves {
 
     private boolean send(File root, DD1SaveSummary.Entry file, long batch) {
         try {
-            byte[] content = read(new File(root, file.path));
+            byte[] content = FileUtils.read(new File(root, file.path));
             if (content == null || content.length == 0) return false;
             byte[] sha1 = MessageDigest.getInstance("SHA-1").digest(content);
 
@@ -225,19 +226,6 @@ public final class DD1CloudSaves {
         }
     }
 
-    private static byte[] read(File file) {
-        try (InputStream in = new FileInputStream(file)) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buffer = new byte[8192];
-            int got;
-            while ((got = in.read(buffer)) > 0) out.write(buffer, 0, got);
-            return out.toByteArray();
-        }
-        catch (Exception unreadable) {
-            return null;
-        }
-    }
-
     private static byte[] get(String url, List<HttpHeaders> headers) {
         HttpURLConnection connection = null;
         try {
@@ -251,11 +239,7 @@ public final class DD1CloudSaves {
                 return null;
             }
             try (InputStream in = connection.getInputStream()) {
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                byte[] buffer = new byte[8192];
-                int read;
-                while ((read = in.read(buffer)) > 0) out.write(buffer, 0, read);
-                return out.toByteArray();
+                return StreamUtils.copyToByteArray(in);
             }
         }
         catch (Exception failed) {

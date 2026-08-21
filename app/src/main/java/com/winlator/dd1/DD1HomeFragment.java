@@ -22,7 +22,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
-import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -30,13 +29,11 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
 import com.winlator.container.GraphicsDrivers;
-import com.winlator.contentdialog.AboutDialog;
 import com.winlator.dd1.DD1Game;
 import com.winlator.dd1.DD1HomeState;
 import com.winlator.dd1.DD1InstallPhase;
