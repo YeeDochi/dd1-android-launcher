@@ -1,32 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    style="@style/DD1Card"
-    android:gravity="center_vertical"
-    android:orientation="horizontal">
-
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/TVWorkshopTitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="?attr/colorPrimaryText"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/TVWorkshopMeta"
-            style="@style/DD1Meta" />
+    style="@style/DD1Card" android:gravity="center_vertical" android:orientation="horizontal">
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/TVWorkshopTitle" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textColor="?attr/colorPrimaryText"
+            android:textSize="14sp" android:textStyle="bold" />
+        <TextView android:id="@+id/TVWorkshopMeta" style="@style/DD1Meta" />
     </LinearLayout>
-
-    <Button
-        android:id="@+id/BTWorkshopDelete"
-        style="@style/DD1Action"
-        android:layout_marginStart="8dp"
-        android:text="@string/dd1_workshop_delete"
-        android:visibility="gone" />
+    <Button android:id="@+id/BTWorkshopEnable" style="@style/DD1Action"
+        android:text="@string/dd1_workshop_enable" android:visibility="gone" />
+    <Button android:id="@+id/BTWorkshopDisable" style="@style/DD1Action"
+        android:text="@string/dd1_workshop_disable" android:visibility="gone" />
+    <Button android:id="@+id/BTWorkshopUpdate" style="@style/DD1Action"
+        android:text="@string/dd1_workshop_update" android:visibility="gone" />
+    <Button android:id="@+id/BTWorkshopUnsubscribe" style="@style/DD1Action"
+        android:text="@string/dd1_workshop_unsubscribe" android:visibility="gone" />
+    <Button android:id="@+id/BTWorkshopDelete" style="@style/DD1Action"
+        android:text="@string/dd1_workshop_delete" android:visibility="gone" />
 </LinearLayout>

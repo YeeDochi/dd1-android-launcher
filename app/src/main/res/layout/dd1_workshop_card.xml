@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/DD1Card" android:layout_marginStart="4dp" android:layout_marginEnd="4dp"
+    android:orientation="vertical">
+    <ImageView android:id="@+id/IVWorkshopCard" android:layout_width="match_parent"
+        android:layout_height="108dp" android:background="?attr/colorPrimarySurface"
+        android:contentDescription="@string/dd1_workshop_preview" android:scaleType="centerCrop" />
+    <TextView android:id="@+id/TVWorkshopCardTitle" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="8dp"
+        android:ellipsize="end" android:maxLines="2" android:textColor="?attr/colorPrimaryText"
+        android:textSize="15sp" android:textStyle="bold" />
+    <TextView android:id="@+id/TVWorkshopCardMeta" style="@style/DD1Meta" />
+    <TextView android:id="@+id/TVWorkshopCardState" style="@style/DD1Meta" />
+    <ProgressBar android:id="@+id/PBWorkshopCard"
+        style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:max="100" android:visibility="gone" />
+    <Button android:id="@+id/BTWorkshopCardAction" style="@style/DD1Action"
+        android:layout_gravity="end" />
+</LinearLayout>
