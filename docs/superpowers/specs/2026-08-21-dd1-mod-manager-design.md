@@ -140,4 +140,3 @@ preservation of the old copy after a deliberately interrupted update.
 - Conflict preferences between manually copied and Workshop copies are added
   if an actual same-id collision appears; direct directory identity already
   makes the collision visible and prevents silent overwrites.
-

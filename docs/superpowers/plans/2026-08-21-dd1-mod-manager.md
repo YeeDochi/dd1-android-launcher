@@ -261,4 +261,3 @@ Install the debug APK, launch `com.winlator`, navigate to Workshop, capture a sc
 git add app/src/androidTest/java/com/winlator/dd1/DD1WorkshopFragmentTest.java
 git commit -m "test: exercise the workshop screen on waydroid"
 ```
-

@@ -111,6 +111,11 @@ public final class DD1InstallService extends Service {
 
     public void refreshWorkshop() {
         if (!ownsGame) {
+            if (snapshot.phase == DD1InstallPhase.RESTORING
+                    || snapshot.phase == DD1InstallPhase.AUTHENTICATING) {
+                publishWorkshop(DD1WorkshopSnapshot.loading());
+                return;
+            }
             publishWorkshop(DD1WorkshopSnapshot.error(getString(R.string.dd1_workshop_sign_in)));
             return;
         }
@@ -421,6 +426,10 @@ public final class DD1InstallService extends Service {
     private void publishFromSteam(DD1InstallSnapshot value) {
         if (downloading && !value.phase.interruptsDownload()) return;
         publish(value);
+        if (value.phase == DD1InstallPhase.READY_TO_INSTALL
+                && workshopListener != null
+                && workshopSnapshot.phase == DD1WorkshopSnapshot.Phase.LOADING)
+            refreshWorkshop();
     }
 
     private void publish(DD1InstallSnapshot value) {
