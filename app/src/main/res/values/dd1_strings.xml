@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="dd1_home_title">Darkest Dungeon</string>
-    <string name="dd1_home_subtitle">Android launcher · Winlator runtime</string>
+    <string name="dd1_app_name" translatable="false">DD1 Android Launcher</string>
+    <string name="dd1_home_subtitle">Android launcher</string>
     <string name="dd1_status_ready">Game files and runtime profile are ready</string>
     <string name="dd1_status_runtime_preparing">Preparing the runtime</string>
     <string name="dd1_status_game_missing">Owned game files were not found</string>
@@ -10,6 +10,7 @@
     <string name="dd1_play">Play</string>
     <string name="dd1_create_profile">Create profile</string>
     <string name="dd1_install_channel">Game download</string>
+    <string name="dd1_notification_title">Game download</string>
     <string name="dd1_install_downloading">Downloading Darkest Dungeon</string>
     <string name="dd1_install_signing_in">Signing in to Steam</string>
     <string name="dd1_steam_qr">Steam sign-in QR code</string>
@@ -127,4 +128,6 @@
     <string name="dd1_state_verifying">Verifying downloaded game</string>
     <string name="dd1_state_ready_to_play">Ready to play</string>
     <string name="dd1_state_preparing">Preparing</string>
+    <string name="dd1_open_source">Open source</string>
+    <string name="dd1_open_source_notice">Runs on the Winlator runtime (LGPL-2.1), which bundles Wine and Box64. Mod Hub interaction patterns reference StS2 Launcher Mod Manager (MIT). Full notices ship in THIRD_PARTY_NOTICES.</string>
 </resources>

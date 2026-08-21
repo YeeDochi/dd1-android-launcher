@@ -1,6 +1,16 @@
 DD1 Android Launcher — Third-Party Notices
 ==========================================
 
+Winlator
+--------
+
+Repository: https://github.com/brunodev85/winlator
+
+This launcher is built on the Winlator runtime, which carries Wine and Box64.
+Everything under app/src/main outside com.winlator.dd1 is Winlator's own code,
+distributed under the GNU Lesser General Public License, version 2.1. Its full
+text is in LICENSE at the root of this repository.
+
 StS2 Launcher Mod Manager
 -------------------------
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="dd1_home_subtitle">안드로이드 런처 · Winlator 런타임</string>
+    <string name="dd1_home_subtitle">안드로이드 런처</string>
     <string name="dd1_status_ready">게임 파일과 런타임 프로필이 준비되었습니다</string>
     <string name="dd1_status_runtime_preparing">런타임 준비 중</string>
     <string name="dd1_status_game_missing">보유한 게임 파일을 찾지 못했습니다</string>
@@ -9,6 +9,7 @@
     <string name="dd1_play">플레이</string>
     <string name="dd1_create_profile">프로필 만들기</string>
     <string name="dd1_install_channel">게임 다운로드</string>
+    <string name="dd1_notification_title">게임 다운로드</string>
     <string name="dd1_install_downloading">Darkest Dungeon 다운로드 중</string>
     <string name="dd1_install_signing_in">Steam 로그인 중</string>
     <string name="dd1_steam_qr">Steam 로그인 QR 코드</string>
@@ -126,4 +127,6 @@
     <string name="dd1_state_verifying">받은 게임 검사 중</string>
     <string name="dd1_state_ready_to_play">플레이 준비 완료</string>
     <string name="dd1_state_preparing">준비 중</string>
+    <string name="dd1_open_source">오픈소스</string>
+    <string name="dd1_open_source_notice">Winlator 런타임(LGPL-2.1) 위에서 동작하며, Wine과 Box64를 포함합니다. 모드 화면 구성은 StS2 Launcher Mod Manager(MIT)를 참고했습니다. 전문은 THIRD_PARTY_NOTICES에 있습니다.</string>
 </resources>

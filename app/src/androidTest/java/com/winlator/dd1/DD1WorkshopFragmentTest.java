@@ -149,10 +149,19 @@ public class DD1WorkshopFragmentTest {
 
                 activity.findViewById(R.id.BTWorkshopTabInstalled).performClick();
                 workshop.renderSnapshot(snapshot);
-                assertEquals("local-fixture", ((TextView)activity.findViewById(
-                    R.id.TVWorkshopTitle)).getText().toString());
-                assertEquals(View.VISIBLE, activity.findViewById(
-                    R.id.BTWorkshopEnable).getVisibility());
+                // The list is whatever the device actually has installed, so a
+                // real mod left there by hand sorts wherever it sorts. Find the
+                // fixture rather than assuming it came first.
+                LinearLayout rows = activity.findViewById(R.id.LLWorkshopList);
+                View fixture = null;
+                for (int i = 0; i < rows.getChildCount(); i++) {
+                    View row = rows.getChildAt(i);
+                    if ("local-fixture".equals(((TextView)row.findViewById(
+                            R.id.TVWorkshopTitle)).getText().toString())) fixture = row;
+                }
+                assertNotNull(fixture);
+                assertEquals(View.VISIBLE,
+                    fixture.findViewById(R.id.BTWorkshopEnable).getVisibility());
             });
             scenario.onActivity(activity -> {
                 int saved = activity.getSharedPreferences("dd1", Context.MODE_PRIVATE)

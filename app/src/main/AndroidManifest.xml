@@ -23,13 +23,13 @@
          cleartext here tolerable. -->
     <application
         android:name="com.winlator.dd1.DD1Application"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/dd1_launcher"
         android:appCategory="game"
         android:isGame="true"
         android:extractNativeLibs="true"
         android:allowAudioPlaybackCapture="true"
         android:usesCleartextTraffic="true"
-        android:label="Darkest Dungeon">
+        android:label="@string/dd1_app_name">
 
         <activity android:name="com.winlator.dd1.DD1Activity"
             android:theme="@style/AppThemeDark"

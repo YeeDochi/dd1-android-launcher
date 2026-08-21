@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.fragment.app.Fragment;
 import androidx.test.core.app.ActivityScenario;
@@ -34,8 +35,13 @@ public class DD1HomeFragmentTest {
                 assertEquals(View.VISIBLE, activity.findViewById(R.id.ETSteamAccount).getVisibility());
                 assertEquals(View.VISIBLE, activity.findViewById(R.id.ETSteamPassword).getVisibility());
                 assertEquals(View.VISIBLE, activity.findViewById(R.id.BTSteamCredentials).getVisibility());
-                assertTrue(activity.findViewById(R.id.ETSteamAccount).getTop() <
-                    activity.findViewById(R.id.BTSteamLogin).getTop());
+                // Measured coordinates are all zero until a layout pass runs, and
+                // there is none between making these visible and reading them.
+                // Both sit in the same column, so their order in it is the claim.
+                View account = activity.findViewById(R.id.ETSteamAccount);
+                ViewGroup column = (ViewGroup)account.getParent();
+                assertTrue(column.indexOfChild(account)
+                    < column.indexOfChild(activity.findViewById(R.id.BTSteamLogin)));
                 assertEquals(View.GONE, activity.findViewById(R.id.BTPrimaryAction).getVisibility());
 
                 home.renderInstallSnapshot(snapshot(DD1InstallPhase.READY_TO_INSTALL));

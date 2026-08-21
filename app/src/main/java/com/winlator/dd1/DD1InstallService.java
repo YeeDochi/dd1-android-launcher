@@ -626,10 +626,10 @@ public final class DD1InstallService extends Service {
     // the screen, so it carries the same bar.
     private Notification notification(String text, int percent) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.mipmap.dd1_launcher)
             // One UI folds a title that repeats the app label into the header and
-            // drops the text line with it, so the game's name goes here instead.
-            .setContentTitle(getString(R.string.dd1_home_title))
+            // drops the text line with it, so this one names the work instead.
+            .setContentTitle(getString(R.string.dd1_notification_title))
             .setContentText(text)
             .setContentIntent(PendingIntent.getActivity(this, 0,
                 new Intent(this, DD1Activity.class), PendingIntent.FLAG_UPDATE_CURRENT))
