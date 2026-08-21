@@ -83,8 +83,14 @@ once to allow an app from outside the store, and once about compatibility.
 The launcher opens on a sign-in panel. Two ways in:
 
 - **QR** — press *Sign in on another device* and scan the code with the Steam
-  mobile app. Nothing is typed on the phone.
-- **Account and password** — type them, then approve the request in Steam Guard.
+  mobile app. Nothing is typed on the phone. **This one needs the mobile
+  authenticator.**
+- **Account and password** — type them, and Steam Guard asks for whatever that
+  account uses.
+  - With the mobile authenticator, you **approve** in that app and type nothing
+  - Without it, Steam **emails a code**, and a box for it appears in the same
+    place. An account asked for the authenticator app's six digits uses the same
+    box
 
 > **What is kept**
 > Only the refresh token Steam hands back, encrypted with the Android Keystore.
