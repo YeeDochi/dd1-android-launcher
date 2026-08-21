@@ -28,6 +28,8 @@ public class DD1WorkshopFragmentTest {
     @Test
     public void drawerOpensAStorefrontAndInstalledModManager() throws Exception {
         Context context = ApplicationProvider.getApplicationContext();
+        context.getSharedPreferences("dd1", Context.MODE_PRIVATE).edit()
+            .putInt("workshop_columns", 2).commit();
         File local = new File(context.getFilesDir(), "game/mods-disabled/local-fixture");
         if (local.exists()) DD1Workshop.delete(context.getFilesDir(), "local-fixture", true);
         assertTrue(local.mkdirs());
@@ -48,6 +50,7 @@ public class DD1WorkshopFragmentTest {
                 assertNotNull(activity.findViewById(R.id.BTWorkshopTabStore));
                 assertNotNull(activity.findViewById(R.id.BTWorkshopTabInstalled));
                 assertNotNull(activity.findViewById(R.id.BTWorkshopImport));
+                assertNotNull(activity.findViewById(R.id.BTWorkshopColumns));
                 assertTrue(activity.findViewById(R.id.BTWorkshopSearch).getLayoutParams().width
                     >= 80 * activity.getResources().getDisplayMetrics().density);
                 assertEquals(0, activity.getResources().getIdentifier(
@@ -66,6 +69,9 @@ public class DD1WorkshopFragmentTest {
                     R.id.GLWorkshopCards)).getChildCount());
                 assertEquals("Crimson Court", ((TextView)activity.findViewById(
                     R.id.TVWorkshopCardTitle)).getText().toString());
+                GridLayout cards = activity.findViewById(R.id.GLWorkshopCards);
+                assertTrue(((GridLayout.LayoutParams)cards.getChildAt(0)
+                    .getLayoutParams()).topMargin > 0);
 
                 activity.findViewById(R.id.BTWorkshopTabInstalled).performClick();
                 workshop.renderSnapshot(snapshot);
@@ -73,6 +79,17 @@ public class DD1WorkshopFragmentTest {
                     R.id.TVWorkshopTitle)).getText().toString());
                 assertEquals(View.VISIBLE, activity.findViewById(
                     R.id.BTWorkshopEnable).getVisibility());
+            });
+            scenario.onActivity(activity -> {
+                activity.findViewById(R.id.BTWorkshopColumns).performClick();
+                activity.findViewById(R.id.BTWorkshopColumns).performClick();
+            });
+            scenario.onActivity(activity -> {
+                int saved = activity.getSharedPreferences("dd1", Context.MODE_PRIVATE)
+                    .getInt("workshop_columns", -1);
+                assertEquals(4, saved);
+                assertEquals(4,
+                    ((GridLayout)activity.findViewById(R.id.GLWorkshopCards)).getColumnCount());
             });
         }
         DD1Workshop.delete(context.getFilesDir(), "local-fixture", true);

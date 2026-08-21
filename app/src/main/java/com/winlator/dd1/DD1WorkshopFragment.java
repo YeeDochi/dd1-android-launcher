@@ -34,6 +34,7 @@ import java.util.concurrent.Executors;
 
 public final class DD1WorkshopFragment extends Fragment {
     private static final int[] SORTS = {0, 1, 3, 12, 21};
+    private static final String PREF_COLUMNS = "workshop_columns";
 
     private DD1InstallService service;
     private boolean bound;
@@ -86,6 +87,9 @@ public final class DD1WorkshopFragment extends Fragment {
                 getString(R.string.dd1_workshop_sort_updated),
                 getString(R.string.dd1_workshop_sort_rated)
             }));
+        setColumnCount(view, columnCount());
+        view.findViewById(R.id.BTWorkshopColumns).setOnClickListener(v ->
+            setColumnCount(view, columnCount() == 4 ? 2 : columnCount() + 1));
         EditText search = view.findViewById(R.id.TIWorkshopSearch);
         search.setOnEditorActionListener((v, action, event) -> {
             if (action != EditorInfo.IME_ACTION_SEARCH) return false;
@@ -174,8 +178,7 @@ public final class DD1WorkshopFragment extends Fragment {
 
         GridLayout grid = view.findViewById(R.id.GLWorkshopCards);
         grid.removeAllViews();
-        int columns = getResources().getConfiguration().screenWidthDp >= 700 ? 2 : 1;
-        grid.setColumnCount(columns);
+        grid.setColumnCount(columnCount());
         for (DD1WorkshopSnapshot.Card item : snapshot.browse) {
             View card = LayoutInflater.from(requireContext()).inflate(
                 R.layout.dd1_workshop_card, grid, false);
@@ -184,7 +187,8 @@ public final class DD1WorkshopFragment extends Fragment {
             params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
             params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
             int margin = Math.round(4 * getResources().getDisplayMetrics().density);
-            params.setMargins(margin, 0, margin, 0);
+            int verticalMargin = Math.round(6 * getResources().getDisplayMetrics().density);
+            params.setMargins(margin, verticalMargin, margin, verticalMargin);
             card.setLayoutParams(params);
 
             ((TextView)card.findViewById(R.id.TVWorkshopCardTitle)).setText(item.item.title);
@@ -324,6 +328,22 @@ public final class DD1WorkshopFragment extends Fragment {
             bytes / (1024f * 1024));
         if (bytes >= 1024) return String.format(java.util.Locale.US, "%.0f KB", bytes / 1024f);
         return bytes + " B";
+    }
+
+    private int columnCount() {
+        int count = requireContext().getSharedPreferences("dd1", Context.MODE_PRIVATE)
+            .getInt(PREF_COLUMNS, 2);
+        return Math.max(2, Math.min(4, count));
+    }
+
+    private void setColumnCount(View root, int count) {
+        requireContext().getSharedPreferences("dd1", Context.MODE_PRIVATE).edit()
+            .putInt(PREF_COLUMNS, count).apply();
+        GridLayout grid = root.findViewById(R.id.GLWorkshopCards);
+        grid.setColumnCount(count);
+        grid.requestLayout();
+        root.findViewById(R.id.BTWorkshopColumns).setContentDescription(
+            getString(R.string.dd1_workshop_columns_action, count));
     }
 
     private static int stateText(DD1WorkshopSnapshot.State state) {
