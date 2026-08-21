@@ -248,10 +248,20 @@ item and the game describes it.
 
 ## If something goes wrong
 
-**The game runs but its picture is black.** If the interface and the narration
-draw but the dungeon or the estate does not, that is the graphics driver. DD1
-draws the world into a framebuffer and lights it with a shader, and the interface
-does not go through that path - which is why one shows and the other does not.
+### If it looks like this
+
+<p align="center">
+  <img src="docs/screenshots/09-black-picture.png" width="70%" alt="Interface and narration draw, the dungeon does not">
+</p>
+
+The quest name, the torch, the hero panel, the inventory and the narration are
+all there, but **the dungeon or the estate is not drawn and stays black.** The
+game has not hung; the graphics driver cannot draw its picture. DD1 draws the
+world into a framebuffer and lights it with a shader, and the interface does not
+go through that path - which is why one shows and the other does not.
+
+> The figure above is a drawing of the symptom, not a capture of the game. No
+> game imagery is kept in this repository.
 
 **Drawer, Settings, scroll to the bottom: read the two lines under `Graphics`.**
 They name the GPU and the drivers in force.
@@ -276,11 +286,15 @@ A log is better still. From a PC with the phone on USB:
 adb logcat -d > dd1.log
 ```
 
-**A save will not upload.** The log on the save screen says what was sent and
+### A save will not upload
+
+The log on the save screen says what was sent and
 what was refused, and `adb logcat -d | grep DD1Cloud` carries the reason Steam
 gave, verbatim. Paste that line.
 
-**The game says a DLC is missing.** Open the content screen: it lists what the
+### The game says a DLC is missing
+
+Open the content screen: it lists what the
 account owns and what has not been downloaded yet. If it is listed but not
 downloaded, fetch it there. If a DLC you own is not listed at all, that is a bug
 in the launcher - please report it.
