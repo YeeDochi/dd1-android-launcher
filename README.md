@@ -14,7 +14,7 @@ the game.
 > game binary, and is free.
 
 <p align="center">
-  <img src="docs/screenshots/01-home.png" width="80%" alt="Home screen with the owned DLC list">
+  <img src="docs/screenshots/02-dlc.png" width="80%" alt="Home screen with the owned DLC list">
 </p>
 
 ## What it does
@@ -52,21 +52,11 @@ Workshop browsing with preview images, sorting, and a column count that follows
 the screen. Subscriptions made anywhere — including on a PC — are pulled down
 automatically, and items unsubscribed there are removed here.
 
-<p align="center">
-  <img src="docs/screenshots/02-mod-hub.png" width="49%" alt="Workshop browsing">
-  <img src="docs/screenshots/03-mod-detail.png" width="49%" alt="Mod detail with gallery">
-</p>
-
 ### Saves and settings
 
 Each profile slot shows what is on the device beside what is in Steam Cloud, so
 a transfer is a deliberate act in a named direction. A slot that will not come
 down says so rather than half-restoring.
-
-<p align="center">
-  <img src="docs/screenshots/04-saves.png" width="49%" alt="Save transfer screen">
-  <img src="docs/screenshots/05-settings.png" width="49%" alt="Settings screen">
-</p>
 
 ## Getting it running
 
@@ -86,6 +76,10 @@ once to allow an app from outside the store, and once about compatibility.
 
 ### 2. Sign in to Steam
 
+<p align="center">
+  <img src="docs/screenshots/01-sign-in.png" width="70%" alt="The sign-in panel">
+</p>
+
 The launcher opens on a sign-in panel. Two ways in:
 
 - **QR** — press *Sign in on another device* and scan the code with the Steam
@@ -102,6 +96,10 @@ account, so a bundle bought years ago still shows up.
 
 ### 3. Choose the DLC, then download
 
+<p align="center">
+  <img src="docs/screenshots/02-dlc.png" width="70%" alt="The owned DLC, all ticked">
+</p>
+
 The right half fills with the DLC the account owns, all ticked. **Untick what
 you do not want before pressing download** — unticked DLC is never fetched, so
 a change of mind afterwards means downloading it separately.
@@ -110,6 +108,10 @@ a change of mind afterwards means downloading it separately.
 > not work here. Leaving it out saves about 540 MB.
 
 Press **Download the game and owned DLC**. What to watch while it runs:
+
+<p align="center">
+  <img src="docs/screenshots/03-download.png" width="70%" alt="Downloading: part count, percentage and the file log">
+</p>
 
 | On screen | What it means |
 |---|---|
@@ -137,6 +139,10 @@ already have one, bring it down before you play — see below.
 
 ### 5. Bring saves down from Steam Cloud
 
+<p align="center">
+  <img src="docs/screenshots/06-saves.png" width="70%" alt="Device saves beside cloud saves">
+</p>
+
 Drawer → **Saves**. Each profile slot shows what is on the phone beside what is
 in Steam Cloud, so a transfer is always a deliberate act in a named direction.
 
@@ -155,6 +161,11 @@ rest are unaffected.
 
 ### 6. Mods
 
+<p align="center">
+  <img src="docs/screenshots/04-mod-hub.png" width="49%" alt="Workshop browsing">
+  <img src="docs/screenshots/05-mod-detail.png" width="49%" alt="A mod's description and screenshots">
+</p>
+
 Drawer → **Mod manager**. Subscriptions made anywhere — including on a PC — are
 pulled down when the screen opens, and anything unsubscribed there is removed
 here.
@@ -172,6 +183,10 @@ Then turn mods on **inside the game**, on the campaign screen — that list is
 part of the save, and the launcher does not edit saves.
 
 ### 7. Make it last
+
+<p align="center">
+  <img src="docs/screenshots/07-settings.png" width="70%" alt="Settings: cores, refresh rate and translation">
+</p>
 
 Drawer → **Settings**. The defaults are safe; these are worth changing:
 

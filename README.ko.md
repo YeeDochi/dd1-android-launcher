@@ -13,7 +13,7 @@
 > 바이너리를 고치지 않으며, 무료입니다.
 
 <p align="center">
-  <img src="docs/screenshots/01-home.png" width="80%" alt="보유 DLC 목록이 있는 홈 화면">
+  <img src="docs/screenshots/02-dlc.png" width="80%" alt="보유 DLC 목록이 있는 홈 화면">
 </p>
 
 ## 기능
@@ -49,21 +49,11 @@
 PC를 포함해 어디서 구독했든 자동으로 내려받고, 거기서 구독을 해제한 항목은 여기서도
 지웁니다.
 
-<p align="center">
-  <img src="docs/screenshots/02-mod-hub.png" width="49%" alt="Workshop 탐색">
-  <img src="docs/screenshots/03-mod-detail.png" width="49%" alt="갤러리가 있는 모드 상세">
-</p>
-
 ### 세이브와 설정
 
 프로필 슬롯마다 기기에 있는 것과 Steam 클라우드에 있는 것을 나란히 보여줘서, 전송이
 방향이 분명한 의도적 행위가 되도록 했습니다. 온전히 내려받을 수 없는 슬롯은 반쪽만
 복원하지 않고 그렇다고 말합니다.
-
-<p align="center">
-  <img src="docs/screenshots/04-saves.png" width="49%" alt="세이브 전송 화면">
-  <img src="docs/screenshots/05-settings.png" width="49%" alt="설정 화면">
-</p>
 
 ## 시작하기
 
@@ -82,6 +72,10 @@ PC를 포함해 어디서 구독했든 자동으로 내려받고, 거기서 구�
 
 ### 2. Steam 로그인
 
+<p align="center">
+  <img src="docs/screenshots/01-sign-in.png" width="70%" alt="로그인 화면">
+</p>
+
 런처가 로그인 화면으로 열립니다. 두 가지 방법이 있습니다.
 
 - **QR** — *다른 기기로 QR 로그인*을 누르고 Steam 모바일 앱으로 코드를 찍습니다. 폰에
@@ -98,6 +92,10 @@ PC를 포함해 어디서 구독했든 자동으로 내려받고, 거기서 구�
 
 ### 3. DLC를 고르고 받기
 
+<p align="center">
+  <img src="docs/screenshots/02-dlc.png" width="70%" alt="전부 체크된 보유 DLC">
+</p>
+
 오른쪽에 보유한 DLC가 전부 체크된 채로 뜹니다. **받기 전에 원하지 않는 것을 해제하십시오**
 — 해제한 DLC는 애초에 받지 않으므로, 나중에 마음이 바뀌면 따로 받아야 합니다.
 
@@ -105,6 +103,10 @@ PC를 포함해 어디서 구독했든 자동으로 내려받고, 거기서 구�
 > 필요합니다. 빼면 약 540MB를 아낍니다.
 
 **게임과 보유 DLC 다운로드**를 누릅니다. 진행 중에 볼 것:
+
+<p align="center">
+  <img src="docs/screenshots/03-download.png" width="70%" alt="다운로드 중: 파트 수, 퍼센트, 파일 로그">
+</p>
 
 | 화면 | 의미 |
 |---|---|
@@ -130,6 +132,10 @@ PC를 포함해 어디서 구독했든 자동으로 내려받고, 거기서 구�
 
 ### 5. Steam 클라우드에서 세이브 가져오기
 
+<p align="center">
+  <img src="docs/screenshots/06-saves.png" width="70%" alt="기기 세이브와 클라우드 세이브">
+</p>
+
 서랍 → **세이브**. 프로필 슬롯마다 폰에 있는 것과 클라우드에 있는 것을 나란히 보여주므로,
 전송은 항상 방향이 분명한 의도적 행위가 됩니다.
 
@@ -147,6 +153,11 @@ PC를 포함해 어디서 구독했든 자동으로 내려받고, 거기서 구�
 
 ### 6. 모드
 
+<p align="center">
+  <img src="docs/screenshots/04-mod-hub.png" width="49%" alt="Workshop 탐색">
+  <img src="docs/screenshots/05-mod-detail.png" width="49%" alt="모드 설명과 스크린샷">
+</p>
+
 서랍 → **모드 관리자**. PC를 포함해 어디서 구독했든 화면을 열 때 내려받고, 거기서 구독을
 해제한 것은 여기서도 지워집니다.
 
@@ -163,6 +174,10 @@ skins mod · 42%`. 모드가 온전히 도착하기 전에는 게임 폴더에 �
 세이브를 편집하지 않습니다.
 
 ### 7. 오래 쓰기
+
+<p align="center">
+  <img src="docs/screenshots/07-settings.png" width="70%" alt="설정: 코어, 주사율, 번역">
+</p>
 
 서랍 → **설정**. 기본값도 안전하지만 바꿀 만한 것들입니다.
 
