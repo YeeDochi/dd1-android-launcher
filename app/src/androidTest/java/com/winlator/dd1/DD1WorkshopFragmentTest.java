@@ -12,6 +12,7 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.os.PatternMatcher;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.GridLayout;
 import android.widget.ImageView;
@@ -128,11 +129,23 @@ public class DD1WorkshopFragmentTest {
 
                 context.getSharedPreferences("dd1", Context.MODE_PRIVATE).edit()
                     .putInt("workshop_columns", 4).commit();
-                cards.setColumnCount(4);
-                ((GridLayout.LayoutParams)cards.getChildAt(0).getLayoutParams()).columnSpec =
+                AttachedChildStrictGrid strict = new AttachedChildStrictGrid(activity);
+                strict.setId(R.id.GLWorkshopCards);
+                strict.setLayoutParams(cards.getLayoutParams());
+                while (cards.getChildCount() > 0) {
+                    View child = cards.getChildAt(0);
+                    cards.removeViewAt(0);
+                    strict.addView(child);
+                }
+                ViewGroup gridParent = (ViewGroup)cards.getParent();
+                int gridIndex = gridParent.indexOfChild(cards);
+                gridParent.removeViewAt(gridIndex);
+                gridParent.addView(strict, gridIndex);
+                ((GridLayout.LayoutParams)strict.getChildAt(0).getLayoutParams()).columnSpec =
                     GridLayout.spec(3, 1f);
                 activity.findViewById(R.id.BTWorkshopColumns).performClick();
-                assertEquals(2, cards.getColumnCount());
+                assertEquals(2, strict.getColumnCount());
+                assertEquals(2, strict.getChildCount());
 
                 activity.findViewById(R.id.BTWorkshopTabInstalled).performClick();
                 workshop.renderSnapshot(snapshot);
@@ -159,5 +172,19 @@ public class DD1WorkshopFragmentTest {
             });
         }
         DD1Workshop.delete(context.getFilesDir(), "local-fixture", true);
+    }
+
+    private static final class AttachedChildStrictGrid extends GridLayout {
+        AttachedChildStrictGrid(Context context) {
+            super(context);
+            super.setColumnCount(4);
+        }
+
+        @Override
+        public void setColumnCount(int count) {
+            if (getChildCount() > 0 && count < getColumnCount())
+                throw new IllegalArgumentException("attached children must be detached first");
+            super.setColumnCount(count);
+        }
     }
 }

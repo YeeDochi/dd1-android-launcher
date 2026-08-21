@@ -70,6 +70,7 @@ public final class DD1WorkshopCatalog {
         return CPublishedFile_Subscribe_Request.newBuilder()
             .setPublishedfileid(publishedFileId)
             .setAppid(DD1SteamEvents.APP_ID)
+            .setListType(1)
             .setNotifyClient(true)
             .setIncludeDependencies(true)
             .build();
@@ -79,6 +80,7 @@ public final class DD1WorkshopCatalog {
         return CPublishedFile_Unsubscribe_Request.newBuilder()
             .setPublishedfileid(publishedFileId)
             .setAppid(DD1SteamEvents.APP_ID)
+            .setListType(1)
             .setNotifyClient(true)
             .build();
     }

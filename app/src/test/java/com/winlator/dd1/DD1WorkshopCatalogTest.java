@@ -135,8 +135,10 @@ public class DD1WorkshopCatalogTest {
         assertTrue(details.getIncludevotes());
         assertEquals(42L, subscribe.getPublishedfileid());
         assertEquals(262060, subscribe.getAppid());
+        assertEquals(1, subscribe.getListType());
         assertEquals(42L, unsubscribe.getPublishedfileid());
         assertEquals(262060, unsubscribe.getAppid());
+        assertEquals(1, unsubscribe.getListType());
     }
 
     @Test

@@ -454,13 +454,17 @@ public final class DD1WorkshopFragment extends Fragment {
         requireContext().getSharedPreferences("dd1", Context.MODE_PRIVATE).edit()
             .putInt(PREF_COLUMNS, count).apply();
         GridLayout grid = root.findViewById(R.id.GLWorkshopCards);
-        for (int i = 0; i < grid.getChildCount(); i++) {
+        View[] children = new View[grid.getChildCount()];
+        for (int i = 0; i < children.length; i++) children[i] = grid.getChildAt(i);
+        grid.removeAllViews();
+        grid.setColumnCount(count);
+        for (View child : children) {
             GridLayout.LayoutParams params =
-                (GridLayout.LayoutParams)grid.getChildAt(i).getLayoutParams();
+                (GridLayout.LayoutParams)child.getLayoutParams();
             params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED);
             params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            grid.addView(child, params);
         }
-        grid.setColumnCount(count);
         grid.requestLayout();
         root.findViewById(R.id.BTWorkshopColumns).setContentDescription(
             getString(R.string.dd1_workshop_columns_action, count));
