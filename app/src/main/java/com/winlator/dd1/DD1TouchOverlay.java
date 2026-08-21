@@ -66,6 +66,43 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         setFocusableInTouchMode(true);
         AppUtils.observeSoftKeyboardVisibility(this, this::keyboardVisibilityChanged);
         placeEscape(0, AppUtils.getScreenHeight());
+        applyRefreshRate(context);
+    }
+
+    // The panel draws at its own rate whatever the game is doing, and on a 120 Hz
+    // phone half of that is spent on frames nobody asked for. The runtime's
+    // activity owns the window, so the rate is asked for from here rather than by
+    // editing it: this view is already attached to that window.
+    private static final String HALF_REFRESH_RATE = "half_refresh_rate";
+
+    public static boolean prefersHalfRefreshRate(Context context) {
+        return context.getSharedPreferences("dd1", Context.MODE_PRIVATE)
+            .getBoolean(HALF_REFRESH_RATE, false);
+    }
+
+    public static void chooseHalfRefreshRate(Context context, boolean half) {
+        context.getSharedPreferences("dd1", Context.MODE_PRIVATE).edit()
+            .putBoolean(HALF_REFRESH_RATE, half).apply();
+    }
+
+    private void applyRefreshRate(Context context) {
+        if (!prefersHalfRefreshRate(context)) return;
+        android.app.Activity activity = activityOf(context);
+        if (activity == null) return;
+        android.view.Window window = activity.getWindow();
+        float rate = window.getWindowManager().getDefaultDisplay().getRefreshRate();
+        if (rate <= 61f) return;
+        android.view.WindowManager.LayoutParams params = window.getAttributes();
+        params.preferredRefreshRate = rate / 2f;
+        window.setAttributes(params);
+    }
+
+    private static android.app.Activity activityOf(Context context) {
+        while (context instanceof android.content.ContextWrapper) {
+            if (context instanceof android.app.Activity) return (android.app.Activity)context;
+            context = ((android.content.ContextWrapper)context).getBaseContext();
+        }
+        return null;
     }
 
     @Override

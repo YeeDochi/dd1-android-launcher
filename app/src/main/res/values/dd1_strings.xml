@@ -133,4 +133,17 @@
     <string name="dd1_performance">Performance</string>
     <string name="dd1_box64_performance">Faster instruction translation</string>
     <string name="dd1_box64_performance_hint">Lets box64 skip checks it normally makes while turning the game’s x86 code into ARM. It can crash or corrupt the picture on some scenes; turn it back off if anything looks wrong. Applies on the next launch.</string>
+    <string name="dd1_cpu_budget">Processor cores</string>
+    <string name="dd1_cpu_budget_hint">The game has no frame limit, so it renders as fast as the cores let it and spends the battery doing it. Holding it off the fastest cores costs speed and buys back running time. Applies on the next launch.</string>
+    <string name="dd1_refresh_rate">Screen refresh rate</string>
+    <string name="dd1_refresh_rate_hint">The panel draws at 120 Hz whatever the game is doing. Halving it while the game runs saves power on the screen itself and leaves the game alone.</string>
+    <string-array name="dd1_cpu_budgets">
+        <item>All cores</item>
+        <item>Without the fastest core</item>
+        <item>Efficiency cores only</item>
+    </string-array>
+    <string-array name="dd1_refresh_rates">
+        <item>Whatever the phone chooses</item>
+        <item>60 Hz while playing</item>
+    </string-array>
 </resources>

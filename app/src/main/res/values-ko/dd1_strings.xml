@@ -132,4 +132,17 @@
     <string name="dd1_performance">성능</string>
     <string name="dd1_box64_performance">명령어 번역 빠르게</string>
     <string name="dd1_box64_performance_hint">box64가 게임의 x86 코드를 ARM으로 바꾸면서 평소 하던 검사를 건너뜁니다. 일부 장면에서 튕기거나 화면이 깨질 수 있으니 이상하면 다시 끄십시오. 다음 실행부터 적용됩니다.</string>
+    <string name="dd1_cpu_budget">프로세서 코어</string>
+    <string name="dd1_cpu_budget_hint">게임에 프레임 제한이 없어서 코어가 허락하는 만큼 그리고, 그만큼 배터리를 씁니다. 빠른 코어를 안 쓰게 하면 속도를 내주고 사용 시간을 돌려받습니다. 다음 실행부터 적용됩니다.</string>
+    <string name="dd1_refresh_rate">화면 주사율</string>
+    <string name="dd1_refresh_rate_hint">패널은 게임과 무관하게 120Hz로 그립니다. 게임 중에만 절반으로 낮추면 화면 자체가 쓰는 전력이 줄고 게임에는 영향이 없습니다.</string>
+    <string-array name="dd1_cpu_budgets">
+        <item>전체 코어</item>
+        <item>가장 빠른 코어 제외</item>
+        <item>효율 코어만</item>
+    </string-array>
+    <string-array name="dd1_refresh_rates">
+        <item>기기 기본값</item>
+        <item>게임 중 60Hz</item>
+    </string-array>
 </resources>

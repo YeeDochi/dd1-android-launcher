@@ -48,6 +48,8 @@ public class DD1SettingsFragment extends Fragment {
         buildResolution(view.findViewById(R.id.RGResolution),
             view.findViewById(R.id.TVResolutionHint));
         buildBox64Preset(view.findViewById(R.id.CBBox64Performance));
+        buildCpuBudget(view.findViewById(R.id.RGCpuBudget));
+        buildRefreshRate(view.findViewById(R.id.RGRefreshRate));
     }
 
     private void buildLanguage(RadioGroup group) {
@@ -102,6 +104,33 @@ public class DD1SettingsFragment extends Fragment {
             container.setBox64Preset(checked ? Box64Preset.PERFORMANCE : Box64Preset.DEFAULT);
             container.saveData();
         });
+    }
+
+    private void buildCpuBudget(RadioGroup group) {
+        Container container = firstContainer();
+        if (container == null) return;
+        int cores = DD1CpuBudget.cores();
+        String[] names = getResources().getStringArray(R.array.dd1_cpu_budgets);
+        int chosen = DD1CpuBudget.of(container.getCPUList(), cores);
+        for (int i = 0; i < names.length; i++) group.addView(choice(names[i], i == chosen));
+        group.setOnCheckedChangeListener((ignored, checkedId) -> {
+            String list = DD1CpuBudget.list(indexOf(group, checkedId), cores);
+            container.setCPUList(list);
+            container.setCPUListWoW64(list);
+            container.saveData();
+        });
+    }
+
+    // The runtime's activity owns the window, so the rate is asked for from the
+    // overlay the launcher already attaches to it rather than by editing it.
+    private void buildRefreshRate(RadioGroup group) {
+        String[] names = getResources().getStringArray(R.array.dd1_refresh_rates);
+        boolean halved = DD1TouchOverlay.prefersHalfRefreshRate(requireContext());
+        for (int i = 0; i < names.length; i++)
+            group.addView(choice(names[i], (i == 1) == halved));
+        group.setOnCheckedChangeListener((ignored, checkedId) ->
+            DD1TouchOverlay.chooseHalfRefreshRate(requireContext(),
+                indexOf(group, checkedId) == 1));
     }
 
     private Container firstContainer() {

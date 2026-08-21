@@ -6,6 +6,8 @@ import static org.junit.Assert.assertTrue;
 
 import android.view.View;
 import android.widget.CheckBox;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 
 import androidx.fragment.app.Fragment;
@@ -60,6 +62,43 @@ public class DD1SettingsFragmentTest {
                 assertEquals(before == null || before.equals(Box64Preset.PERFORMANCE)
                     ? container.getBox64Preset() : Box64Preset.DEFAULT,
                     container.getBox64Preset());
+            });
+        }
+    }
+
+    // Both knobs exist because translating x86 is where the battery goes and
+    // there is no frame limiter to spend the headroom on. They have to write
+    // where the runtime reads, or the screen is a decoration.
+    @Test
+    public void writesTheCoreBudgetAndTheRefreshRateChoice() {
+        try (ActivityScenario<DD1Activity> scenario = ActivityScenario.launch(DD1Activity.class)) {
+            scenario.onActivity(activity -> {
+                activity.toggleDrawer();
+                activity.findViewById(R.id.BTDrawerSettings).performClick();
+                activity.getSupportFragmentManager().executePendingTransactions();
+
+                RadioGroup rates = activity.findViewById(R.id.RGRefreshRate);
+                assertEquals(2, rates.getChildCount());
+                ((RadioButton)rates.getChildAt(1)).performClick();
+                assertTrue(DD1TouchOverlay.prefersHalfRefreshRate(activity));
+                ((RadioButton)rates.getChildAt(0)).performClick();
+                assertTrue(!DD1TouchOverlay.prefersHalfRefreshRate(activity));
+
+                ContainerManager manager = new ContainerManager(activity);
+                RadioGroup cores = activity.findViewById(R.id.RGCpuBudget);
+                if (manager.getContainers().isEmpty()) {
+                    assertEquals(0, cores.getChildCount());
+                    return;
+                }
+                assertEquals(3, cores.getChildCount());
+                Container container = manager.getContainers().get(0);
+                int count = DD1CpuBudget.cores();
+                ((RadioButton)cores.getChildAt(DD1CpuBudget.EFFICIENCY)).performClick();
+                assertEquals(DD1CpuBudget.list(DD1CpuBudget.EFFICIENCY, count),
+                    container.getCPUList());
+                ((RadioButton)cores.getChildAt(DD1CpuBudget.ALL)).performClick();
+                assertEquals(DD1CpuBudget.list(DD1CpuBudget.ALL, count),
+                    container.getCPUList());
             });
         }
     }

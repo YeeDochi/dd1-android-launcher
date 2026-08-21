@@ -65,6 +65,36 @@
 
             <TextView
                 style="@style/DD1SectionTitle"
+                android:text="@string/dd1_cpu_budget" />
+
+            <RadioGroup
+                android:id="@+id/RGCpuBudget"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:id="@+id/TVCpuBudgetHint"
+                style="@style/DD1Meta"
+                android:text="@string/dd1_cpu_budget_hint" />
+
+            <TextView
+                style="@style/DD1SectionTitle"
+                android:text="@string/dd1_refresh_rate" />
+
+            <RadioGroup
+                android:id="@+id/RGRefreshRate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:id="@+id/TVRefreshRateHint"
+                style="@style/DD1Meta"
+                android:text="@string/dd1_refresh_rate_hint" />
+
+            <TextView
+                style="@style/DD1SectionTitle"
                 android:text="@string/dd1_open_source" />
 
             <TextView
