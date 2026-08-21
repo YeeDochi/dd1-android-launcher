@@ -67,7 +67,6 @@ public final class DD1SteamSession implements Closeable {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService operations = Executors.newSingleThreadExecutor();
     private final ExecutorService callbackLoop = Executors.newSingleThreadExecutor();
-    private final ScheduledExecutorService watchdog = Executors.newSingleThreadScheduledExecutor();
     private final List<Closeable> subscriptions = new ArrayList<>();
 
     private volatile List<License> licenses = Collections.emptyList();
@@ -112,7 +111,7 @@ public final class DD1SteamSession implements Closeable {
         connect();
         // A stored session that never answers would otherwise hold the launcher
         // on the checking screen forever.
-        watchdog.schedule(this::abandonRestore, 25, TimeUnit.SECONDS);
+        main.postDelayed(this::abandonRestore, 25_000);
     }
 
     private void abandonRestore() {
@@ -160,9 +159,7 @@ public final class DD1SteamSession implements Closeable {
     }
 
     public CompletableFuture<List<ModSyncPlan.Subscribed>> workshop() {
-        CompletableFuture<List<ModSyncPlan.Subscribed>> future = new CompletableFuture<>();
-        operations.execute(() -> {
-            try {
+        return CompletableFuture.supplyAsync(() -> {
                 List<in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.PublishedFileDetails>
                     details = new ArrayList<>();
                 int page = 1;
@@ -178,19 +175,12 @@ public final class DD1SteamSession implements Closeable {
                     details.addAll(body.getPublishedfiledetailsList());
                     if (received == 0 || details.size() >= body.getTotal()) break;
                 }
-                future.complete(DD1WorkshopCatalog.fromDetails(details));
-            }
-            catch (Throwable error) {
-                future.completeExceptionally(error);
-            }
-        });
-        return future;
+            return DD1WorkshopCatalog.fromDetails(details);
+        }, operations);
     }
 
     public CompletableFuture<DD1WorkshopPage> browseWorkshop(String query, int sort, int page) {
-        CompletableFuture<DD1WorkshopPage> future = new CompletableFuture<>();
-        operations.execute(() -> {
-            try {
+        return CompletableFuture.supplyAsync(() -> {
                 long directId = DD1WorkshopCatalog.directId(query);
                 if (directId != 0) {
                     ServiceMethodResponse<CPublishedFile_GetDetails_Response.Builder> response =
@@ -198,29 +188,22 @@ public final class DD1SteamSession implements Closeable {
                     requireOk(response);
                     List<DD1WorkshopItem> items = DD1WorkshopCatalog.items(
                         response.getBody().getPublishedfiledetailsList());
-                    future.complete(new DD1WorkshopPage(items, items.size()));
+                    return new DD1WorkshopPage(items, items.size());
                 }
                 else {
                     ServiceMethodResponse<CPublishedFile_QueryFiles_Response.Builder> response =
                         publishedFiles.queryFiles(DD1WorkshopCatalog.query(query, sort, page))
                             .runBlock();
                     requireOk(response);
-                    future.complete(new DD1WorkshopPage(DD1WorkshopCatalog.items(
+                    return new DD1WorkshopPage(DD1WorkshopCatalog.items(
                         response.getBody().getPublishedfiledetailsList()),
-                        response.getBody().getTotal()));
+                        response.getBody().getTotal());
                 }
-            }
-            catch (Throwable error) {
-                future.completeExceptionally(error);
-            }
-        });
-        return future;
+        }, operations);
     }
 
     public CompletableFuture<DD1WorkshopItem> workshopDetail(long publishedFileId) {
-        CompletableFuture<DD1WorkshopItem> future = new CompletableFuture<>();
-        operations.execute(() -> {
-            try {
+        return CompletableFuture.supplyAsync(() -> {
                 ServiceMethodResponse<CPublishedFile_GetDetails_Response.Builder> response =
                     publishedFiles.getDetails(DD1WorkshopCatalog.fullDetails(publishedFileId))
                         .runBlock();
@@ -228,47 +211,26 @@ public final class DD1SteamSession implements Closeable {
                 List<DD1WorkshopItem> items = DD1WorkshopCatalog.fullItems(
                     response.getBody().getPublishedfiledetailsList());
                 if (items.isEmpty()) throw new IllegalStateException("Workshop item not found");
-                future.complete(items.get(0));
-            }
-            catch (Throwable error) {
-                future.completeExceptionally(error);
-            }
-        });
-        return future;
+            return items.get(0);
+        }, operations);
     }
 
     public CompletableFuture<Void> subscribe(long publishedFileId) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        operations.execute(() -> {
-            try {
+        return CompletableFuture.runAsync(() -> {
                 ServiceMethodResponse<CPublishedFile_Subscribe_Response.Builder> response =
                     publishedFiles.subscribe(DD1WorkshopCatalog.subscribe(publishedFileId))
                         .runBlock();
                 requireOk(response);
-                future.complete(null);
-            }
-            catch (Throwable error) {
-                future.completeExceptionally(error);
-            }
-        });
-        return future;
+        }, operations);
     }
 
     public CompletableFuture<Void> unsubscribe(long publishedFileId) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        operations.execute(() -> {
-            try {
+        return CompletableFuture.runAsync(() -> {
                 ServiceMethodResponse<CPublishedFile_Unsubscribe_Response.Builder> response =
                     publishedFiles.unsubscribe(DD1WorkshopCatalog.unsubscribe(publishedFileId))
                         .runBlock();
                 requireOk(response);
-                future.complete(null);
-            }
-            catch (Throwable error) {
-                future.completeExceptionally(error);
-            }
-        });
-        return future;
+        }, operations);
     }
 
     private static void requireOk(ServiceMethodResponse<?> response) {
@@ -286,7 +248,7 @@ public final class DD1SteamSession implements Closeable {
         expectedDisconnect = true;
         client.disconnect();
         operations.shutdownNow();
-        watchdog.shutdownNow();
+        main.removeCallbacks(this::abandonRestore);
         callbackLoop.shutdown();
         for (Closeable subscription : subscriptions) {
             try {
@@ -357,7 +319,6 @@ public final class DD1SteamSession implements Closeable {
             fail(error);
         }
         finally {
-            password = null;
             credentialAccount = null;
         }
     }
