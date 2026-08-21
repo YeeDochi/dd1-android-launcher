@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
+import android.widget.Button;
 
 import androidx.fragment.app.Fragment;
 import androidx.test.core.app.ActivityScenario;
@@ -83,6 +84,17 @@ public class DD1WorkshopFragmentTest {
                     R.id.TVWorkshopDetailDescription)).getText().toString());
                 assertEquals(2, ((LinearLayout)workshop.detailDialog.findViewById(
                     R.id.LLWorkshopDetailPictures)).getChildCount());
+                Button subscribe = workshop.detailDialog.findViewById(
+                    R.id.BTWorkshopDetailSubscribe);
+                Button close = workshop.detailDialog.findViewById(R.id.BTWorkshopDetailClose);
+                assertEquals(activity.getString(R.string.dd1_workshop_subscribe),
+                    subscribe.getText().toString());
+                assertTrue(subscribe.getBackground() != null);
+                assertTrue(close.getBackground() != null);
+                assertTrue(subscribe.getMinimumHeight() >= 48
+                    * activity.getResources().getDisplayMetrics().density);
+                assertEquals(subscribe, ((LinearLayout)subscribe.getParent()).getChildAt(0));
+                assertEquals(close, ((LinearLayout)close.getParent()).getChildAt(1));
                 workshop.detailDialog.dismiss();
 
                 activity.findViewById(R.id.BTWorkshopTabInstalled).performClick();

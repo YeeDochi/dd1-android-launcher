@@ -39,4 +39,19 @@
                 android:textSize="14sp" />
         </LinearLayout>
     </ScrollView>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="horizontal">
+        <Button android:id="@+id/BTWorkshopDetailSubscribe"
+            android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1"
+            android:layout_marginEnd="6dp" android:backgroundTint="?attr/colorAccent"
+            android:minHeight="48dp" android:minWidth="0dp"
+            android:textColor="@android:color/black" />
+        <Button android:id="@+id/BTWorkshopDetailClose"
+            android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1"
+            android:layout_marginStart="6dp" android:backgroundTint="?attr/colorSecondarySurface"
+            android:minHeight="48dp" android:minWidth="0dp"
+            android:text="@string/dd1_workshop_close"
+            android:textColor="?attr/colorPrimaryText" />
+    </LinearLayout>
 </LinearLayout>

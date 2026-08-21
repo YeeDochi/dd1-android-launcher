@@ -223,7 +223,7 @@ public final class DD1WorkshopFragment extends Fragment {
             }
             action.setEnabled(!busy && item.item.downloadable);
             loadImage(card.findViewById(R.id.IVWorkshopCard), item.item);
-            card.setOnClickListener(v -> showDetail(item.item));
+            card.setOnClickListener(v -> showDetail(item));
             grid.addView(card);
         }
         Button more = view.findViewById(R.id.BTWorkshopMore);
@@ -303,13 +303,26 @@ public final class DD1WorkshopFragment extends Fragment {
         });
     }
 
-    void showDetail(DD1WorkshopItem item) {
+    void showDetail(DD1WorkshopSnapshot.Card card) {
+        DD1WorkshopItem item = card.item;
         View content = LayoutInflater.from(requireContext()).inflate(
             R.layout.dd1_workshop_detail, null, false);
         renderDetail(content, item);
         AlertDialog dialog = new AlertDialog.Builder(requireContext(), R.style.DD1Dialog)
-            .setView(content).setNegativeButton(R.string.dd1_workshop_close, null).create();
+            .setView(content).create();
         detailDialog = dialog;
+        Button action = content.findViewById(R.id.BTWorkshopDetailSubscribe);
+        action.setText(card.subscribed ? R.string.dd1_workshop_unsubscribe
+            : R.string.dd1_workshop_subscribe);
+        action.setEnabled(service != null && (card.subscribed || item.downloadable));
+        action.setOnClickListener(v -> {
+            if (card.subscribed) confirmUnsubscribe(item, dialog::dismiss);
+            else if (service != null) {
+                dialog.dismiss();
+                service.subscribeWorkshop(item.publishedFileId);
+            }
+        });
+        content.findViewById(R.id.BTWorkshopDetailClose).setOnClickListener(v -> dialog.dismiss());
         dialog.setOnDismissListener(ignored -> {
             if (detailDialog == dialog) detailDialog = null;
         });
@@ -388,11 +401,16 @@ public final class DD1WorkshopFragment extends Fragment {
     }
 
     private void confirmUnsubscribe(DD1WorkshopItem item) {
+        confirmUnsubscribe(item, null);
+    }
+
+    private void confirmUnsubscribe(DD1WorkshopItem item, Runnable confirmed) {
         new AlertDialog.Builder(requireContext(), R.style.DD1Dialog)
             .setTitle(R.string.dd1_workshop_unsubscribe_title)
             .setMessage(getString(R.string.dd1_workshop_unsubscribe_message, item.title))
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.dd1_workshop_unsubscribe, (dialog, which) -> {
+                if (confirmed != null) confirmed.run();
                 if (service != null) service.unsubscribeWorkshop(item.publishedFileId);
             }).show();
     }
