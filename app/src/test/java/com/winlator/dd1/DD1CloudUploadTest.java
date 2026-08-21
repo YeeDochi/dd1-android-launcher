@@ -1,6 +1,7 @@
 package com.winlator.dd1;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -9,6 +10,13 @@ import java.util.Arrays;
 import java.util.Collections;
 
 public class DD1CloudUploadTest {
+    // Steam defines zero as "download nowhere", not "use the default". That
+    // leaves API readers able to see the file while every desktop rejects it.
+    @Test
+    public void uploadsTargetEverySteamPlatform() {
+        assertEquals(-1, DD1CloudSaves.PLATFORMS_TO_SYNC);
+    }
+
     // Uploading nothing is how a cloud gets emptied. The funnel refuses it here
     // so no caller has to remember to.
     @Test

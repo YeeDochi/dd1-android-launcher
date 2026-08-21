@@ -6,6 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
+import java.util.zip.ZipInputStream;
 
 // Steam does not move save bytes itself: it hands out the request to make and
 // the digest to expect. This is the part that speaks HTTP's language without
@@ -33,6 +34,19 @@ public final class DD1CloudTransfer {
     // Steam reports both sizes; a body already the raw length was never squashed.
     public static byte[] inflate(byte[] body, int rawSize) {
         if (body.length == rawSize) return body;
+        if (body.length >= 4 && body[0] == 'P' && body[1] == 'K') {
+            try (ZipInputStream zip = new ZipInputStream(new java.io.ByteArrayInputStream(body))) {
+                if (zip.getNextEntry() == null) return body;
+                ByteArrayOutputStream out = new ByteArrayOutputStream(rawSize);
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = zip.read(buffer)) > 0) out.write(buffer, 0, read);
+                return out.toByteArray();
+            }
+            catch (java.io.IOException brokenZip) {
+                return body;
+            }
+        }
         Inflater inflater = new Inflater();
         inflater.setInput(body);
         ByteArrayOutputStream out = new ByteArrayOutputStream(rawSize);

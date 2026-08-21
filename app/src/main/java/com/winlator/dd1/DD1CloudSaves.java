@@ -13,6 +13,8 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import android.util.Log;
+
 import in.dragonbra.javasteam.steam.handlers.steamcloud.AppFileChangeList;
 import in.dragonbra.javasteam.steam.handlers.steamcloud.AppFileInfo;
 import in.dragonbra.javasteam.steam.handlers.steamcloud.FileDownloadInfo;
@@ -26,6 +28,9 @@ import in.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud;
 // because those two mean opposite things to the caller. Writing goes through one
 // guarded method, so no path can skip the guard.
 public final class DD1CloudSaves {
+    // Steam's protocol defines 0 as "download on no platform". All is -1.
+    static final int PLATFORMS_TO_SYNC = -1;
+
     private final SteamCloud cloud;
 
     public DD1CloudSaves(SteamCloud cloud) {
@@ -83,17 +88,29 @@ public final class DD1CloudSaves {
                 DD1SteamEvents.APP_ID, path,
                 in.dragonbra.javasteam.enums.ESteamRealm.SteamGlobal, false,
                 kotlinx.coroutines.GlobalScope.INSTANCE).get();
-            if (info.isExplicitDelete()) return null;
+            if (info.isExplicitDelete()) {
+                Log.e("DD1Cloud", "Fetch " + path + ": explicit delete");
+                return null;
+            }
 
             byte[] body = get(DD1CloudTransfer.url(info.getUrlHost(), info.getUrlPath(),
                 info.getUseHttps()), info.getRequestHeaders());
-            if (body == null) return null;
+            if (body == null) {
+                Log.e("DD1Cloud", "Fetch " + path + ": no body");
+                return null;
+            }
             byte[] content = DD1CloudTransfer.inflate(body, info.getRawFileSize());
             // The digest Steam gave is the only reason to trust these bytes.
-            if (!DD1CloudTransfer.digestMatches(content, info.getShaFile())) return null;
+            if (!DD1CloudTransfer.digestMatches(content, info.getShaFile())) {
+                Log.e("DD1Cloud", "Fetch " + path + ": digest mismatch, body "
+                    + body.length + " raw " + info.getRawFileSize()
+                    + " inflated " + content.length);
+                return null;
+            }
             return content;
         }
         catch (Throwable failed) {
+            Log.e("DD1Cloud", "Fetch " + path + " failed", failed);
             return null;
         }
     }
@@ -123,6 +140,7 @@ public final class DD1CloudSaves {
                 kotlinx.coroutines.GlobalScope.INSTANCE).get().getBatchID();
         }
         catch (Exception refused) {
+            Log.e("DD1Cloud", "Upload batch refused", refused);
             return false;
         }
 
@@ -142,6 +160,7 @@ public final class DD1CloudSaves {
                 kotlinx.coroutines.GlobalScope.INSTANCE).get();
         }
         catch (Exception ignored) {
+            Log.e("DD1Cloud", "Upload batch completion failed", ignored);
             return false;
         }
         return allDone;
@@ -155,7 +174,7 @@ public final class DD1CloudSaves {
 
             FileUploadInfo info = cloud.beginFileUpload(DD1SteamEvents.APP_ID,
                 content.length, content.length, sha1, new Date(file.modifiedMillis),
-                file.path, 0, 0, false, false, null, batch,
+                file.path, PLATFORMS_TO_SYNC, 0, false, false, null, batch,
                 kotlinx.coroutines.GlobalScope.INSTANCE).get();
             // An encrypted upload needs a key exchange this launcher does not do.
             // Guessing at it would write rubbish into the player's cloud.
@@ -168,10 +187,13 @@ public final class DD1CloudSaves {
                     return false;
                 }
             }
-            return cloud.commitFileUpload(true, DD1SteamEvents.APP_ID, sha1, file.path,
-                kotlinx.coroutines.GlobalScope.INSTANCE).get();
+            boolean committed = cloud.commitFileUpload(true, DD1SteamEvents.APP_ID, sha1,
+                file.path, kotlinx.coroutines.GlobalScope.INSTANCE).get();
+            if (!committed) Log.e("DD1Cloud", "Commit rejected: " + file.path);
+            return committed;
         }
         catch (Exception failed) {
+            Log.e("DD1Cloud", "Upload failed: " + file.path, failed);
             return false;
         }
     }
@@ -223,7 +245,11 @@ public final class DD1CloudSaves {
             connection.setRequestMethod("GET");
             for (HttpHeaders header : headers)
                 connection.setRequestProperty(header.getName(), header.getValue());
-            if (connection.getResponseCode() / 100 != 2) return null;
+            int status = connection.getResponseCode();
+            if (status / 100 != 2) {
+                Log.e("DD1Cloud", "GET " + url + " -> " + status);
+                return null;
+            }
             try (InputStream in = connection.getInputStream()) {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 byte[] buffer = new byte[8192];
@@ -233,6 +259,7 @@ public final class DD1CloudSaves {
             }
         }
         catch (Exception failed) {
+            Log.e("DD1Cloud", "GET " + url + " failed", failed);
             return null;
         }
         finally {

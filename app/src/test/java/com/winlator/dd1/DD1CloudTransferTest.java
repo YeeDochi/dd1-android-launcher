@@ -9,6 +9,8 @@ import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.util.zip.Deflater;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class DD1CloudTransferTest {
     @Test
@@ -47,6 +49,18 @@ public class DD1CloudTransferTest {
         byte[] squashed = deflate(content);
 
         assertArrayEquals(content, DD1CloudTransfer.inflate(squashed, content.length));
+    }
+
+    @Test
+    public void aSteamZipBodyIsInflated() throws Exception {
+        byte[] content = "hello hello hello hello".getBytes();
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
+            zip.putNextEntry(new ZipEntry("save"));
+            zip.write(content);
+        }
+
+        assertArrayEquals(content, DD1CloudTransfer.inflate(bytes.toByteArray(), content.length));
     }
 
     private static byte[] deflate(byte[] content) {

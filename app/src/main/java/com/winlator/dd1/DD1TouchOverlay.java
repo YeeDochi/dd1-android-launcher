@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
@@ -31,6 +32,7 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     private final View manyFingers;
     private final float[] xform = XForm.getInstance();
     private final TouchGesture gesture = new TouchGesture(this);
+    private final DD1KeyboardMode keyboardMode = new DD1KeyboardMode();
     private final Runnable hold = this::tick;
 
     private final RectF escape = new RectF();
@@ -62,13 +64,15 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         // and the game loses the field it had selected.
         setFocusable(true);
         setFocusableInTouchMode(true);
+        AppUtils.observeSoftKeyboardVisibility(this, this::keyboardVisibilityChanged);
         placeEscape(0, AppUtils.getScreenHeight());
     }
 
     @Override
     protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
         super.onSizeChanged(width, height, oldWidth, oldHeight);
-        placeEscape(transformation().viewOffsetX, height);
+        placeEscape(transformation().viewOffsetX,
+            keyboardMode.active() ? visibleBottom() : height);
     }
 
     // The container draws at its own resolution inside whatever the screen is, so
@@ -106,6 +110,31 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         // the game does not use.
         keyboard.set(left, escape.top - size - margin * 0.5f, left + size,
             escape.top - margin * 0.5f);
+    }
+
+    // Winlator normally pans its desktop towards the pointer when an IME opens.
+    // That helps a desktop text field but makes DD1's whole screen move under a
+    // dragging finger. This callback runs before Winlator's observer, so the
+    // reset is posted to run after it.
+    private void keyboardVisibilityChanged(boolean visible) {
+        if (visible && keyboardMode.active()) {
+            post(() -> {
+                xServer.getRenderer().setScreenOffsetYRelativeToCursor(false);
+                placeEscape(transformation().viewOffsetX, visibleBottom());
+                invalidate();
+            });
+        }
+        else if (!visible && keyboardMode.onImeHidden()) leaveKeyboardMode();
+    }
+
+    // Works whether Android resized the view or left it behind the IME: the
+    // buttons belong at the bottom of the part of the window that is visible.
+    private int visibleBottom() {
+        Rect visible = new Rect();
+        int[] location = new int[2];
+        getWindowVisibleDisplayFrame(visible);
+        getLocationOnScreen(location);
+        return Math.max(0, Math.min(getHeight(), visible.bottom - location[1]));
     }
 
     @Override
@@ -235,12 +264,8 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
             (InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm == null) return;
 
-        if (keyboardShown()) {
-            imm.hideSoftInputFromWindow(getWindowToken(), 0);
-            activity.setRequestedOrientation(
-                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-            activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-            AppUtils.hideSystemUI(activity);
+        if (!keyboardMode.toggle()) {
+            leaveKeyboardMode();
             return;
         }
         activity.getWindow().setSoftInputMode(
@@ -256,16 +281,22 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         imm.showSoftInput(this, 0);
     }
 
-    // The game does not fill the window once the keyboard has taken half of it,
-    // and a touch in the black around it lands on the edge of the desktop, where
-    // the game scrolls the view - which is the screen shaking by itself. Outside
-    // the picture there is nothing to press.
-    private boolean keyboardShown() {
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R) return false;
-        android.view.WindowInsets insets = getRootWindowInsets();
-        return insets != null && insets.isVisible(android.view.WindowInsets.Type.ime());
+    private void leaveKeyboardMode() {
+        android.app.Activity activity = getContext() instanceof android.app.Activity
+            ? (android.app.Activity)getContext() : null;
+        if (activity == null) return;
+        InputMethodManager imm =
+            (InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) imm.hideSoftInputFromWindow(getWindowToken(), 0);
+        activity.setRequestedOrientation(
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+        activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        AppUtils.hideSystemUI(activity);
     }
 
+    // The game does not fill the window once the keyboard has taken half of it,
+    // and a touch in the black around it lands on the edge of the desktop. There
+    // is nothing to press outside the picture.
     private boolean insidePicture(float x, float y) {
         if (xServer.getRenderer().isFullscreen()) return true;
         ViewTransformation transformation = transformation();
