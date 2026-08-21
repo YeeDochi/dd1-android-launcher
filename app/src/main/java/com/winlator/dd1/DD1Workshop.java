@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -18,24 +17,32 @@ public final class DD1Workshop {
         public final long publishedFileId;
         public final long updatedAt;
         public final String title;
+        public final boolean disabled;
 
-        private Mod(String directoryName, long publishedFileId, long updatedAt, String title) {
+        private Mod(String directoryName, long publishedFileId, long updatedAt, String title,
+                boolean disabled) {
             this.directoryName = directoryName;
             this.publishedFileId = publishedFileId;
             this.updatedAt = updatedAt;
             this.title = title;
+            this.disabled = disabled;
         }
     }
 
     private DD1Workshop() {}
 
     public static List<Mod> scan(File filesDir) {
-        File[] directories = new File(filesDir, "game/mods").listFiles(File::isDirectory);
-        if (directories == null) return Collections.emptyList();
-        Arrays.sort(directories, Comparator.comparing(File::getName));
         List<Mod> result = new ArrayList<>();
-        for (File directory : directories) result.add(read(directory));
+        scanRoot(new File(filesDir, "game/mods"), false, result);
+        scanRoot(new File(filesDir, "game/mods-disabled"), true, result);
         return result;
+    }
+
+    private static void scanRoot(File root, boolean disabled, List<Mod> result) {
+        File[] directories = root.listFiles(File::isDirectory);
+        if (directories == null) return;
+        Arrays.sort(directories, Comparator.comparing(File::getName));
+        for (File directory : directories) result.add(read(directory, disabled));
     }
 
     public static File staging(File filesDir, long publishedFileId) throws IOException {
@@ -52,7 +59,8 @@ public final class DD1Workshop {
         rejectLinks(payload);
         Files.write(new File(payload, MARKER).toPath(), marker(publishedFileId, updatedAt, title));
 
-        File mods = new File(filesDir, "game/mods");
+        File disabled = new File(filesDir, "game/mods-disabled/" + publishedFileId);
+        File mods = new File(filesDir, disabled.isDirectory() ? "game/mods-disabled" : "game/mods");
         if (!mods.isDirectory() && !mods.mkdirs()) throw new IOException("Cannot create mods directory");
         File active = new File(mods, Long.toString(publishedFileId));
         File backup = new File(mods, publishedFileId + ".dd1-backup");
@@ -78,7 +86,15 @@ public final class DD1Workshop {
         deleteTree(target);
     }
 
-    private static Mod read(File directory) {
+    public static void disable(File filesDir, String directoryName) throws IOException {
+        move(filesDir, directoryName, "mods", "mods-disabled");
+    }
+
+    public static void enable(File filesDir, String directoryName) throws IOException {
+        move(filesDir, directoryName, "mods-disabled", "mods");
+    }
+
+    private static Mod read(File directory, boolean disabled) {
         try {
             List<String> lines = Files.readAllLines(new File(directory, MARKER).toPath(),
                 StandardCharsets.UTF_8);
@@ -87,11 +103,30 @@ public final class DD1Workshop {
             long updated = Long.parseLong(lines.get(1));
             if (id <= 0 || !directory.getName().equals(Long.toString(id)))
                 throw new IOException("Mismatched marker");
-            return new Mod(directory.getName(), id, updated, lines.get(2));
+            return new Mod(directory.getName(), id, updated, lines.get(2), disabled);
         }
         catch (Exception ignored) {
-            return new Mod(directory.getName(), 0, 0, directory.getName());
+            return new Mod(directory.getName(), 0, 0, directory.getName(), disabled);
         }
+    }
+
+    private static void move(File filesDir, String directoryName, String fromName, String toName)
+            throws IOException {
+        if (directoryName == null || directoryName.isEmpty() || new File(directoryName).isAbsolute())
+            throw new IOException("Invalid mod directory");
+        File game = new File(filesDir, "game");
+        File from = new File(game, fromName).getCanonicalFile();
+        File to = new File(game, toName).getCanonicalFile();
+        File sourcePath = new File(from, directoryName);
+        if (Files.isSymbolicLink(sourcePath.toPath())) throw new IOException("Mod directory is a link");
+        File source = sourcePath.getCanonicalFile();
+        File destination = new File(to, directoryName).getCanonicalFile();
+        if (!from.equals(source.getParentFile()) || !to.equals(destination.getParentFile()))
+            throw new IOException("Invalid mod directory");
+        if (!source.isDirectory()) throw new IOException("Mod directory no longer exists");
+        if (destination.exists()) throw new IOException("Mod already exists in the destination");
+        if (!to.isDirectory() && !to.mkdirs()) throw new IOException("Cannot create mod directory");
+        if (!source.renameTo(destination)) throw new IOException("Cannot move mod directory");
     }
 
     private static File payload(File staging) throws IOException {

@@ -120,6 +120,53 @@ public class DD1WorkshopTest {
         expectIOException(() -> DD1Workshop.delete(files, new File(files, "game").getAbsolutePath()));
     }
 
+    @Test
+    public void disableAndEnableMoveWithoutDeletingThePayload() throws Exception {
+        File files = folder.newFolder();
+        File active = mkdir(files, "game/mods/local");
+        touch(new File(active, "project.xml"));
+
+        DD1Workshop.disable(files, "local");
+
+        assertFalse(active.exists());
+        assertTrue(new File(files, "game/mods-disabled/local/project.xml").isFile());
+        assertTrue(DD1Workshop.scan(files).get(0).disabled);
+
+        DD1Workshop.enable(files, "local");
+
+        assertTrue(new File(files, "game/mods/local/project.xml").isFile());
+        assertFalse(DD1Workshop.scan(files).get(0).disabled);
+    }
+
+    @Test
+    public void moveRefusesToOverwriteTheOtherState() throws Exception {
+        File files = folder.newFolder();
+        mkdir(files, "game/mods/local");
+        mkdir(files, "game/mods-disabled/local");
+
+        expectIOException(() -> DD1Workshop.disable(files, "local"));
+
+        assertTrue(new File(files, "game/mods/local").isDirectory());
+        assertTrue(new File(files, "game/mods-disabled/local").isDirectory());
+    }
+
+    @Test
+    public void updatePreservesDisabledState() throws Exception {
+        File files = folder.newFolder();
+        File disabled = mkdir(files, "game/mods-disabled/42");
+        touch(new File(disabled, "old"));
+        Files.write(new File(disabled, ".dd1-workshop").toPath(),
+            "42\n7\nOld\n".getBytes(StandardCharsets.UTF_8));
+        File staged = mkdir(files, "workshop-staging/42");
+        touch(new File(staged, "project.xml"));
+
+        DD1Workshop.promote(files, 42, 8, "New");
+
+        assertFalse(new File(files, "game/mods/42").exists());
+        assertTrue(new File(files, "game/mods-disabled/42/project.xml").isFile());
+        assertTrue(DD1Workshop.scan(files).get(0).disabled);
+    }
+
     private static File mkdir(File root, String path) {
         File result = new File(root, path);
         assertTrue(result.mkdirs());
