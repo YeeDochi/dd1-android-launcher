@@ -14,12 +14,19 @@ public final class ModSyncPlan {
         public final String title;
         public final long updatedAt;
         public final boolean downloadable;
+        public final long hcontentFile;
 
         public Subscribed(long publishedFileId, String title, long updatedAt, boolean downloadable) {
+            this(publishedFileId, title, updatedAt, downloadable, 0);
+        }
+
+        public Subscribed(long publishedFileId, String title, long updatedAt,
+                boolean downloadable, long hcontentFile) {
             this.publishedFileId = publishedFileId;
             this.title = title;
             this.updatedAt = updatedAt;
             this.downloadable = downloadable;
+            this.hcontentFile = hcontentFile;
         }
     }
 

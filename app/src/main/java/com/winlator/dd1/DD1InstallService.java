@@ -147,7 +147,7 @@ public final class DD1InstallService extends Service {
                 return;
             }
             if (workshopBrowse.isEmpty()) browseWorkshop("", 0, false);
-            syncWorkshop();
+            else syncWorkshop();
         }));
     }
 
@@ -173,28 +173,24 @@ public final class DD1InstallService extends Service {
                 workshopBrowse = Collections.unmodifiableList(items);
                 publishWorkshop(joinedWorkshop().withBrowse(workshopBrowse, query, sort, page,
                     result.total, false, null));
+                if (query.isEmpty() && page == 1) syncWorkshop();
             }));
     }
 
     public void subscribeWorkshop(long publishedFileId) {
         DD1WorkshopSnapshot.Card card = workshopSnapshot.findBrowse(publishedFileId);
-        if (!ownsGame || downloader != null || card == null || card.subscribed) return;
+        if (!ownsGame || downloading || card == null || card.subscribed) return;
         steam.subscribe(publishedFileId).whenComplete((ignored, error) -> worker.execute(() -> {
             if (error != null) {
                 publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
                 return;
             }
-            List<ModSyncPlan.Subscribed> subscriptions = new ArrayList<>(workshopSubscriptions);
-            subscriptions.add(new ModSyncPlan.Subscribed(card.item.publishedFileId,
-                card.item.title, card.item.updatedAt, card.item.downloadable));
-            workshopSubscriptions = Collections.unmodifiableList(subscriptions);
-            publishWorkshop(joinedWorkshop());
-            syncWorkshop();
+            refreshWorkshop();
         }));
     }
 
     public void unsubscribeWorkshop(long publishedFileId) {
-        if (!ownsGame || downloader != null) return;
+        if (!ownsGame || downloading) return;
         steam.unsubscribe(publishedFileId).whenComplete((ignored, error) -> worker.execute(() -> {
             if (error != null) {
                 publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
@@ -226,7 +222,7 @@ public final class DD1InstallService extends Service {
     }
 
     public synchronized void syncWorkshop() {
-        if (downloader != null || !workshopSnapshot.syncable()) return;
+        if (downloading || !workshopSnapshot.syncable()) return;
         List<ModSyncPlan.Subscribed> items = new ArrayList<>(workshopSnapshot.syncItems());
         cancelled = false;
         downloading = true;
@@ -235,7 +231,7 @@ public final class DD1InstallService extends Service {
     }
 
     public void deleteMod(String directoryName) {
-        if (downloader != null) return;
+        if (downloading) return;
         DD1WorkshopSnapshot.Row row = workshopSnapshot.findDirectory(directoryName);
         worker.execute(() -> {
             try {
@@ -250,7 +246,7 @@ public final class DD1InstallService extends Service {
     }
 
     public void importMod(Uri uri) {
-        if (uri == null || downloader != null) return;
+        if (uri == null || downloading) return;
         worker.execute(() -> {
             try (InputStream input = getContentResolver().openInputStream(uri)) {
                 if (input == null) throw new IllegalStateException("Cannot open selected ZIP");
@@ -359,34 +355,28 @@ public final class DD1InstallService extends Service {
         try {
             int done = 0;
             for (ModSyncPlan.Subscribed item : items) {
-                AtomicReference<Throwable> failure = new AtomicReference<>();
-                completion = new CountDownLatch(1);
                 File staging = DD1Workshop.staging(getFilesDir(), item.publishedFileId);
                 workshopLog.append("Downloading " + item.title);
                 publishWorkshop(base.syncing(item.title, done * 100 / items.size(),
                     workshopLog.visibleLines()));
                 try {
-                    downloader = new DepotDownloader(steam.client(), steam.licenses(), false,
-                        false, 2, 1, 1, true);
-                    downloader.addListener(new WorkshopProgressListener(base, item, done,
-                        items.size(), failure));
-                    downloader.add(DD1WorkshopCatalog.download(item.publishedFileId,
-                        staging.getAbsolutePath()));
-                    downloader.finishAdding();
-                    awaitCompletion();
+                    final int completed = done;
+                    DD1WorkshopCdn.download(steam.client(), item.hcontentFile, staging,
+                        (percent, file) -> {
+                            lastHeard = System.currentTimeMillis();
+                            int overall = (int)((completed + percent / 100f)
+                                * 100 / items.size());
+                            publishWorkshop(base.syncing(item.title, overall,
+                                workshopLog.visibleLines()));
+                        }, () -> cancelled);
                     if (cancelled) return;
-                    if (failure.get() != null) throw failure.get();
                     DD1Workshop.promote(getFilesDir(), item.publishedFileId, item.updatedAt,
                         item.title);
                     workshopLog.append("Installed " + item.title);
                 }
                 catch (Throwable error) {
                     workshopLog.append(item.title + ": " + reason(error));
-                }
-                finally {
-                    if (downloader != null) downloader.close();
-                    downloader = null;
-                    completion = null;
+                    android.util.Log.e("DD1Workshop", "Download failed: " + item.title, error);
                 }
                 done++;
             }
@@ -407,6 +397,7 @@ public final class DD1InstallService extends Service {
 
     private void publishWorkshop(DD1WorkshopSnapshot value) {
         workshopSnapshot = value;
+        updateWorkshopNotification(value);
         main.post(() -> {
             WorkshopListener current = workshopListener;
             if (current != null) current.onSnapshot(workshopSnapshot);
@@ -421,7 +412,7 @@ public final class DD1InstallService extends Service {
     }
 
     private void moveMod(String directoryName, boolean enable) {
-        if (downloader != null) return;
+        if (downloading) return;
         worker.execute(() -> {
             try {
                 if (enable) DD1Workshop.enable(getFilesDir(), directoryName);
@@ -660,6 +651,19 @@ public final class DD1InstallService extends Service {
         if (manager != null) manager.notify(1, notification(text, percent));
     }
 
+    static String workshopNotificationText(String title, int percent) {
+        return title + " · " + Math.max(0, Math.min(100, percent)) + "%";
+    }
+
+    private void updateWorkshopNotification(DD1WorkshopSnapshot value) {
+        if (value.phase != DD1WorkshopSnapshot.Phase.SYNCING) return;
+        String text = workshopNotificationText(value.message, value.progress);
+        if (text.equals(lastNotification)) return;
+        lastNotification = text;
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager != null) manager.notify(1, notification(text, value.progress));
+    }
+
     private void createNotificationChannel() {
         NotificationManager manager = getSystemService(NotificationManager.class);
         manager.createNotificationChannel(new NotificationChannel(CHANNEL,
@@ -732,47 +736,4 @@ public final class DD1InstallService extends Service {
         }
     }
 
-    private final class WorkshopProgressListener implements IDownloadListener {
-        private final DD1WorkshopSnapshot base;
-        private final ModSyncPlan.Subscribed item;
-        private final int done;
-        private final int total;
-        private final AtomicReference<Throwable> failure;
-
-        WorkshopProgressListener(DD1WorkshopSnapshot base, ModSyncPlan.Subscribed item,
-                int done, int total, AtomicReference<Throwable> failure) {
-            this.base = base;
-            this.item = item;
-            this.done = done;
-            this.total = total;
-            this.failure = failure;
-        }
-
-        @Override
-        public void onStatusUpdate(String message) {
-            lastHeard = System.currentTimeMillis();
-            workshopLog.append(message);
-            publishWorkshop(base.syncing(item.title, done * 100 / total,
-                workshopLog.visibleLines()));
-        }
-
-        @Override
-        public void onChunkCompleted(int depotId, float percent, long bytes, long uncompressed) {
-            lastHeard = System.currentTimeMillis();
-            int overall = (int)((done + Math.max(0, Math.min(100, percent)) / 100f)
-                * 100 / total);
-            publishWorkshop(base.syncing(item.title, overall, workshopLog.visibleLines()));
-        }
-
-        @Override
-        public void onDownloadCompleted(DownloadItem item) {
-            completion.countDown();
-        }
-
-        @Override
-        public void onDownloadFailed(DownloadItem item, Throwable error) {
-            failure.set(error);
-            completion.countDown();
-        }
-    }
 }

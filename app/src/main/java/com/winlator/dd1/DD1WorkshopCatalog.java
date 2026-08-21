@@ -11,7 +11,6 @@ import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSt
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_GetDetails_Request;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_Subscribe_Request;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_Unsubscribe_Request;
-import in.dragonbra.javasteam.depotdownloader.data.PubFileItem;
 
 public final class DD1WorkshopCatalog {
     private DD1WorkshopCatalog() {}
@@ -24,11 +23,6 @@ public final class DD1WorkshopCatalog {
             .setPage(page)
             .setNumperpage(100)
             .build();
-    }
-
-    public static PubFileItem download(long publishedFileId, String stagingPath) {
-        return new PubFileItem(DD1SteamEvents.APP_ID, publishedFileId, false,
-            stagingPath, false, false);
     }
 
     public static CPublishedFile_QueryFiles_Request query(String text, int sort, int page) {
@@ -128,7 +122,8 @@ public final class DD1WorkshopCatalog {
             String title = detail.getTitle().isEmpty()
                 ? Long.toString(detail.getPublishedfileid()) : detail.getTitle();
             result.add(new ModSyncPlan.Subscribed(detail.getPublishedfileid(), title,
-                Integer.toUnsignedLong(detail.getTimeUpdated()), downloadable));
+                Integer.toUnsignedLong(detail.getTimeUpdated()), downloadable,
+                detail.getHcontentFile()));
         }
         return result;
     }

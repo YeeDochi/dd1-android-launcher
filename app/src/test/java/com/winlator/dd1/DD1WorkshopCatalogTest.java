@@ -16,7 +16,6 @@ import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSt
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_GetDetails_Request;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_Subscribe_Request;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesPublishedfileSteamclient.CPublishedFile_Unsubscribe_Request;
-import in.dragonbra.javasteam.depotdownloader.data.PubFileItem;
 
 public class DD1WorkshopCatalogTest {
     @Test
@@ -26,6 +25,7 @@ public class DD1WorkshopCatalogTest {
         assertEquals(42L, item.publishedFileId);
         assertEquals("Musketeer", item.title);
         assertEquals(7L, item.updatedAt);
+        assertEquals(99L, item.hcontentFile);
         assertTrue(item.downloadable);
     }
 
@@ -62,18 +62,6 @@ public class DD1WorkshopCatalogTest {
         assertEquals("mysubscriptions", request.getType());
         assertEquals(3, request.getPage());
         assertEquals(100, request.getNumperpage());
-    }
-
-    @Test
-    public void downloadRequestTargetsOneWorkshopItemWithoutVerifyMode() {
-        PubFileItem item = DD1WorkshopCatalog.download(42, "/staging/42");
-
-        assertEquals(262060, item.getAppId());
-        assertEquals(42L, item.getPubFile());
-        assertEquals("/staging/42", item.getInstallDirectory());
-        assertFalse(item.getInstallToGameNameDirectory());
-        assertFalse(item.getVerify());
-        assertFalse(item.getDownloadManifestOnly());
     }
 
     @Test
