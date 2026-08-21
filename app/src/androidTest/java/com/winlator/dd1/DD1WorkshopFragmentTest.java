@@ -97,6 +97,14 @@ public class DD1WorkshopFragmentTest {
                 assertEquals(close, ((LinearLayout)close.getParent()).getChildAt(1));
                 workshop.detailDialog.dismiss();
 
+                context.getSharedPreferences("dd1", Context.MODE_PRIVATE).edit()
+                    .putInt("workshop_columns", 4).commit();
+                cards.setColumnCount(4);
+                ((GridLayout.LayoutParams)cards.getChildAt(0).getLayoutParams()).columnSpec =
+                    GridLayout.spec(3, 1f);
+                activity.findViewById(R.id.BTWorkshopColumns).performClick();
+                assertEquals(2, cards.getColumnCount());
+
                 activity.findViewById(R.id.BTWorkshopTabInstalled).performClick();
                 workshop.renderSnapshot(snapshot);
                 assertEquals("local-fixture", ((TextView)activity.findViewById(
@@ -105,14 +113,10 @@ public class DD1WorkshopFragmentTest {
                     R.id.BTWorkshopEnable).getVisibility());
             });
             scenario.onActivity(activity -> {
-                activity.findViewById(R.id.BTWorkshopColumns).performClick();
-                activity.findViewById(R.id.BTWorkshopColumns).performClick();
-            });
-            scenario.onActivity(activity -> {
                 int saved = activity.getSharedPreferences("dd1", Context.MODE_PRIVATE)
                     .getInt("workshop_columns", -1);
-                assertEquals(4, saved);
-                assertEquals(4,
+                assertEquals(2, saved);
+                assertEquals(2,
                     ((GridLayout)activity.findViewById(R.id.GLWorkshopCards)).getColumnCount());
             });
         }

@@ -432,6 +432,12 @@ public final class DD1WorkshopFragment extends Fragment {
         requireContext().getSharedPreferences("dd1", Context.MODE_PRIVATE).edit()
             .putInt(PREF_COLUMNS, count).apply();
         GridLayout grid = root.findViewById(R.id.GLWorkshopCards);
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            GridLayout.LayoutParams params =
+                (GridLayout.LayoutParams)grid.getChildAt(i).getLayoutParams();
+            params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED);
+            params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        }
         grid.setColumnCount(count);
         grid.requestLayout();
         root.findViewById(R.id.BTWorkshopColumns).setContentDescription(
