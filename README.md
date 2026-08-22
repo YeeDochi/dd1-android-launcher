@@ -269,15 +269,23 @@ go through that path - which is why one shows and the other does not.
 > The figure above is a drawing of the symptom, not a capture of the game. No
 > game imagery is kept in this repository.
 
-**Drawer, Settings, scroll to the bottom: read the two lines under `Graphics`.**
-They name the GPU and the drivers in force.
+**Drawer, Settings, `Graphics driver` at the bottom.** The *Automatic* row names
+this device's GPU and the drivers it chose from it.
 
 <p align="center">
-  <img src="docs/screenshots/08-graphics.png" width="70%" alt="The Graphics entry at the bottom of Settings: GPU name and drivers">
+  <img src="docs/screenshots/08-graphics.png" width="70%" alt="The graphics driver section: the GPU detected, the drivers applied, and the list to choose from">
 </p>
 
-Quote those two lines in the issue. Most of the time they are enough to narrow it
-down. Also worth having:
+Quote those two lines from *Automatic* in the issue - the GPU and the drivers.
+Most of the time they are enough to narrow it down.
+
+**You can also change it here.** Each entry says which devices it is for, so if
+the automatic answer did not suit yours, pick the one matching the GPU name - on
+Exynos and Mali parts with a black picture that is *Exynos and other devices
+(VirGL)*. It takes effect the next time you press Play, and Automatic puts it
+back.
+
+Also worth having in the issue:
 
 - **Device model and Android version** - Settings, About phone, Software
   information
