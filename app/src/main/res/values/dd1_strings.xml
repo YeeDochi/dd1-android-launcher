@@ -174,4 +174,7 @@
     <string name="dd1_update_message">You are running %s. The new APK is on the release page; download it there and install over this one - the game, the saves and the mods stay where they are.</string>
     <string name="dd1_update_get">Open the release page</string>
     <string name="dd1_update_hide_today">Not today</string>
+    <string name="dd1_runtime_menu">Winlator menu</string>
+    <string name="dd1_runtime_menu_enable">Let the runtime menu open during the game</string>
+    <string name="dd1_runtime_menu_hint">Off by default. It is the panel that slides in from the left, and a controller opens it by accident: a button the game does not use arrives as Back, and the runtime answers Back by opening the menu. Turn it on if you want the runtime\'s own keyboard, task manager or exit. Takes effect the next time you press Play.</string>
 </resources>

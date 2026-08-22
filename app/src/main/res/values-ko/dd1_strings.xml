@@ -173,4 +173,7 @@
     <string name="dd1_update_message">지금 쓰는 것은 %s입니다. 새 APK는 릴리즈 페이지에 있습니다. 거기서 받아 이 위에 덮어 설치하면 되고, 게임과 세이브와 모드는 그대로 남습니다.</string>
     <string name="dd1_update_get">릴리즈 페이지 열기</string>
     <string name="dd1_update_hide_today">오늘 하루 보지 않기</string>
+    <string name="dd1_runtime_menu">Winlator 메뉴</string>
+    <string name="dd1_runtime_menu_enable">게임 중에 런타임 메뉴가 열리게 하기</string>
+    <string name="dd1_runtime_menu_hint">기본은 꺼짐입니다. 왼쪽에서 밀려 나오는 그 패널인데, 컨트롤러를 쓰면 실수로 열립니다. 게임이 쓰지 않는 버튼이 뒤로가기로 들어오고, 런타임은 뒤로가기에 이 메뉴를 여는 것으로 답하기 때문입니다. 런타임 자체의 키보드나 작업 관리자, 종료가 필요하면 켜십시오. 다음에 플레이를 누를 때 적용됩니다.</string>
 </resources>

@@ -79,6 +79,10 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         setFocusable(true);
         setFocusableInTouchMode(true);
         AppUtils.observeSoftKeyboardVisibility(this, this::keyboardVisibilityChanged);
+        // A controller button that the game does not use arrives as Back, and the
+        // runtime answers Back by opening its drawer over the game.
+        if (context instanceof android.app.Activity)
+            DD1RuntimeMenu.apply((android.app.Activity)context);
         placeEscape(0, AppUtils.getScreenHeight());
         applyRefreshRate(context);
     }
@@ -122,8 +126,7 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     @Override
     protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
         super.onSizeChanged(width, height, oldWidth, oldHeight);
-        placeEscape(transformation().viewOffsetX,
-            keyboardMode.active() ? visibleBottom() : height);
+        refreshButtons();
     }
 
     // The container draws at its own resolution inside whatever the screen is, so
@@ -169,6 +172,17 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         sticky.set(right, escape.top, right + wide, escape.bottom);
     }
 
+    // Every path that moves the buttons goes through here, and it reads the state
+    // rather than being handed it. A placement that was posted while the keyboard
+    // was up used to land after it had gone, leaving the buttons at the height the
+    // keyboard had left and against the edges the shrunken picture had - and
+    // nothing placed them again.
+    private void refreshButtons() {
+        placeEscape(transformation().viewOffsetX,
+            keyboardMode.active() ? visibleBottom() : getHeight());
+        invalidate();
+    }
+
     // Winlator normally pans its desktop towards the pointer when an IME opens.
     // That helps a desktop text field but makes DD1's whole screen move under a
     // dragging finger. This callback runs before Winlator's observer, so the
@@ -177,8 +191,7 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         if (visible && keyboardMode.active()) {
             post(() -> {
                 xServer.getRenderer().setScreenOffsetYRelativeToCursor(false);
-                placeEscape(transformation().viewOffsetX, visibleBottom());
-                invalidate();
+                refreshButtons();
             });
         }
         else if (!visible && keyboardMode.onImeHidden()) leaveKeyboardMode();
@@ -432,10 +445,7 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         if (params == null) return;
         params.height = height;
         picture.setLayoutParams(params);
-        post(() -> {
-            placeEscape(transformation().viewOffsetX, visibleBottom());
-            invalidate();
-        });
+        post(this::refreshButtons);
     }
 
     // The window is told about the keyboard a frame or several after it is asked
@@ -443,6 +453,11 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     // looks free, which is not the same as there being no room - read as no room
     // once, and a device turned itself upright on a measurement that meant nothing.
     private void squeezePictureAboveKeyboard() {
+        // A measurement queued while the keyboard was up can wake while it is on
+        // its way down, when the window is still short. Shrinking then happens
+        // after the picture has been given its height back, and it stays small
+        // with a black band under it.
+        if (!keyboardMode.active()) return;
         int visible = visibleBottom();
         if (visible <= 0 || visible >= heightBeforeKeyboard) {
             if (keyboardMode.active() && ++measurements <= 12)
