@@ -19,6 +19,14 @@ public final class DD1Saves {
         return new File(filesDir, PREFIX_PATH);
     }
 
+    // The same place, reached from a profile directory rather than from files/ -
+    // the launcher only ever uses xuser-1, but a profile left behind by an
+    // interrupted one can carry any number.
+    public static File saveTreeIn(File profileDir) {
+        return new File(profileDir, PREFIX_PATH.substring(
+            PREFIX_PATH.indexOf("xuser-1/") + "xuser-1/".length()));
+    }
+
     public static boolean isSaveTree(File root) {
         return !profiles(root).isEmpty();
     }
