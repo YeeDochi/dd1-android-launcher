@@ -169,4 +169,8 @@
     <string name="dd1_graphics_same_as_auto">자동이 고르는 것</string>
     <string name="dd1_sticky_keys">SHIFT\n+CTRL</string>
     <string name="dd1_sticky_keys_on">ON</string>
+    <string name="dd1_update_title">새 버전 %s</string>
+    <string name="dd1_update_message">지금 쓰는 것은 %s입니다. 새 APK는 릴리즈 페이지에 있습니다. 거기서 받아 이 위에 덮어 설치하면 되고, 게임과 세이브와 모드는 그대로 남습니다.</string>
+    <string name="dd1_update_get">릴리즈 페이지 열기</string>
+    <string name="dd1_update_hide_today">오늘 하루 보지 않기</string>
 </resources>

@@ -170,4 +170,8 @@
     <string name="dd1_graphics_same_as_auto">what Automatic picks</string>
     <string name="dd1_sticky_keys">SHIFT\n+CTRL</string>
     <string name="dd1_sticky_keys_on">ON</string>
+    <string name="dd1_update_title">New version %s</string>
+    <string name="dd1_update_message">You are running %s. The new APK is on the release page; download it there and install over this one - the game, the saves and the mods stay where they are.</string>
+    <string name="dd1_update_get">Open the release page</string>
+    <string name="dd1_update_hide_today">Not today</string>
 </resources>

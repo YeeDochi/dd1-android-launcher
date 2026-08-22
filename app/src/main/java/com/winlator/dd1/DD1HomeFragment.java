@@ -102,6 +102,35 @@ public class DD1HomeFragment extends Fragment {
         view.findViewById(R.id.BTRetryDownload).setOnClickListener(v -> withService(DD1InstallService::download));
         view.findViewById(R.id.BTCancelDownload).setOnClickListener(v -> withService(DD1InstallService::cancel));
         view.findViewById(R.id.BTSteamSignOut).setOnClickListener(v -> withService(DD1InstallService::signOut));
+        DD1Update.checkOnce(requireContext(), this::offerUpdate);
+    }
+
+    // The launcher cannot install itself over itself, so the offer is the page the
+    // APK is on. Refusing for the day is a third button rather than a checkbox:
+    // the answer is what to do now, and there are three answers.
+    private void offerUpdate(String version) {
+        Activity activity = getActivity();
+        if (activity == null) return;
+        new AlertDialog.Builder(activity, R.style.DD1Dialog)
+            .setTitle(getString(R.string.dd1_update_title, version))
+            .setMessage(getString(R.string.dd1_update_message,
+                DD1Update.installedVersion(activity)))
+            .setNeutralButton(R.string.dd1_update_hide_today,
+                (dialog, which) -> DD1Update.hideForToday(activity))
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.dd1_update_get, (dialog, which) -> openReleases(activity))
+            .show();
+    }
+
+    private void openReleases(Activity activity) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW,
+                android.net.Uri.parse(DD1Update.RELEASES_PAGE)));
+        }
+        // A device with no browser at all: saying so beats disappearing.
+        catch (Exception noBrowser) {
+            Toast.makeText(activity, DD1Update.RELEASES_PAGE, Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
