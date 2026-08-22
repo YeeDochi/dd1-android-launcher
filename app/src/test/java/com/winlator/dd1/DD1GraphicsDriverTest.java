@@ -20,16 +20,23 @@ public class DD1GraphicsDriverTest {
         assertEquals("turnip,gladio", DD1GraphicsDriver.forRenderer("adreno 8 Elite"));
     }
 
+    // Turnip is Adreno's and nothing else's, and the bridge to a Mali or Xclipse
+    // driver cannot serve the GL-on-Vulkan layers - the extensions are not there,
+    // Wine turns 3D off, and the game draws its interface over a black world.
+    // VirGL is Mesa's own renderer and works on those parts.
     @Test
-    public void aGpuThatIsNotAnAdrenoGetsVortek() {
-        assertEquals("vortek,gladio", DD1GraphicsDriver.forRenderer("Mali-G720"));
-        assertEquals("vortek,gladio", DD1GraphicsDriver.forRenderer("Samsung Xclipse 950"));
+    public void aGpuThatIsNotAnAdrenoGetsVirglOverVortek() {
+        assertEquals("vortek,virgl", DD1GraphicsDriver.forRenderer("Mali-G720"));
+        assertEquals("vortek,virgl", DD1GraphicsDriver.forRenderer("Samsung Xclipse 950"));
+        assertEquals("vortek,virgl", DD1GraphicsDriver.forRenderer("Samsung Xclipse 960"));
     }
 
     // A renderer string the launcher could not read must not read as Adreno.
+    // A renderer string the launcher could not read must not read as Adreno: the
+    // pair that works on the widest range of parts is the safer answer.
     @Test
-    public void nothingKnownGetsVortek() {
-        assertEquals("vortek,gladio", DD1GraphicsDriver.forRenderer(null));
-        assertEquals("vortek,gladio", DD1GraphicsDriver.forRenderer(""));
+    public void nothingKnownGetsTheOneThatWorksOnMostThings() {
+        assertEquals("vortek,virgl", DD1GraphicsDriver.forRenderer(null));
+        assertEquals("vortek,virgl", DD1GraphicsDriver.forRenderer(""));
     }
 }

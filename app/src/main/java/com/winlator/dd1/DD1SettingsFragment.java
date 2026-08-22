@@ -1,6 +1,10 @@
 package com.winlator.dd1;
 
 import android.os.Bundle;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.RelativeSizeSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +21,7 @@ import com.winlator.box64.Box64Preset;
 import com.winlator.container.Container;
 import com.winlator.core.GPUHelper;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -50,20 +55,108 @@ public class DD1SettingsFragment extends Fragment {
         buildBox64Preset(view.findViewById(R.id.CBBox64Performance));
         buildCpuBudget(view.findViewById(R.id.RGCpuBudget));
         buildRefreshRate(view.findViewById(R.id.RGRefreshRate));
-        showGraphics(view.findViewById(R.id.TVGraphics));
+        buildGraphicsDriver(view.findViewById(R.id.RGGraphicsDriver));
+    }
+
+    // Automatic first, then the pairs, each with a line saying who it is for. A
+    // person here is here because the game will not draw, and a list of driver
+    // names without that line is a guessing game.
+    private void buildGraphicsDriver(RadioGroup group) {
+        group.setOnCheckedChangeListener(null);
+        group.removeAllViews();
+        List<String> options = new ArrayList<>();
+        options.add(DD1GraphicsChoice.AUTOMATIC);
+        options.addAll(DD1GraphicsChoice.PAIRS);
+        String stored = DD1GraphicsChoice.stored(requireContext());
+        if (!options.contains(stored)) stored = DD1GraphicsChoice.AUTOMATIC;
+        String detected = DD1GraphicsDriver.forRenderer(
+            GPUHelper.glGetRenderer(requireContext()));
+        for (String option : options) {
+            RadioButton button = choice(label(option, detected), option.equals(stored));
+            group.addView(button);
+            TextView hint = new TextView(requireContext());
+            hint.setText(option.equals(DD1GraphicsChoice.AUTOMATIC)
+                ? autoHint() : hintOf(option));
+            hint.setTextColor(getResources().getColor(
+                android.R.color.darker_gray, requireContext().getTheme()));
+            hint.setTextSize(12);
+            // Closer to the button it belongs to than to the next one, or it reads
+            // as the beginning of the option below.
+            int gap = Math.round(8 * getResources().getDisplayMetrics().density);
+            RadioGroup.LayoutParams params = new RadioGroup.LayoutParams(
+                RadioGroup.LayoutParams.MATCH_PARENT, RadioGroup.LayoutParams.WRAP_CONTENT);
+            params.bottomMargin = gap;
+            params.leftMargin = Math.round(34 * getResources().getDisplayMetrics().density);
+            hint.setLayoutParams(params);
+            group.addView(hint);
+        }
+        group.setOnCheckedChangeListener((ignored, checkedId) -> {
+            // Two views per option: the button, then its line.
+            int index = indexOf(group, checkedId) / 2;
+            String chosen = index >= 0 && index < options.size()
+                ? options.get(index) : DD1GraphicsChoice.AUTOMATIC;
+            DD1GraphicsChoice.store(requireContext(), chosen);
+            Container container = firstContainer();
+            if (container != null) {
+                container.setGraphicsDriver(DD1GraphicsChoice.resolve(requireContext()));
+                container.saveData();
+            }
+            // The list redraws so the automatic row can say what it now resolves to.
+            buildGraphicsDriver(group);
+        });
+    }
+
+    // Automatic says what it resolved to, and the option it resolved to says so as
+    // well - otherwise the two have to be matched by reading driver names, which is
+    // the work this screen exists to save.
+    private CharSequence label(String option, String detected) {
+        String name = getString(labelOf(option));
+        String note = option.equals(DD1GraphicsChoice.AUTOMATIC) ? detected
+            : option.equals(detected) ? getString(R.string.dd1_graphics_same_as_auto) : null;
+        if (note == null) return name;
+        SpannableString text = new SpannableString(name + "   " + note);
+        text.setSpan(new ForegroundColorSpan(0x99AAAAAA), name.length(), text.length(),
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        text.setSpan(new RelativeSizeSpan(0.85f), name.length(), text.length(),
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return text;
+    }
+
+    // The GPU this device reported, above the explanation, because it is what the
+    // automatic answer was read from - and the line to quote in a bug report.
+    private CharSequence autoHint() {
+        String renderer = GPUHelper.glGetRenderer(requireContext());
+        String explanation = getString(R.string.dd1_graphics_auto_hint);
+        if (renderer == null || renderer.isEmpty()) return explanation;
+        SpannableString text = new SpannableString(renderer + "\n" + explanation);
+        text.setSpan(new ForegroundColorSpan(0xFFBBBBBB), 0, renderer.length(),
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return text;
+    }
+
+    private int labelOf(String pair) {
+        if (pair.equals(DD1GraphicsChoice.AUTOMATIC)) return R.string.dd1_graphics_auto;
+        if (pair.equals("turnip,gladio")) return R.string.dd1_graphics_turnip_gladio;
+        if (pair.equals("turnip,zink")) return R.string.dd1_graphics_turnip_zink;
+        if (pair.equals("vortek,virgl")) return R.string.dd1_graphics_vortek_virgl;
+        return R.string.dd1_graphics_vortek_gladio;
+    }
+
+    private String hintOf(String pair) {
+        if (pair.equals(DD1GraphicsChoice.AUTOMATIC))
+            return getString(R.string.dd1_graphics_auto_hint);
+        if (pair.equals("turnip,gladio"))
+            return getString(R.string.dd1_graphics_turnip_gladio_hint);
+        if (pair.equals("turnip,zink"))
+            return getString(R.string.dd1_graphics_turnip_zink_hint);
+        if (pair.equals("vortek,virgl"))
+            return getString(R.string.dd1_graphics_vortek_virgl_hint);
+        return getString(R.string.dd1_graphics_vortek_gladio_hint);
     }
 
     // Which GPU this is and which drivers the profile ended up on. A screen that
     // will not draw is decided here, and on a device nobody debugging it can
     // reach, this line is the whole story.
-    private void showGraphics(TextView view) {
-        String renderer = GPUHelper.glGetRenderer(requireContext());
-        Container container = firstContainer();
-        view.setText(renderer + "\n"
-            + (container == null ? DD1GraphicsDriver.forRenderer(renderer)
-                : container.getGraphicsDriver()));
-    }
-
     private void buildLanguage(RadioGroup group) {
         String[] names = getResources().getStringArray(R.array.dd1_languages);
         String chosen = DD1Locale.chosen(requireContext());
@@ -149,7 +242,7 @@ public class DD1SettingsFragment extends Fragment {
         return DD1Profiles.first(requireContext());
     }
 
-    private RadioButton choice(String label, boolean checked) {
+    private RadioButton choice(CharSequence label, boolean checked) {
         RadioButton button = new RadioButton(requireContext());
         button.setId(View.generateViewId());
         button.setText(label);

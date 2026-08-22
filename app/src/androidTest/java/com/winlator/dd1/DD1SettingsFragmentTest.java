@@ -11,6 +11,8 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 
 import androidx.fragment.app.Fragment;
+import android.content.Context;
+import androidx.test.core.app.ApplicationProvider;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
@@ -100,6 +102,43 @@ public class DD1SettingsFragmentTest {
                 assertEquals(DD1CpuBudget.list(DD1CpuBudget.ALL, count),
                     container.getCPUList());
             });
+        }
+    }
+
+    // Somebody here is here because the game will not draw. Every option has to
+    // name who it is for, or the list is a guessing game - and picking one has to
+    // stick, which the profile correction used to undo on the next launch.
+    @Test
+    public void theGraphicsDriverCanBeChosenAndSaysWhoEachIsFor() {
+        Context context = ApplicationProvider.getApplicationContext();
+        DD1GraphicsChoice.store(context, DD1GraphicsChoice.AUTOMATIC);
+        try (ActivityScenario<DD1Activity> scenario = ActivityScenario.launch(DD1Activity.class)) {
+            scenario.onActivity(activity -> {
+                DD1SettingsFragment settings = new DD1SettingsFragment();
+                activity.getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.FLDD1Container, settings).commitNow();
+                activity.getSupportFragmentManager().executePendingTransactions();
+
+                RadioGroup group = activity.findViewById(R.id.RGGraphicsDriver);
+                // Automatic plus the pairs, each followed by its own line.
+                assertEquals((DD1GraphicsChoice.PAIRS.size() + 1) * 2, group.getChildCount());
+                assertTrue("automatic is the first and is selected",
+                    ((RadioButton)group.getChildAt(0)).isChecked());
+                for (int i = 1; i < group.getChildCount(); i += 2)
+                    assertTrue("every option carries a line: " + i,
+                        ((TextView)group.getChildAt(i)).getText().length() > 20);
+
+                // Choose the pair for non-Adreno parts.
+                int wanted = 2 * (1 + DD1GraphicsChoice.PAIRS.indexOf("vortek,virgl"));
+                ((RadioButton)group.getChildAt(wanted)).performClick();
+
+                assertEquals("vortek,virgl", DD1GraphicsChoice.stored(context));
+                assertEquals("and it survives being resolved again",
+                    "vortek,virgl", DD1GraphicsChoice.resolve(context));
+            });
+        }
+        finally {
+            DD1GraphicsChoice.store(context, DD1GraphicsChoice.AUTOMATIC);
         }
     }
 }

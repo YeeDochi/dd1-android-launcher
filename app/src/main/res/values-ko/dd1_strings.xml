@@ -154,4 +154,17 @@
     <string name="dd1_steam_code_app_hint">Steam 모바일 앱에 있는 코드를 입력하십시오.</string>
     <string name="dd1_steam_code_wrong">코드가 맞지 않습니다. 다시 입력하십시오.</string>
     <string name="dd1_workshop_busy">다운로드가 끝난 뒤에 할 수 있습니다.</string>
+    <string name="dd1_graphics_driver">그래픽 드라이버</string>
+    <string name="dd1_graphics_auto">자동</string>
+    <string name="dd1_graphics_auto_hint">기기를 보고 알아서 고릅니다. 게임 화면이 안 나올 때만 아래에서 바꿔 보십시오. 위에 적힌 것이 이 기기의 GPU 이름입니다.</string>
+    <string name="dd1_graphics_turnip_gladio">스냅드래곤 기기 (Turnip)</string>
+    <string name="dd1_graphics_turnip_gladio_hint">GPU 이름이 Adreno인 기기 — 갤럭시 S25, 샤오미·원플러스 대부분, ROG Phone. 그중 가장 빠릅니다.</string>
+    <string name="dd1_graphics_turnip_zink">스냅드래곤 기기 · 다른 방식 (Zink)</string>
+    <string name="dd1_graphics_turnip_zink_hint">같은 Adreno 기기용. 위 항목으로 화면이 안 나올 때 시도해 보십시오.</string>
+    <string name="dd1_graphics_vortek_virgl">엑시노스·그 외 기기 (VirGL)</string>
+    <string name="dd1_graphics_vortek_virgl_hint">GPU 이름이 Xclipse나 Mali인 기기 — 갤럭시 S26·S24 한국 내수, 갤럭시 A 상당수, 픽셀, 미디어텍 기기. 조금 느린 대신 화면이 나옵니다.</string>
+    <string name="dd1_graphics_vortek_gladio">엑시노스·그 외 기기 · 빠름 (Gladio)</string>
+    <string name="dd1_graphics_vortek_gladio_hint">같은 Xclipse·Mali 기기용이고 더 빠르지만, 이걸로는 화면이 검게 나오는 기기가 많습니다.</string>
+    <string name="dd1_graphics_driver_hint">다음에 플레이를 누를 때 적용됩니다. 바꿔서 더 나빠지면 다시 들어와 자동으로 되돌리십시오.</string>
+    <string name="dd1_graphics_same_as_auto">자동이 고르는 것</string>
 </resources>

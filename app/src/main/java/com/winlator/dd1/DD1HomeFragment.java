@@ -147,8 +147,7 @@ public class DD1HomeFragment extends Fragment {
                 && !creatingProfile && !profileCreationFailed) {
             creatingProfile = true;
             JSONObject data = new JSONObject(DD1ProfileConfig.create(
-                DD1GraphicsDriver.forRenderer(GPUHelper.glGetRenderer(activity)),
-                Container.getFallbackCPUList()));
+                DD1GraphicsChoice.resolve(activity), Container.getFallbackCPUList()));
             manager.createContainerAsync(data, created -> {
                 creatingProfile = false;
                 profileCreationFailed = created == null;
@@ -162,10 +161,12 @@ public class DD1HomeFragment extends Fragment {
         // day the settings screen lets a person choose.
         // Asked once: reading the renderer blocks the caller until a GL context
         // comes up, and refresh() runs on every resume and once a second while
-        // the runtime unpacks.
+        // the runtime unpacks. What it settles on is the choice if one was made and
+        // the device's own answer otherwise, so correcting a profile can no longer
+        // undo what somebody picked in the settings.
         else if (container != null && !driverChecked) {
             driverChecked = true;
-            String belongs = DD1GraphicsDriver.forRenderer(GPUHelper.glGetRenderer(activity));
+            String belongs = DD1GraphicsChoice.resolve(activity);
             if (!belongs.equals(container.getGraphicsDriver())) {
                 container.setGraphicsDriver(belongs);
                 container.saveData();

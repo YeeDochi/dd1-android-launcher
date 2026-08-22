@@ -155,4 +155,17 @@
     <string name="dd1_steam_code_app_hint">Enter the code from the Steam mobile app.</string>
     <string name="dd1_steam_code_wrong">That code was not accepted. Try again.</string>
     <string name="dd1_workshop_busy">Possible once the download has finished.</string>
+    <string name="dd1_graphics_driver">Graphics driver</string>
+    <string name="dd1_graphics_auto">Automatic</string>
+    <string name="dd1_graphics_auto_hint">Picked to suit the device. Only change this if the game will not draw. The name above is the GPU in this device.</string>
+    <string name="dd1_graphics_turnip_gladio">Snapdragon devices (Turnip)</string>
+    <string name="dd1_graphics_turnip_gladio_hint">Devices whose GPU is an Adreno - Galaxy S25, most Xiaomi and OnePlus, ROG Phone. The fastest of these.</string>
+    <string name="dd1_graphics_turnip_zink">Snapdragon devices, another way (Zink)</string>
+    <string name="dd1_graphics_turnip_zink_hint">The same Adreno devices. Try it if the one above draws nothing.</string>
+    <string name="dd1_graphics_vortek_virgl">Exynos and other devices (VirGL)</string>
+    <string name="dd1_graphics_vortek_virgl_hint">Devices whose GPU is an Xclipse or a Mali - Korean Galaxy S26 and S24, many Galaxy A, Pixel, MediaTek parts. A little slower, and it draws.</string>
+    <string name="dd1_graphics_vortek_gladio">Exynos and others, faster (Gladio)</string>
+    <string name="dd1_graphics_vortek_gladio_hint">The same Xclipse and Mali devices, and faster, but on many of them it leaves the picture black.</string>
+    <string name="dd1_graphics_driver_hint">Takes effect the next time you press Play. If a change makes things worse, come back and set Automatic.</string>
+    <string name="dd1_graphics_same_as_auto">what Automatic picks</string>
 </resources>

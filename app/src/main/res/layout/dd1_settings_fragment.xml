@@ -95,13 +95,19 @@
 
             <TextView
                 style="@style/DD1SectionTitle"
-                android:text="@string/dd1_graphics" />
+                android:text="@string/dd1_graphics_driver" />
+
+            <RadioGroup
+                android:id="@+id/RGGraphicsDriver"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" />
 
             <TextView
-                android:id="@+id/TVGraphics"
+                android:id="@+id/TVGraphicsDriverHint"
                 style="@style/DD1Meta"
-                android:layout_marginTop="4dp"
-                android:textIsSelectable="true" />
+                android:layout_marginTop="10dp"
+                android:text="@string/dd1_graphics_driver_hint" />
 
             <TextView
                 style="@style/DD1SectionTitle"
