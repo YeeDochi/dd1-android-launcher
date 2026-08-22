@@ -126,6 +126,77 @@ public class DD1WorkshopFragmentTest {
         }
     }
 
+    // A sync reports itself while the list is on screen. Rebuilding the grid for
+    // that drops the scroll position and swaps the card out from under a finger
+    // that was reaching for Subscribe, so a progress report has to leave the views
+    // where they are.
+    @Test
+    public void aProgressReportDoesNotRebuildTheList() {
+        try (ActivityScenario<DD1Activity> scenario = ActivityScenario.launch(DD1Activity.class)) {
+            scenario.onActivity(activity -> {
+                DD1WorkshopFragment workshop = new DD1WorkshopFragment();
+                activity.getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.FLDD1Container, workshop).commitNow();
+                activity.getSupportFragmentManager().executePendingTransactions();
+
+                java.util.List<DD1WorkshopItem> browse = Arrays.asList(
+                    new DD1WorkshopItem(11, "First", "", "", 10, 4, .9f, 1, true),
+                    new DD1WorkshopItem(12, "Second", "", "", 20, 8, .8f, 1, true));
+                workshop.renderSnapshot(DD1WorkshopSnapshot.ready(
+                    Collections.emptyList(), Collections.emptyList())
+                    .withBrowse(browse, "", 0, 1, 2, false, null));
+
+                GridLayout grid = activity.findViewById(R.id.GLWorkshopCards);
+                assertEquals(2, grid.getChildCount());
+                View firstCard = grid.getChildAt(0);
+                View secondCard = grid.getChildAt(1);
+
+                // The same list, one mod now being fetched at 40%.
+                workshop.renderSnapshot(DD1WorkshopSnapshot.ready(
+                    Collections.emptyList(), Collections.emptyList())
+                    .withBrowse(browse, "", 0, 1, 2, false, null)
+                    .syncing("First", 40, Collections.emptyList()));
+
+                assertEquals("the cards are the same views", firstCard, grid.getChildAt(0));
+                assertEquals(secondCard, grid.getChildAt(1));
+                // A download's progress is the installed tab's business. Nothing
+                // on a store card reports it, which is why nothing here had to be
+                // redrawn.
+                assertEquals(0, activity.getResources().getIdentifier(
+                    "PBWorkshopCard", "id", activity.getPackageName()));
+                // Both remain a plain subscribe toggle while the sync runs.
+                assertTrue(firstCard.findViewById(R.id.BTWorkshopCardAction).isEnabled());
+                assertTrue(secondCard.findViewById(R.id.BTWorkshopCardAction).isEnabled());
+
+                // Subscribing during a sync has to show on the card, or it reads
+                // as a button that did nothing - which is exactly how it read.
+                DD1WorkshopSnapshot syncing = DD1WorkshopSnapshot.ready(
+                    Collections.emptyList(), Collections.emptyList())
+                    .withBrowse(browse, "", 0, 1, 2, false, null)
+                    .syncing("First", 40, Collections.emptyList());
+                workshop.renderSnapshot(syncing.withSubscribed(12));
+                View flipped = null;
+                GridLayout after = activity.findViewById(R.id.GLWorkshopCards);
+                for (int i = 0; i < after.getChildCount(); i++) {
+                    View c = after.getChildAt(i);
+                    if ("Second".equals(((TextView)c.findViewById(
+                            R.id.TVWorkshopCardTitle)).getText().toString())) flipped = c;
+                }
+                assertNotNull(flipped);
+                assertEquals(activity.getString(R.string.dd1_workshop_unsubscribe),
+                    ((Button)flipped.findViewById(
+                        R.id.BTWorkshopCardAction)).getText().toString());
+
+                // A list that actually changed is drawn again.
+                workshop.renderSnapshot(DD1WorkshopSnapshot.ready(
+                    Collections.emptyList(), Collections.emptyList())
+                    .withBrowse(Collections.singletonList(browse.get(0)), "", 0, 1, 1,
+                        false, null));
+                assertEquals(1, grid.getChildCount());
+            });
+        }
+    }
+
     private static void deleteTree(File file) {
         File[] children = file.listFiles();
         if (children != null) for (File child : children) deleteTree(child);

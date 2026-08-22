@@ -46,6 +46,11 @@ public final class DD1WorkshopFragment extends Fragment {
     private DD1InstallService service;
     private boolean bound;
     private boolean storeTab = true;
+    // What the two lists were last built from. A snapshot that only moved a
+    // progress figure must not rebuild them: rebuilding drops the scroll position
+    // and takes the card out from under a finger that was aiming at it.
+    private String builtStore;
+    private String builtInstalled;
     AlertDialog detailDialog;
     private final ExecutorService images = Executors.newSingleThreadExecutor();
     private final ActivityResultLauncher<String[]> importZip = registerForActivityResult(
@@ -205,6 +210,14 @@ public final class DD1WorkshopFragment extends Fragment {
         message.setVisibility(text == null ? View.GONE : View.VISIBLE);
 
         GridLayout grid = view.findViewById(R.id.GLWorkshopCards);
+        String shape = storeShape(snapshot);
+        if (shape.equals(builtStore) && grid.getChildCount() == snapshot.browse.size()) {
+            Button showMore = view.findViewById(R.id.BTWorkshopMore);
+            showMore.setVisibility(!snapshot.browseLoading
+                && snapshot.browse.size() < snapshot.total ? View.VISIBLE : View.GONE);
+            return;
+        }
+        builtStore = shape;
         grid.removeAllViews();
         grid.setColumnCount(columnCount());
         for (DD1WorkshopSnapshot.Card item : snapshot.browse) {
@@ -224,28 +237,20 @@ public final class DD1WorkshopFragment extends Fragment {
                 R.string.dd1_workshop_subscribers, item.item.subscriptions,
                 formatSize(item.item.fileSize)));
             ((TextView)card.findViewById(R.id.TVWorkshopCardState)).setText(cardState(item));
-            ProgressBar progress = card.findViewById(R.id.PBWorkshopCard);
-            boolean busy = snapshot.phase == DD1WorkshopSnapshot.Phase.SYNCING
-                && item.item.title.equals(snapshot.message);
-            progress.setVisibility(busy ? View.VISIBLE : View.GONE);
-            progress.setProgress(snapshot.progress);
 
+            // Subscribe or unsubscribe, and nothing else. What a download is doing
+            // belongs on the installed tab: reporting it here meant this list
+            // reacted to every chunk, which took the scroll position with it and
+            // moved the card out from under the finger aiming at it.
             Button action = card.findViewById(R.id.BTWorkshopCardAction);
-            if (item.updateAvailable) {
-                action.setText(R.string.dd1_workshop_update);
-                action.setOnClickListener(v -> { if (service != null) service.syncWorkshop(); });
-            }
-            else if (item.subscribed) {
-                action.setText(R.string.dd1_workshop_unsubscribe);
-                action.setOnClickListener(v -> confirmUnsubscribe(item.item));
-            }
-            else {
-                action.setText(R.string.dd1_workshop_subscribe);
-                action.setOnClickListener(v -> {
+            action.setText(item.subscribed ? R.string.dd1_workshop_unsubscribe
+                : R.string.dd1_workshop_subscribe);
+            action.setEnabled(item.subscribed || item.item.downloadable);
+            action.setOnClickListener(item.subscribed
+                ? v -> confirmUnsubscribe(item.item)
+                : v -> {
                     if (service != null) service.subscribeWorkshop(item.item.publishedFileId);
                 });
-            }
-            action.setEnabled(!busy && item.item.downloadable);
             loadImage(card.findViewById(R.id.IVWorkshopCard), item.item);
             card.setOnClickListener(v -> showDetail(item));
             grid.addView(card);
@@ -272,6 +277,9 @@ public final class DD1WorkshopFragment extends Fragment {
         message.setVisibility(text == null ? View.GONE : View.VISIBLE);
 
         LinearLayout list = view.findViewById(R.id.LLWorkshopList);
+        String shape = installedShape(snapshot);
+        if (shape.equals(builtInstalled) && list.getChildCount() == snapshot.rows.size()) return;
+        builtInstalled = shape;
         list.removeAllViews();
         for (DD1WorkshopSnapshot.Row item : snapshot.rows) {
             View row = LayoutInflater.from(requireContext()).inflate(
@@ -438,6 +446,26 @@ public final class DD1WorkshopFragment extends Fragment {
         }
         view.findViewById(R.id.HSVWorkshopDetailPictures).setVisibility(
             gallery.getChildCount() == 0 ? View.GONE : View.VISIBLE);
+    }
+
+    // The list, not its progress: rebuild when this changes and not otherwise.
+    private String storeShape(DD1WorkshopSnapshot snapshot) {
+        StringBuilder shape = new StringBuilder(columnCount() + "|" + snapshot.page + "|"
+            + snapshot.total + "|" + snapshot.query + "|" + snapshot.sort);
+        for (DD1WorkshopSnapshot.Card card : snapshot.browse)
+            shape.append('|').append(card.item.publishedFileId).append(card.subscribed)
+                .append(card.installed).append(card.disabled).append(card.updateAvailable)
+                .append(card.item.downloadable).append(card.item.title);
+        return shape.toString();
+    }
+
+    private String installedShape(DD1WorkshopSnapshot snapshot) {
+        StringBuilder shape = new StringBuilder();
+        for (DD1WorkshopSnapshot.Row row : snapshot.rows)
+            shape.append('|').append(row.directoryName).append(row.publishedFileId)
+                .append(row.state).append(row.installed).append(row.disabled)
+                .append(row.title);
+        return shape.toString();
     }
 
     private String cardState(DD1WorkshopSnapshot.Card card) {

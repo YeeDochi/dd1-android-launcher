@@ -178,6 +178,37 @@ public final class DD1WorkshopSnapshot {
         return null;
     }
 
+    // One card said yes, and nothing else changed. A sync in progress keeps its
+    // phase: rebuilding the whole snapshot to report a subscription would throw
+    // away what the download is doing.
+    public DD1WorkshopSnapshot withSubscribed(long publishedFileId) {
+        Card already = findBrowse(publishedFileId);
+        if (already == null || already.subscribed) return this;
+        List<Card> cards = new ArrayList<>();
+        for (Card card : browse)
+            cards.add(card.item.publishedFileId == publishedFileId && !card.subscribed
+                ? new Card(card.item, true, card.installed, card.disabled, card.updateAvailable)
+                : card);
+        return copy(phase, rows, syncItems, message, progress, log, cards, query, sort, page,
+            total, browseLoading, browseError);
+    }
+
+    public DD1WorkshopSnapshot withUnsubscribed(long publishedFileId) {
+        List<Card> cards = new ArrayList<>();
+        for (Card card : browse)
+            cards.add(card.item.publishedFileId == publishedFileId && card.subscribed
+                ? new Card(card.item, false, card.installed, card.disabled, card.updateAvailable)
+                : card);
+        return copy(phase, rows, syncItems, message, progress, log, cards, query, sort, page,
+            total, browseLoading, browseError);
+    }
+
+    // The same cards, by identity: syncing() hands the list straight through, and
+    // anything that changed a card built a new one.
+    public boolean sameBrowseAs(DD1WorkshopSnapshot other) {
+        return other != null && browse == other.browse;
+    }
+
     public Card findBrowse(long publishedFileId) {
         for (Card card : browse) if (card.item.publishedFileId == publishedFileId) return card;
         return null;

@@ -67,6 +67,12 @@ public final class DD1InstallService extends Service {
     private volatile DD1WorkshopSnapshot workshopSnapshot = DD1WorkshopSnapshot.loading();
     private volatile List<ModSyncPlan.Subscribed> workshopSubscriptions = Collections.emptyList();
     private volatile List<DD1WorkshopItem> workshopBrowse = Collections.emptyList();
+    // Subscriptions this launcher asked for and has not yet seen come back in
+    // Steam's own list. Steam does not answer with them straight away, and a
+    // listing already in flight answers with what was true before, so without this
+    // the card flipped and then flipped back when the older answer arrived.
+    private final java.util.Set<Long> justSubscribed =
+        java.util.concurrent.ConcurrentHashMap.newKeySet();
     private volatile int workshopBrowseGeneration;
     private volatile DepotDownloader downloader;
     private volatile CountDownLatch completion;
@@ -122,6 +128,14 @@ public final class DD1InstallService extends Service {
     }
 
     public void refreshWorkshop() {
+        refreshWorkshop(false);
+    }
+
+    // Pressing Refresh may empty the screen while it works; subscribing to a mod
+    // may not. Subscribing added one thing to the queue, and blanking the list
+    // under the finger that pressed it loses the scroll position and puts a
+    // different card where the next one was going to be pressed.
+    private void refreshWorkshop(boolean keepTheList) {
         if (!ownsGame) {
             if (snapshot.phase == DD1InstallPhase.RESTORING
                     || snapshot.phase == DD1InstallPhase.AUTHENTICATING) {
@@ -132,13 +146,14 @@ public final class DD1InstallService extends Service {
             return;
         }
         if (workshopSnapshot.phase == DD1WorkshopSnapshot.Phase.SYNCING) return;
-        publishWorkshop(DD1WorkshopSnapshot.loading());
+        if (!keepTheList) publishWorkshop(DD1WorkshopSnapshot.loading());
         steam.workshop().whenComplete((subscriptions, error) -> worker.execute(() -> {
             if (error != null) {
                 publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
                 return;
             }
             workshopSubscriptions = Collections.unmodifiableList(new ArrayList<>(subscriptions));
+            confirmSubscriptions(subscriptions);
             try {
                 HashSet<Long> subscribedIds = new HashSet<>();
                 for (ModSyncPlan.Subscribed item : subscriptions)
@@ -183,22 +198,59 @@ public final class DD1InstallService extends Service {
 
     // No busy check: this asks Steam to subscribe and writes nothing, so it works
     // while a download runs. What it queues is picked up by the next sync.
+    //
+    // The card is flipped before the request is sent, not after it answers. Steam
+    // is asked over one connection, one call at a time, and a full subscription
+    // listing takes seconds - so a subscribe pressed behind one waited for it, and
+    // the button looked dead until the listing finished, which is about when a
+    // download starts. Refused, it flips back and says why.
     public void subscribeWorkshop(long publishedFileId) {
         DD1WorkshopSnapshot.Card card = workshopSnapshot.findBrowse(publishedFileId);
         if (!ownsGame || card == null || card.subscribed) return;
-        steam.subscribe(publishedFileId).whenComplete((ignored, error) -> worker.execute(() -> {
+        justSubscribed.add(publishedFileId);
+        publishWorkshop(workshopSnapshot);
+        // Not on the worker: the worker is one thread and it is running the sync
+        // loop. Queued there, this could only run once the download it was meant
+        // to join had already finished - which is why a second subscription always
+        // became a second sync of one item. Nothing here touches files.
+        steam.subscribe(publishedFileId).whenComplete((ignored, error) -> {
             if (error != null) {
-                publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
+                justSubscribed.remove(publishedFileId);
+                publishWorkshop(workshopSnapshot.withUnsubscribed(publishedFileId)
+                    .browseFailed(reason(error)));
                 return;
             }
-            refreshWorkshop();
-        }));
+            if (syncingWorkshop) {
+                // A full refresh would end the sync's own state, and deleting
+                // files for mods dropped elsewhere must not race the download. So
+                // only the list of subscriptions is learned; the sync publishes it
+                // when it finishes, and the new mod is waiting in it.
+                adoptSubscriptions();
+                return;
+            }
+            refreshWorkshop(true);
+        });
+    }
+
+    private void adoptSubscriptions() {
+        steam.workshop().whenComplete((subscriptions, error) -> {
+            if (error != null || subscriptions == null) return;
+            workshopSubscriptions = Collections.unmodifiableList(new ArrayList<>(subscriptions));
+            confirmSubscriptions(subscriptions);
+            if (syncingWorkshop) mergeIntoQueue();
+        });
+    }
+
+    private void confirmSubscriptions(List<ModSyncPlan.Subscribed> subscriptions) {
+        for (ModSyncPlan.Subscribed item : subscriptions)
+            justSubscribed.remove(item.publishedFileId);
     }
 
     // Unlike subscribing, this deletes the mod's files, and mods live under
     // game/mods - which an install replaces wholesale.
     public void unsubscribeWorkshop(long publishedFileId) {
         if (!ownsGame || refuseWhileBusy()) return;
+        justSubscribed.remove(publishedFileId);
         steam.unsubscribe(publishedFileId).whenComplete((ignored, error) -> worker.execute(() -> {
             if (error != null) {
                 publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
@@ -372,26 +424,49 @@ public final class DD1InstallService extends Service {
     // long sync does not look stuck on whichever title is in hand.
     private volatile int queueIndex;
     private volatile int queueTotal;
+    // The queue itself, so a subscription confirmed mid-download joins the run it
+    // arrived during instead of waiting for one of its own.
+    private final List<ModSyncPlan.Subscribed> syncQueue =
+        Collections.synchronizedList(new ArrayList<ModSyncPlan.Subscribed>());
+    private final java.util.Set<Long> syncQueued =
+        java.util.concurrent.ConcurrentHashMap.newKeySet();
 
+    private void mergeIntoQueue() {
+        for (ModSyncPlan.Subscribed extra : stillToFetch())
+            if (syncQueued.add(extra.publishedFileId)) syncQueue.add(extra);
+        queueTotal = syncQueue.size();
+    }
+
+    // A queue that grows. Subscribing again while this runs used to mean a second
+    // sync of one item after this one of one item, so nothing ever said "1 of 2" -
+    // there was never a two. Anything subscribed since the last pass joins the
+    // queue here instead, and the count says how long it has become.
     private void runWorkshop(List<ModSyncPlan.Subscribed> items) {
         DD1WorkshopSnapshot base = workshopSnapshot;
-        queueTotal = items.size();
         try {
+            syncQueue.clear();
+            syncQueued.clear();
+            for (ModSyncPlan.Subscribed item : items)
+                if (syncQueued.add(item.publishedFileId)) syncQueue.add(item);
+            queueTotal = syncQueue.size();
             int done = 0;
-            for (ModSyncPlan.Subscribed item : items) {
+            while (true) {
+                mergeIntoQueue();
+                if (done >= syncQueue.size()) break;
+                ModSyncPlan.Subscribed item = syncQueue.get(done);
                 queueIndex = done + 1;
                 File staging = DD1Workshop.staging(getFilesDir(), item.publishedFileId);
                 workshopLog.append("Downloading " + item.title);
-                publishWorkshop(base.syncing(item.title, done * 100 / items.size(),
-                    workshopLog.visibleLines()));
+                publishWorkshop(base.syncing(queued(item.title),
+                    done * 100 / Math.max(1, queueTotal), workshopLog.visibleLines()));
                 try {
                     final int completed = done;
                     DD1WorkshopCdn.download(steam.client(), item.hcontentFile, staging,
                         (percent, file) -> {
                             lastHeard = System.currentTimeMillis();
                             int overall = (int)((completed + percent / 100f)
-                                * 100 / items.size());
-                            publishWorkshop(base.syncing(item.title, overall,
+                                * 100 / Math.max(1, queueTotal));
+                            publishWorkshop(base.syncing(queued(item.title), overall,
                                 workshopLog.visibleLines()));
                         }, () -> cancelled);
                     if (cancelled) return;
@@ -427,9 +502,32 @@ public final class DD1InstallService extends Service {
     // finger scrolling it, so progress is coalesced into the latest state the way
     // the install screen already does. Anything that is not progress goes straight
     // through: a list that changed has to be drawn.
+    // What the subscriptions known right now still need fetched, against what is
+    // on disk. Read fresh on every pass, so a subscription that landed while this
+    // was downloading is not left for a second sync.
+    private List<ModSyncPlan.Subscribed> stillToFetch() {
+        try {
+            return DD1WorkshopSnapshot.ready(workshopSubscriptions,
+                DD1Workshop.scan(getFilesDir())).syncItems();
+        }
+        catch (Throwable unreadable) {
+            return Collections.emptyList();
+        }
+    }
+
+    // Two pressed at once is a queue, and a queue that does not say where it is
+    // reads as one stuck download.
+    private String queued(String title) {
+        return queueTotal > 1 ? queueIndex + "/" + queueTotal + " · " + title : title;
+    }
+
     private void publishWorkshop(DD1WorkshopSnapshot value) {
+        for (long pending : justSubscribed) value = value.withSubscribed(pending);
+        // Same cards, same phase: nothing but a figure moved. A snapshot that
+        // rebuilt the list - a card that just flipped - goes straight through.
         boolean progressOnly = workshopSnapshot.phase == DD1WorkshopSnapshot.Phase.SYNCING
-            && value.phase == DD1WorkshopSnapshot.Phase.SYNCING;
+            && value.phase == DD1WorkshopSnapshot.Phase.SYNCING
+            && value.sameBrowseAs(workshopSnapshot);
         workshopSnapshot = value;
         updateWorkshopNotification(value);
         if (!progressOnly) {
@@ -707,15 +805,15 @@ public final class DD1InstallService extends Service {
         if (manager != null) manager.notify(1, notification(text, percent));
     }
 
-    static String workshopNotificationText(int index, int total, String title, int percent) {
-        String queue = total > 1 ? index + "/" + total + " · " : "";
-        return queue + title + " · " + Math.max(0, Math.min(100, percent)) + "%";
+    // The screen's own message already names which of how many is in hand, so the
+    // shade repeats it rather than assembling a second copy.
+    static String workshopNotificationText(String message, int percent) {
+        return message + " · " + Math.max(0, Math.min(100, percent)) + "%";
     }
 
     private void updateWorkshopNotification(DD1WorkshopSnapshot value) {
         if (value.phase != DD1WorkshopSnapshot.Phase.SYNCING) return;
-        String text = workshopNotificationText(queueIndex, queueTotal, value.message,
-            value.progress);
+        String text = workshopNotificationText(value.message, value.progress);
         if (text.equals(lastNotification)) return;
         lastNotification = text;
         NotificationManager manager = getSystemService(NotificationManager.class);

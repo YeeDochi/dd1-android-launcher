@@ -11,9 +11,6 @@
         android:textSize="15sp" android:textStyle="bold" />
     <TextView android:id="@+id/TVWorkshopCardMeta" style="@style/DD1Meta" />
     <TextView android:id="@+id/TVWorkshopCardState" style="@style/DD1Meta" />
-    <ProgressBar android:id="@+id/PBWorkshopCard"
-        style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:max="100" android:visibility="gone" />
     <Button android:id="@+id/BTWorkshopCardAction" style="@style/DD1Action"
         android:layout_gravity="end" />
 </LinearLayout>
