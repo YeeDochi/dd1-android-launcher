@@ -317,12 +317,31 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     }
 
     // The game has to move out of the keyboard's way, or the field being typed
-    // into sits behind it. Shrinking the window did not do it: the game view is
-    // not laid out again, so all that happens is the bottom gets clipped off.
-    // Turning the screen upright does, and costs nothing to arrange - the game
-    // is a landscape picture, so it letterboxes into the top half and the
-    // keyboard has the bottom half to itself. Landscape comes back with the
-    // keyboard.
+    // into sits behind it. Turning the screen upright does it, and costs nothing to
+    // arrange - the game is a landscape picture, so it letterboxes into the top
+    // half and the keyboard has the bottom half to itself. Landscape comes back
+    // with the keyboard.
+    //
+    // Turning it is not the only thing that fixes: it is the only thing that fixes
+    // all three. Keeping landscape and making room above the keyboard was measured
+    // on both devices and abandoned, for three separate reasons:
+    //
+    //   - Telling the renderer the surface is shorter puts the picture *under* the
+    //     keyboard, not above it. It draws with glViewport(0, 0, w, h) and OpenGL
+    //     counts from the bottom left; the call is upstream, so no y offset can be
+    //     passed. Measured: the screen went blank.
+    //   - Giving the game's own view a shorter height does work - a Tab S8 letter-
+    //     boxed 1497x842 above the keyboard and was comfortable - but on a Galaxy
+    //     S25 the window height would not settle, reporting 990, then 486, then
+    //     990 with 396 visible, so what the picture should fit changed under it.
+    //   - With the keyboard over the game rather than beside it, the runtime pans
+    //     its desktop towards the pointer, and the whole picture slides up and down
+    //     under a dragging finger. Portrait avoids that by never having the two
+    //     overlap.
+    //
+    // The typing itself is what needs the space: the field must be clicked before
+    // it can be typed into, so the game has to be visible *and* touchable while the
+    // keyboard is up. That is what upright gives and what none of the three gave.
     private void toggleKeyboard() {
         android.app.Activity activity = getContext() instanceof android.app.Activity
             ? (android.app.Activity)getContext() : null;
