@@ -292,6 +292,13 @@ A log is better still. From a PC with the phone on USB:
 adb logcat -d > dd1.log
 ```
 
+### The app will not open
+
+It closes the moment it starts, and pressing it again does the same: **install
+0.1.5 or newer over it.** An app killed while it was making its runtime profile
+would not start again afterwards, and 0.1.5 repairs that at startup. Game files
+and saves are not lost, so do not uninstall - that costs you the 4GB again.
+
 ### A save will not upload
 
 The log on the save screen says what was sent and
