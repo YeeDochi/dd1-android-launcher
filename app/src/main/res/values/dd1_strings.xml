@@ -154,4 +154,5 @@
     <string name="dd1_steam_code_email_hint">Enter the code Steam emailed to %s.</string>
     <string name="dd1_steam_code_app_hint">Enter the code from the Steam mobile app.</string>
     <string name="dd1_steam_code_wrong">That code was not accepted. Try again.</string>
+    <string name="dd1_workshop_busy">Possible once the download has finished.</string>
 </resources>

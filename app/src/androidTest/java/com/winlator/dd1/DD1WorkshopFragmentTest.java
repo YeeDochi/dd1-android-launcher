@@ -36,6 +36,102 @@ import java.util.Arrays;
 
 @RunWith(AndroidJUnit4.class)
 public class DD1WorkshopFragmentTest {
+    // Details were reachable from the store only. An installed mod is the one you
+    // actually want to read about - it is on the device and you are deciding
+    // whether to keep it.
+    @Test
+    public void anInstalledWorkshopModOpensItsDetails() throws Exception {
+        Context context = ApplicationProvider.getApplicationContext();
+        File mod = new File(context.getFilesDir(), "game/mods/909090");
+        mod.mkdirs();
+        java.nio.file.Files.write(new File(mod, ".dd1-workshop").toPath(),
+            "909090\n1700000000\nDetail Fixture\n".getBytes("UTF-8"));
+        try (ActivityScenario<DD1Activity> scenario = ActivityScenario.launch(DD1Activity.class)) {
+            scenario.onActivity(activity -> {
+                DD1WorkshopFragment workshop = new DD1WorkshopFragment();
+                activity.getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.FLDD1Container, workshop).commitNow();
+                activity.getSupportFragmentManager().executePendingTransactions();
+
+                workshop.renderSnapshot(DD1WorkshopSnapshot.ready(
+                    Collections.emptyList(), DD1Workshop.scan(context.getFilesDir())));
+                activity.findViewById(R.id.BTWorkshopTabInstalled).performClick();
+                workshop.renderSnapshot(DD1WorkshopSnapshot.ready(
+                    Collections.emptyList(), DD1Workshop.scan(context.getFilesDir())));
+
+                LinearLayout rows = activity.findViewById(R.id.LLWorkshopList);
+                View fixture = null;
+                for (int i = 0; i < rows.getChildCount(); i++) {
+                    View row = rows.getChildAt(i);
+                    if ("Detail Fixture".equals(((TextView)row.findViewById(
+                            R.id.TVWorkshopTitle)).getText().toString())) fixture = row;
+                }
+                assertNotNull("the fixture is listed", fixture);
+                assertTrue("the row is what opens it", fixture.isClickable());
+
+                fixture.performClick();
+                assertNotNull("a detail sheet opened", workshop.detailDialog);
+                assertEquals("Detail Fixture", ((TextView)workshop.detailDialog
+                    .findViewById(R.id.TVWorkshopDetailTitle)).getText().toString());
+                // Steam has not answered yet, and zeroes would read as facts.
+                assertEquals(View.GONE, workshop.detailDialog
+                    .findViewById(R.id.TVWorkshopDetailMeta).getVisibility());
+                workshop.detailDialog.dismiss();
+            });
+        }
+        finally {
+            deleteTree(mod);
+        }
+    }
+
+    // The card grid is rebuilt from scratch on every snapshot, and a sync used to
+    // publish one per chunk. Re-reading each picture off disk on a background
+    // thread is what made them blink, so one already decoded has to be drawn in
+    // the same pass that builds the view.
+    @Test
+    public void aPictureAlreadyDecodedIsDrawnWithoutABlankFrame() throws Exception {
+        Context context = ApplicationProvider.getApplicationContext();
+        String url = "https://cdn.example/blink-test.png";
+        File cached = DD1WorkshopImages.file(context.getCacheDir(), url);
+        cached.getParentFile().mkdirs();
+        try (java.io.OutputStream out = new java.io.FileOutputStream(cached)) {
+            android.graphics.Bitmap.createBitmap(4, 4,
+                android.graphics.Bitmap.Config.ARGB_8888)
+                .compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
+        }
+        assertNotNull("warmed from disk once",
+            DD1WorkshopImages.load(context.getCacheDir(), url));
+        assertNotNull("and kept in memory", DD1WorkshopImages.inMemory(url));
+
+        try (ActivityScenario<DD1Activity> scenario = ActivityScenario.launch(DD1Activity.class)) {
+            scenario.onActivity(activity -> {
+                DD1WorkshopFragment workshop = new DD1WorkshopFragment();
+                activity.getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.FLDD1Container, workshop).commitNow();
+                activity.getSupportFragmentManager().executePendingTransactions();
+
+                workshop.renderSnapshot(DD1WorkshopSnapshot.ready(
+                    Collections.emptyList(), Collections.emptyList())
+                    .withBrowse(Collections.singletonList(new DD1WorkshopItem(
+                        7, "Blink", "", url, 10, 4, .9f, 1, true)),
+                        "", 0, 1, 1, false, null));
+
+                // Read straight after the render, with nothing posted in between.
+                assertNotNull("drawn in the same pass",
+                    ((ImageView)activity.findViewById(R.id.IVWorkshopCard)).getDrawable());
+            });
+        }
+        finally {
+            cached.delete();
+        }
+    }
+
+    private static void deleteTree(File file) {
+        File[] children = file.listFiles();
+        if (children != null) for (File child : children) deleteTree(child);
+        file.delete();
+    }
+
     @Test
     public void drawerOpensAStorefrontAndInstalledModManager() throws Exception {
         Context context = ApplicationProvider.getApplicationContext();

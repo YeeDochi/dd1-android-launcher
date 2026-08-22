@@ -72,7 +72,11 @@ public final class DD1InstallService extends Service {
     private volatile CountDownLatch completion;
     private volatile boolean cancelled;
     private volatile boolean ownsGame;
-    private volatile boolean downloading;
+    // Two jobs, one worker: a game or DLC download, and a Workshop sync. They were
+    // one flag, which is why subscribing to a mod did nothing while either ran -
+    // and subscribing only asks Steam, it touches no files.
+    private volatile boolean downloadingGame;
+    private volatile boolean syncingWorkshop;
     private volatile long lastHeard;
     private DD1SteamSession steam;
 
@@ -177,9 +181,11 @@ public final class DD1InstallService extends Service {
             }));
     }
 
+    // No busy check: this asks Steam to subscribe and writes nothing, so it works
+    // while a download runs. What it queues is picked up by the next sync.
     public void subscribeWorkshop(long publishedFileId) {
         DD1WorkshopSnapshot.Card card = workshopSnapshot.findBrowse(publishedFileId);
-        if (!ownsGame || downloading || card == null || card.subscribed) return;
+        if (!ownsGame || card == null || card.subscribed) return;
         steam.subscribe(publishedFileId).whenComplete((ignored, error) -> worker.execute(() -> {
             if (error != null) {
                 publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
@@ -189,8 +195,10 @@ public final class DD1InstallService extends Service {
         }));
     }
 
+    // Unlike subscribing, this deletes the mod's files, and mods live under
+    // game/mods - which an install replaces wholesale.
     public void unsubscribeWorkshop(long publishedFileId) {
-        if (!ownsGame || downloading) return;
+        if (!ownsGame || refuseWhileBusy()) return;
         steam.unsubscribe(publishedFileId).whenComplete((ignored, error) -> worker.execute(() -> {
             if (error != null) {
                 publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
@@ -222,16 +230,16 @@ public final class DD1InstallService extends Service {
     }
 
     public synchronized void syncWorkshop() {
-        if (downloading || !workshopSnapshot.syncable()) return;
+        if (busy() || !workshopSnapshot.syncable()) return;
         List<ModSyncPlan.Subscribed> items = new ArrayList<>(workshopSnapshot.syncItems());
         cancelled = false;
-        downloading = true;
+        syncingWorkshop = true;
         keepAlive(R.string.dd1_install_downloading);
         worker.execute(() -> runWorkshop(items));
     }
 
     public void deleteMod(String directoryName) {
-        if (downloading) return;
+        if (refuseWhileBusy()) return;
         DD1WorkshopSnapshot.Row row = workshopSnapshot.findDirectory(directoryName);
         worker.execute(() -> {
             try {
@@ -246,7 +254,7 @@ public final class DD1InstallService extends Service {
     }
 
     public void importMod(Uri uri) {
-        if (uri == null || downloading) return;
+        if (uri == null || refuseWhileBusy()) return;
         worker.execute(() -> {
             try (InputStream input = getContentResolver().openInputStream(uri)) {
                 if (input == null) throw new IllegalStateException("Cannot open selected ZIP");
@@ -286,7 +294,7 @@ public final class DD1InstallService extends Service {
     }
 
     public synchronized void download() {
-        if (!ownsGame || downloader != null) return;
+        if (!ownsGame || downloader != null || busy()) return;
         begin();
         // Ask for the game and the DLC that was actually chosen. Left unsaid,
         // Steam sends every depot it has and the unwanted ones are deleted at
@@ -299,7 +307,7 @@ public final class DD1InstallService extends Service {
     // depots asked for are fetched, and what arrives is merged into the install
     // rather than replacing it.
     public synchronized void downloadDlc(java.util.Collection<Integer> appIds) {
-        if (!ownsGame || downloader != null || appIds.isEmpty()) return;
+        if (!ownsGame || downloader != null || appIds.isEmpty() || busy()) return;
         DD1DepotCatalog catalog = steam.catalog();
         java.util.List<Integer> depots = new java.util.ArrayList<>();
         java.util.Map<Integer, String> versions = new java.util.LinkedHashMap<>();
@@ -319,14 +327,15 @@ public final class DD1InstallService extends Service {
 
     private void begin() {
         cancelled = false;
-        downloading = true;
+        downloadingGame = true;
         keepAlive(R.string.dd1_install_downloading);
         publish(downloadSnapshot(0, 0, 0, getString(R.string.dd1_state_starting), null));
     }
 
     public void cancel() {
         cancelled = true;
-        downloading = false;
+        downloadingGame = false;
+        syncingWorkshop = false;
         DepotDownloader active;
         CountDownLatch waiting;
         synchronized (this) {
@@ -405,19 +414,38 @@ public final class DD1InstallService extends Service {
             publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
         }
         finally {
-            downloading = false;
+            syncingWorkshop = false;
             stopForeground(true);
             stopSelf();
         }
     }
 
+    private volatile boolean workshopDeliveryPending;
+
+    // A download reports itself per chunk, and each report rebuilds the whole card
+    // grid. Delivered one for one, the pictures blink and the list fights the
+    // finger scrolling it, so progress is coalesced into the latest state the way
+    // the install screen already does. Anything that is not progress goes straight
+    // through: a list that changed has to be drawn.
     private void publishWorkshop(DD1WorkshopSnapshot value) {
+        boolean progressOnly = workshopSnapshot.phase == DD1WorkshopSnapshot.Phase.SYNCING
+            && value.phase == DD1WorkshopSnapshot.Phase.SYNCING;
         workshopSnapshot = value;
         updateWorkshopNotification(value);
-        main.post(() -> {
+        if (!progressOnly) {
+            main.post(() -> {
+                WorkshopListener current = workshopListener;
+                if (current != null) current.onSnapshot(workshopSnapshot);
+            });
+            return;
+        }
+        if (workshopDeliveryPending) return;
+        workshopDeliveryPending = true;
+        main.postDelayed(() -> {
+            workshopDeliveryPending = false;
             WorkshopListener current = workshopListener;
             if (current != null) current.onSnapshot(workshopSnapshot);
-        });
+        }, 200);
     }
 
     private DD1WorkshopSnapshot joinedWorkshop() {
@@ -428,7 +456,7 @@ public final class DD1InstallService extends Service {
     }
 
     private void moveMod(String directoryName, boolean enable) {
-        if (downloading) return;
+        if (refuseWhileBusy()) return;
         worker.execute(() -> {
             try {
                 if (enable) DD1Workshop.enable(getFilesDir(), directoryName);
@@ -475,6 +503,17 @@ public final class DD1InstallService extends Service {
 
     private android.content.SharedPreferences preferences() {
         return getSharedPreferences("dd1", MODE_PRIVATE);
+    }
+
+    private boolean busy() {
+        return downloadingGame || syncingWorkshop;
+    }
+
+    // Silence was the whole complaint: the button did nothing and said nothing.
+    private boolean refuseWhileBusy() {
+        if (!busy()) return false;
+        publishWorkshop(workshopSnapshot.browseFailed(getString(R.string.dd1_workshop_busy)));
+        return true;
     }
 
     public boolean canDownload() {
@@ -527,7 +566,7 @@ public final class DD1InstallService extends Service {
                 ? error.getClass().getSimpleName() : error.getMessage()));
         }
         finally {
-            downloading = false;
+            downloadingGame = false;
             if (downloader != null) downloader.close();
             downloader = null;
             completion = null;
@@ -580,7 +619,7 @@ public final class DD1InstallService extends Service {
     // screen back on the download button and nothing said about it. Only news
     // that actually ends the session gets through while bytes are moving.
     private void publishFromSteam(DD1InstallSnapshot value) {
-        if (downloading && !value.phase.interruptsDownload()) return;
+        if (busy() && !value.phase.interruptsDownload()) return;
         publish(value);
         if (value.phase == DD1InstallPhase.READY_TO_INSTALL
                 && workshopListener != null

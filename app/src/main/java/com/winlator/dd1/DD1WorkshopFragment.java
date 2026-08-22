@@ -305,6 +305,9 @@ public final class DD1WorkshopFragment extends Fragment {
             delete.setVisibility(item.installed && !subscribed && !syncing
                 ? View.VISIBLE : View.GONE);
             delete.setOnClickListener(v -> confirmDelete(item));
+
+            // A mod imported from a ZIP has no Workshop page to show.
+            if (item.publishedFileId != 0) row.setOnClickListener(v -> showDetail(item));
             list.addView(row);
         }
     }
@@ -316,6 +319,11 @@ public final class DD1WorkshopFragment extends Fragment {
     private void loadImage(ImageView image, String url) {
         if (url == null || url.isEmpty()) return;
         image.setTag(url);
+        Bitmap remembered = DD1WorkshopImages.inMemory(url);
+        if (remembered != null) {
+            image.setImageBitmap(remembered);
+            return;
+        }
         images.execute(() -> {
             Context context = getContext();
             if (context == null) return;
@@ -328,7 +336,17 @@ public final class DD1WorkshopFragment extends Fragment {
     }
 
     void showDetail(DD1WorkshopSnapshot.Card card) {
-        DD1WorkshopItem item = card.item;
+        showDetail(card.item, card.subscribed);
+    }
+
+    // An installed mod is known by its title and its id; everything else in the
+    // sheet comes from the same request the store cards make.
+    void showDetail(DD1WorkshopSnapshot.Row row) {
+        showDetail(new DD1WorkshopItem(row.publishedFileId, row.title, "", "",
+            0, 0, 0, 0, true), true);
+    }
+
+    private void showDetail(DD1WorkshopItem item, boolean subscribed) {
         View content = LayoutInflater.from(requireContext()).inflate(
             R.layout.dd1_workshop_detail, null, false);
         renderDetail(content, item);
@@ -348,11 +366,11 @@ public final class DD1WorkshopFragment extends Fragment {
             }
         });
         Button action = content.findViewById(R.id.BTWorkshopDetailSubscribe);
-        action.setText(card.subscribed ? R.string.dd1_workshop_unsubscribe
+        action.setText(subscribed ? R.string.dd1_workshop_unsubscribe
             : R.string.dd1_workshop_subscribe);
-        action.setEnabled(service != null && (card.subscribed || item.downloadable));
+        action.setEnabled(service != null && (subscribed || item.downloadable));
         action.setOnClickListener(v -> {
-            if (card.subscribed) confirmUnsubscribe(item, dialog::dismiss);
+            if (subscribed) confirmUnsubscribe(item, dialog::dismiss);
             else if (service != null) {
                 dialog.dismiss();
                 service.subscribeWorkshop(item.publishedFileId);
@@ -381,9 +399,13 @@ public final class DD1WorkshopFragment extends Fragment {
 
     private void renderDetail(View view, DD1WorkshopItem item) {
         ((TextView)view.findViewById(R.id.TVWorkshopDetailTitle)).setText(item.title);
-        ((TextView)view.findViewById(R.id.TVWorkshopDetailMeta)).setText(getString(
-            R.string.dd1_workshop_detail_meta, item.subscriptions, formatSize(item.fileSize),
-            item.score * 100));
+        TextView meta = view.findViewById(R.id.TVWorkshopDetailMeta);
+        // Opened from an installed mod, the counts are not known until Steam
+        // answers; zeroes would be a claim rather than a wait.
+        boolean counted = item.subscriptions > 0 || item.fileSize > 0;
+        meta.setVisibility(counted ? View.VISIBLE : View.GONE);
+        if (counted) meta.setText(getString(R.string.dd1_workshop_detail_meta,
+            item.subscriptions, formatSize(item.fileSize), item.score * 100));
         TextView updated = view.findViewById(R.id.TVWorkshopDetailUpdated);
         updated.setVisibility(item.updatedAt > 0 ? View.VISIBLE : View.GONE);
         if (item.updatedAt > 0) updated.setText(getString(R.string.dd1_workshop_detail_updated,

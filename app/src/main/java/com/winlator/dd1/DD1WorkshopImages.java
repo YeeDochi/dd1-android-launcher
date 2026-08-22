@@ -31,9 +31,31 @@ public final class DD1WorkshopImages {
         }
     }
 
+    // Decoded once and kept, because the card list is rebuilt from scratch on
+    // every snapshot and a sync publishes one per chunk. Reading them back off
+    // disk each time is what made the pictures blink.
+    private static final android.util.LruCache<String, Bitmap> DECODED =
+        new android.util.LruCache<String, Bitmap>(24 * 1024 * 1024) {
+            @Override
+            protected int sizeOf(String key, Bitmap value) {
+                return value.getByteCount();
+            }
+        };
+
+    // Null unless it is already in memory. The caller can set it in the same frame
+    // the view is built, so there is no blank to see.
+    public static Bitmap inMemory(String url) {
+        return url == null || url.isEmpty() ? null : DECODED.get(url);
+    }
+
     public static Bitmap load(File cacheDir, String url) {
+        Bitmap remembered = inMemory(url);
+        if (remembered != null) return remembered;
         File cached = file(cacheDir, url);
-        return cached.isFile() ? decode(cached) : null;
+        if (!cached.isFile()) return null;
+        Bitmap decoded = decode(cached);
+        if (decoded != null) DECODED.put(url, decoded);
+        return decoded;
     }
 
     // The staging name carries the thread, so two images can be fetched at once.
