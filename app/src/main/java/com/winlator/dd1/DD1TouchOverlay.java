@@ -4,6 +4,10 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import com.winlator.R;
+
+import android.graphics.Path;
+import android.graphics.PathMeasure;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.view.KeyCharacterMap;
@@ -37,12 +41,21 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
 
     private final RectF escape = new RectF();
     private final RectF keyboard = new RectF();
+    // The torch is toggled with Shift+Ctrl and a left click, which a touch screen
+    // cannot do at once. This holds the two keys until it is pressed again, on the
+    // opposite bar so the hand that clicks is not the hand that holds.
+    private final RectF sticky = new RectF();
+    private final DD1HeldKeys heldKeys = new DD1HeldKeys();
+    private final Path border = new Path();
+    private final Path light = new Path();
+    private final PathMeasure measure = new PathMeasure();
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private float lastX;
     private float lastY;
     private boolean escaping;
     private boolean typing;
+    private boolean sticking;
 
     // Sitting on top of the runtime's touchpad means it never sees a touch again,
     // and the four finger tap that opens the drawer is the only way to reach the
@@ -146,6 +159,12 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         // the game does not use.
         keyboard.set(left, escape.top - size - margin * 0.5f, left + size,
             escape.top - margin * 0.5f);
+        // The other bar, so the hand holding the keys is not the hand clicking.
+        // Wider than the others because it says what it does rather than a word.
+        float wide = size * 1.6f;
+        float right = getWidth() - (letterbox >= wide + margin * 2
+            ? (letterbox - wide) * 0.5f + wide : wide + margin);
+        sticky.set(right, escape.top, right + wide, escape.bottom);
     }
 
     // Winlator normally pans its desktop towards the pointer when an IME opens.
@@ -196,12 +215,17 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
                     invalidate();
                     return true;
                 }
+                if (sticky.contains(lastX, lastY)) {
+                    sticking = true;
+                    invalidate();
+                    return true;
+                }
                 if (!insidePicture(lastX, lastY)) return true;
                 gesture.down(lastX, lastY, now);
                 postDelayed(hold, TouchGesture.HOLD_MILLIS);
                 return true;
             case MotionEvent.ACTION_MOVE:
-                if (escaping) return true;
+                if (escaping || sticking) return true;
                 gesture.move(lastX, lastY, now);
                 return true;
             case MotionEvent.ACTION_UP:
@@ -211,6 +235,15 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
                     invalidate();
                     if (event.getActionMasked() == MotionEvent.ACTION_UP
                             && escape.contains(lastX, lastY)) sendEscape();
+                    return true;
+                }
+                if (sticking) {
+                    sticking = false;
+                    if (event.getActionMasked() == MotionEvent.ACTION_UP
+                            && sticky.contains(lastX, lastY)) {
+                        if (heldKeys.toggle()) holdKeys(); else letKeysGo();
+                    }
+                    invalidate();
                     return true;
                 }
                 if (typing) {
@@ -340,6 +373,24 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
             && y <= transformation.viewOffsetY + transformation.viewHeight;
     }
 
+    private void holdKeys() {
+        xServer.injectKeyPress(XKeycode.KEY_SHIFT_L);
+        xServer.injectKeyPress(XKeycode.KEY_CTRL_L);
+    }
+
+    private void letKeysGo() {
+        xServer.injectKeyRelease(XKeycode.KEY_CTRL_L);
+        xServer.injectKeyRelease(XKeycode.KEY_SHIFT_L);
+    }
+
+    // Leaving the game while the keys are held would leave them held for whatever
+    // runs next, and nothing else would ever let them go.
+    @Override
+    protected void onDetachedFromWindow() {
+        if (heldKeys.releaseAll()) letKeysGo();
+        super.onDetachedFromWindow();
+    }
+
     private void sendEscape() {
         xServer.injectKeyPress(XKeycode.KEY_ESC);
         postDelayed(() -> xServer.injectKeyRelease(XKeycode.KEY_ESC), CLICK_MILLIS);
@@ -351,18 +402,82 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         if (escape.isEmpty()) return;
         key(canvas, keyboard, "ABC", typing);
         key(canvas, escape, "ESC", escaping);
+        key(canvas, sticky, getContext().getString(R.string.dd1_sticky_keys),
+            sticking, heldKeys.held());
     }
 
     private void key(Canvas canvas, RectF where, String label, boolean pressed) {
+        key(canvas, where, label, pressed, false);
+    }
+
+    // Pressed is a moment and latched is a state, so they cannot look the same.
+    // The game is a dark screen with one warm light in it, and a bright blue slab
+    // in the bar beside it would be the loudest thing on screen. So the button
+    // stays dark and grey like the rest of it, and being on is a red light going
+    // round its edge - which is a torch, which is what it is for. Colour is missed
+    // in the corner of an eye; movement is not.
+    private void key(Canvas canvas, RectF where, String label, boolean pressed,
+            boolean latched) {
         float radius = where.height() * 0.25f;
-        paint.setColor(Color.argb(pressed ? 110 : 60, 255, 255, 255));
         paint.setStyle(Paint.Style.FILL);
+        // Not a neutral grey: the game is lit by one red light and everything in
+        // it is warmed by that, so the button carries the same cast.
+        paint.setColor(pressed ? Color.argb(210, 54, 32, 27)
+            : Color.argb(180, 32, 19, 16));
         canvas.drawRoundRect(where, radius, radius, paint);
-        paint.setColor(Color.argb(pressed ? 220 : 140, 0, 0, 0));
-        paint.setTextSize(where.height() * 0.32f);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(1.5f, where.height() * 0.045f));
+        paint.setColor(latched ? Color.argb(90, 150, 116, 106)
+            : Color.argb(160, 158, 118, 106));
+        canvas.drawRoundRect(where, radius, radius, paint);
+        if (latched) travellingLight(canvas, where, radius);
+        paint.setStyle(Paint.Style.FILL);
         paint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText(label, where.centerX(),
-            where.centerY() + paint.getTextSize() * 0.35f, paint);
+        paint.setColor(latched ? Color.argb(255, 240, 196, 164)
+            : Color.argb(220, 198, 168, 156));
+        if (latched) {
+            paint.setTextSize(where.height() * 0.40f);
+            canvas.drawText(getContext().getString(R.string.dd1_sticky_keys_on),
+                where.centerX(), where.centerY() + paint.getTextSize() * 0.35f, paint);
+            return;
+        }
+        // Two keys do not fit across a button this size on one line.
+        String[] lines = label.split("\n");
+        paint.setTextSize(where.height() * (lines.length > 1 ? 0.26f : 0.32f));
+        float step = paint.getTextSize() * 1.08f;
+        float first = where.centerY() + paint.getTextSize() * 0.35f
+            - step * (lines.length - 1) * 0.5f;
+        for (int i = 0; i < lines.length; i++)
+            canvas.drawText(lines[i], where.centerX(), first + step * i, paint);
+    }
+
+    // A bright arc walking the button's outline, once round every LAP_MILLIS. Only
+    // this button's own rectangle is invalidated for it, so the game keeps the rest
+    // of the frame.
+    private static final long LAP_MILLIS = 1600L;
+
+    private void travellingLight(Canvas canvas, RectF where, float radius) {
+        border.reset();
+        border.addRoundRect(where, radius, radius, Path.Direction.CW);
+        measure.setPath(border, false);
+        float length = measure.getLength();
+        if (length <= 0) return;
+        float head = (android.os.SystemClock.uptimeMillis() % LAP_MILLIS)
+            / (float)LAP_MILLIS * length;
+        float tail = length * 0.28f;
+        light.reset();
+        // Wrapped round the end rather than stopping at it.
+        if (head + tail <= length) measure.getSegment(head, head + tail, light, true);
+        else {
+            measure.getSegment(head, length, light, true);
+            measure.getSegment(0, head + tail - length, light, true);
+        }
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(3f, where.height() * 0.10f));
+        paint.setColor(Color.argb(255, 219, 82, 48));
+        canvas.drawPath(light, paint);
+        postInvalidateOnAnimation((int)where.left - 4, (int)where.top - 4,
+            (int)where.right + 4, (int)where.bottom + 4);
     }
 
     private void tick() {

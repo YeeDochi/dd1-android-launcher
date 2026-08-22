@@ -167,4 +167,6 @@
     <string name="dd1_graphics_vortek_gladio_hint">같은 Xclipse·Mali 기기용이고 더 빠르지만, 이걸로는 화면이 검게 나오는 기기가 많습니다.</string>
     <string name="dd1_graphics_driver_hint">다음에 플레이를 누를 때 적용됩니다. 바꿔서 더 나빠지면 다시 들어와 자동으로 되돌리십시오.</string>
     <string name="dd1_graphics_same_as_auto">자동이 고르는 것</string>
+    <string name="dd1_sticky_keys">SHIFT\n+CTRL</string>
+    <string name="dd1_sticky_keys_on">ON</string>
 </resources>

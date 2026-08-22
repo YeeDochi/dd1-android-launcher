@@ -168,4 +168,6 @@
     <string name="dd1_graphics_vortek_gladio_hint">The same Xclipse and Mali devices, and faster, but on many of them it leaves the picture black.</string>
     <string name="dd1_graphics_driver_hint">Takes effect the next time you press Play. If a change makes things worse, come back and set Automatic.</string>
     <string name="dd1_graphics_same_as_auto">what Automatic picks</string>
+    <string name="dd1_sticky_keys">SHIFT\n+CTRL</string>
+    <string name="dd1_sticky_keys_on">ON</string>
 </resources>
