@@ -6,10 +6,15 @@ the Windows build they own, and one Play button starts the game.
 
 The game runs today on a Galaxy S25 and on a Galaxy Tab S8 (Adreno 730, which
 lands on `turnip,gladio`). Touch input, save synchronisation and the mod manager
-all work and have been exercised on both. That is still two Adreno devices: a
-report of a black picture on newer hardware turned out to be the runtime picking
-a driver by model number, and what an Exynos or Mali device actually draws has
-never been seen - the Xclipse fix in 0.1.8 is reasoned, not witnessed.
+all work and have been exercised on both. A report of a black picture on newer
+hardware turned out to be the runtime picking a driver by model number.
+
+The non-Adreno half is witnessed once, at second hand: a Galaxy Tab S10+
+(Mali-G720 Immortalis MC12, Android 16) drew the interface and nothing else on a
+pre-0.1.8 build, and its owner reported the game drawing after updating - issue
+#1. So `vortek,virgl` renders on Mali. Xclipse is still reasoning: nobody has
+said what an Exynos draws, and no non-Adreno device has been tested here for
+anything past the picture coming up.
 
 ## Boundaries
 
