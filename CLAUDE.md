@@ -128,6 +128,19 @@ committed code.
   authenticator always goes to the push and never sees the code box; the box is
   for accounts Steam mails a code to. To exercise that path you have to remove the
   authenticator from the test account.
+- **Sharing `com.winlator` means the launcher cannot be installed beside
+  Winlator.** Android sees one package name signed two ways and refuses with
+  "앱이 설치되지 않았습니다" and no reason. That is what a Fold 8 install failure
+  turned out to be, after targetSdk, ABI, signature scheme and 16 KB alignment
+  had each been ruled out - the owner had Winlator installed. Forks count too:
+  the FileProvider authority is the literal `com.winlator.FileProvider` in
+  upstream's manifest and code, so a fork that renamed its id and kept the
+  authority collides as well. Renaming is possible - `com.winlator` is 12
+  characters and the extracted tree holds the path in 165 rootfs files, one
+  box64 binary and one patch file, so a same-length id is a byte-for-byte
+  replacement with no ELF surgery - but the new id is a new app to Android, and
+  no app can read another's data directory: every install would start again from
+  a 3.7 GB download.
 - **Turnip is the Adreno driver whatever the number after it says.** The runtime
   picks it by matching `adreno[^678]*([678][0-9]{2})`, so a 9-series, a
   four-digit model or the X-series naming reads as "not an Adreno" and gets
