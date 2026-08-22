@@ -53,6 +53,7 @@ public class DD1SettingsFragment extends Fragment {
         buildResolution(view.findViewById(R.id.RGResolution),
             view.findViewById(R.id.TVResolutionHint));
         buildBox64Preset(view.findViewById(R.id.CBBox64Performance));
+        buildRuntimeMenu(view.findViewById(R.id.CBRuntimeMenu));
         buildCpuBudget(view.findViewById(R.id.RGCpuBudget));
         buildRefreshRate(view.findViewById(R.id.RGRefreshRate));
         buildGraphicsDriver(view.findViewById(R.id.RGGraphicsDriver));
@@ -209,6 +210,12 @@ public class DD1SettingsFragment extends Fragment {
             container.setBox64Preset(checked ? Box64Preset.PERFORMANCE : Box64Preset.DEFAULT);
             container.saveData();
         });
+    }
+
+    private void buildRuntimeMenu(android.widget.CheckBox toggle) {
+        toggle.setChecked(DD1RuntimeMenu.enabled(requireContext()));
+        toggle.setOnCheckedChangeListener((ignored, checked) ->
+            DD1RuntimeMenu.setEnabled(requireContext(), checked));
     }
 
     private void buildCpuBudget(RadioGroup group) {

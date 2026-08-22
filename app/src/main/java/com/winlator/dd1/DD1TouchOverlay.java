@@ -79,6 +79,10 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         setFocusable(true);
         setFocusableInTouchMode(true);
         AppUtils.observeSoftKeyboardVisibility(this, this::keyboardVisibilityChanged);
+        // A controller button that the game does not use arrives as Back, and the
+        // runtime answers Back by opening its drawer over the game.
+        if (context instanceof android.app.Activity)
+            DD1RuntimeMenu.apply((android.app.Activity)context);
         placeEscape(0, AppUtils.getScreenHeight());
         applyRefreshRate(context);
     }
@@ -443,6 +447,11 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     // looks free, which is not the same as there being no room - read as no room
     // once, and a device turned itself upright on a measurement that meant nothing.
     private void squeezePictureAboveKeyboard() {
+        // A measurement queued while the keyboard was up can wake while it is on
+        // its way down, when the window is still short. Shrinking then happens
+        // after the picture has been given its height back, and it stays small
+        // with a black band under it.
+        if (!keyboardMode.active()) return;
         int visible = visibleBottom();
         if (visible <= 0 || visible >= heightBeforeKeyboard) {
             if (keyboardMode.active() && ++measurements <= 12)
