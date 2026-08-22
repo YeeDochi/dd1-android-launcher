@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 
 import androidx.fragment.app.Fragment;
 import androidx.test.core.app.ActivityScenario;
+import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.winlator.dd1.DD1InstallPhase;
@@ -93,6 +94,36 @@ public class DD1HomeFragmentTest {
                 assertEquals(View.GONE, activity.findViewById(R.id.ETSteamCode).getVisibility());
                 assertEquals(View.VISIBLE, activity.findViewById(R.id.IVSteamQr).getVisibility());
             });
+        }
+    }
+
+    // A profile is made by creating the directory, unpacking a tar into it and
+    // writing the config last. A download publishes a snapshot several times a
+    // second and every one reaches refresh(), so a first run that downloads the
+    // game reads that directory again and again while it has no config yet.
+    @Test
+    public void aProfileCaughtHalfMadeDoesNotTakeTheScreenDown() throws Exception {
+        java.io.File halfMade = new java.io.File(
+            ApplicationProvider.getApplicationContext().getFilesDir(),
+            "rootfs/home/xuser-9");
+        assertTrue(halfMade.mkdirs() || halfMade.isDirectory());
+        try (ActivityScenario<DD1Activity> scenario = ActivityScenario.launch(DD1Activity.class)) {
+            scenario.onActivity(activity -> {
+                activity.getSupportFragmentManager().executePendingTransactions();
+                DD1HomeFragment home = (DD1HomeFragment)activity.getSupportFragmentManager()
+                    .findFragmentById(R.id.FLDD1Container);
+
+                // This is the call the crash came out of, three times a second.
+                home.renderInstallSnapshot(snapshot(DD1InstallPhase.DOWNLOADING));
+                home.renderInstallSnapshot(snapshot(DD1InstallPhase.READY_TO_INSTALL));
+                home.renderInstallSnapshot(snapshot(DD1InstallPhase.SIGNED_OUT));
+
+                assertEquals(View.VISIBLE,
+                    activity.findViewById(R.id.BTSteamLogin).getVisibility());
+            });
+        }
+        finally {
+            halfMade.delete();
         }
     }
 

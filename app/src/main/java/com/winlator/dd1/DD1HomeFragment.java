@@ -139,11 +139,12 @@ public class DD1HomeFragment extends Fragment {
 
         Activity activity = getActivity();
         File executable = DD1Game.findExecutable(activity.getFilesDir());
-        ContainerManager manager = new ContainerManager(activity);
-        Container container = manager.getContainers().isEmpty() ? null : manager.getContainers().get(0);
+        ContainerManager manager = DD1Profiles.manager(activity);
+        Container container = DD1Profiles.first(manager);
         boolean runtimeReady = RootFS.find(activity).isValid();
 
-        if (runtimeReady && container == null && !creatingProfile && !profileCreationFailed) {
+        if (runtimeReady && container == null && manager != null
+                && !creatingProfile && !profileCreationFailed) {
             creatingProfile = true;
             JSONObject data = new JSONObject(DD1ProfileConfig.create(
                 DD1GraphicsDriver.forRenderer(GPUHelper.glGetRenderer(activity)),

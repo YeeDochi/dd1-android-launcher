@@ -15,7 +15,6 @@ import androidx.fragment.app.Fragment;
 import com.winlator.R;
 import com.winlator.box64.Box64Preset;
 import com.winlator.container.Container;
-import com.winlator.container.ContainerManager;
 import com.winlator.core.GPUHelper;
 
 import java.util.Arrays;
@@ -147,8 +146,7 @@ public class DD1SettingsFragment extends Fragment {
     }
 
     private Container firstContainer() {
-        ContainerManager manager = new ContainerManager(requireContext());
-        return manager.getContainers().isEmpty() ? null : manager.getContainers().get(0);
+        return DD1Profiles.first(requireContext());
     }
 
     private RadioButton choice(String label, boolean checked) {
