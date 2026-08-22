@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Whether the picture is shrunk above the keyboard instead of the screen
+         being turned upright. A phone has no room for it: measured on a Galaxy
+         S25, the window would not settle on a height and the runtime panned the
+         picture under a dragging finger. A tablet has the room and turning it is
+         the worse half of the trade. -->
+    <bool name="dd1_shrink_for_keyboard">false</bool>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Measured on a Galaxy Tab S8: the keyboard left 842 of 1600 and the game
+         letterboxed into it at 1497x842, which is comfortable to aim a click into.
+         Turning a tablet to type is the thing worth avoiding. -->
+    <bool name="dd1_shrink_for_keyboard">true</bool>
+</resources>
