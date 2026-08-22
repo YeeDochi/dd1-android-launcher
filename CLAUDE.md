@@ -4,10 +4,12 @@ An Android launcher that installs and runs the owner's copy of Darkest Dungeon
 through the Winlator runtime. The user signs in to Steam, the launcher downloads
 the Windows build they own, and one Play button starts the game.
 
-The game runs today on a Galaxy S25. Touch input, save synchronisation and the
-mod manager all work and have been exercised on real devices. That is one phone
-and one GPU: a report of a black picture on newer hardware turned out to be the
-runtime picking a driver by model number, and no other GPU has been verified.
+The game runs today on a Galaxy S25 and on a Galaxy Tab S8 (Adreno 730, which
+lands on `turnip,gladio`). Touch input, save synchronisation and the mod manager
+all work and have been exercised on both. That is still two Adreno devices: a
+report of a black picture on newer hardware turned out to be the runtime picking
+a driver by model number, and what an Exynos or Mali device actually draws has
+never been seen - the Xclipse fix in 0.1.8 is reasoned, not witnessed.
 
 ## Boundaries
 

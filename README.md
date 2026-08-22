@@ -74,6 +74,12 @@ once to allow an app from outside the store, and once about compatibility.
 > be unpacked. Staying on the older target is what keeps the runtime legal to
 > execute. Press through it.
 
+> **If it only says "App not installed"**
+> Look for **Winlator** on the device, forks (Winlator Cmod and the like)
+> included. This launcher runs on the Winlator runtime and shares its package
+> name, so Android sees one name signed two ways and refuses without saying why.
+> Uninstall the other one first. The two cannot sit on a device together.
+
 ### 2. Sign in to Steam
 
 <p align="center">
@@ -205,9 +211,10 @@ Drawer → **Settings**. The defaults are safe; these are worth changing:
 
 ### 8. Updating
 
-**The launcher** takes a new APK installed over the old one. Game files, saves,
-mods and the Steam session all survive. Do not uninstall first - that costs you
-the 4GB again.
+**The launcher** says so on start when a newer release exists, and offers the
+release page; **Not today** keeps it quiet for the rest of the day. Install the
+APK over the old one. Game files, saves, mods and the Steam session all survive.
+Do not uninstall first - that costs you the 4GB again.
 
 **DLC** lives under the drawer, **Content**. When Red Hook patches one, this
 screen says so first.
@@ -246,11 +253,26 @@ off, only that mod is fetched again next time; the ones already in stay.
 | **Tap** | Left click |
 | **Drag** | Left click and hold — moving the party, moving items between bags |
 | **Hold still** | Right click — using an item on a hero |
-| **Four fingers** | The launcher's drawer |
 | **ESC** / **ABC** | Escape, and the Android keyboard for naming the estate |
+| **SHIFT+CTRL** | Holds both down - what the game wants for the torch |
 
 A tap leaves the cursor where it touched, which is how tooltips appear: touch an
 item and the game describes it.
+
+**SHIFT+CTRL** sits at the bottom right. One press holds the keys down (**ON**,
+with a red light travelling its border) so the next touch is SHIFT+CTRL+click;
+press it again to let go, and leaving the game lets go for you.
+
+**ABC** makes room for the keyboard differently on each kind of device: **a tablet
+keeps its landscape and shrinks the picture above the keyboard, a phone turns
+upright.** A phone in landscape has too little height left over, and shrinking it
+leaves nothing to see.
+
+**The runtime's drawer, the one four fingers used to open, is off by default.** A
+controller opens it by accident: a button the game does not use arrives as Back,
+the runtime answers Back by opening the drawer, and the first thing in the drawer
+is Keyboard. Turn it on under **Settings, Winlator menu** if you want the
+runtime's own keyboard, task manager or exit.
 
 ## If something goes wrong
 
