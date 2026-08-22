@@ -56,6 +56,8 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     private boolean escaping;
     private boolean typing;
     private boolean sticking;
+    private int measurements;
+    private int heightBeforeKeyboard;
 
     // Sitting on top of the runtime's touchpad means it never sees a touch again,
     // and the four finger tap that opens the drawer is the only way to reach the
@@ -359,7 +361,10 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R)
             activity.getWindow().setDecorFitsSystemWindows(true);
-        activity.setRequestedOrientation(
+        heightBeforeKeyboard = getHeight();
+        measurements = 0;
+        if (shrinksForKeyboard()) squeezePictureAboveKeyboard();
+        else activity.setRequestedOrientation(
             android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         // The IME opens against the focused view, so the focus has to be here
         // before it is asked to.
@@ -374,7 +379,8 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         InputMethodManager imm =
             (InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm != null) imm.hideSoftInputFromWindow(getWindowToken(), 0);
-        activity.setRequestedOrientation(
+        if (shrinksForKeyboard()) restorePicture();
+        else activity.setRequestedOrientation(
             android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
         activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         AppUtils.hideSystemUI(activity);
@@ -408,6 +414,46 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     protected void onDetachedFromWindow() {
         if (heldKeys.releaseAll()) letKeysGo();
         super.onDetachedFromWindow();
+    }
+
+    private boolean shrinksForKeyboard() {
+        return getResources().getBoolean(R.bool.dd1_shrink_for_keyboard);
+    }
+
+    // Lying to the renderer about the surface size does not work - see the note on
+    // entering keyboard mode. The surface has to actually be shorter, and giving the
+    // game's own view a height does that: the GLSurfaceView gets a real
+    // onSurfaceChanged, the viewport fills it, and the picture letterboxes into what
+    // is left. The overlay's touch mapping reads the same transformation, so a
+    // finger still lands where it is aimed.
+    private void fitPictureTo(int height) {
+        android.view.View picture = xServer.getRenderer().xServerView;
+        android.view.ViewGroup.LayoutParams params = picture.getLayoutParams();
+        if (params == null) return;
+        params.height = height;
+        picture.setLayoutParams(params);
+        post(() -> {
+            placeEscape(transformation().viewOffsetX, visibleBottom());
+            invalidate();
+        });
+    }
+
+    // The window is told about the keyboard a frame or several after it is asked
+    // for, and how many is the device's business. Until then the whole height still
+    // looks free, which is not the same as there being no room - read as no room
+    // once, and a device turned itself upright on a measurement that meant nothing.
+    private void squeezePictureAboveKeyboard() {
+        int visible = visibleBottom();
+        if (visible <= 0 || visible >= heightBeforeKeyboard) {
+            if (keyboardMode.active() && ++measurements <= 12)
+                postDelayed(this::squeezePictureAboveKeyboard, 120);
+            return;
+        }
+        fitPictureTo(visible);
+    }
+
+    private void restorePicture() {
+        fitPictureTo(android.view.ViewGroup.LayoutParams.MATCH_PARENT);
     }
 
     private void sendEscape() {
