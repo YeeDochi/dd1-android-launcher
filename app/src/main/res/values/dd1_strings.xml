@@ -94,6 +94,14 @@
     <string name="dd1_workshop_rotate">Rotate screen</string>
     <string name="dd1_workshop_sync">Install updates</string>
     <string name="dd1_workshop_import">Import ZIP</string>
+    <string name="dd1_workshop_drop_folder">Mods put in %1$s are added and removed with the folder.</string>
+    <string name="dd1_workshop_folder_change">Change</string>
+    <string name="dd1_workshop_folder_change_title">Change the mod folder</string>
+    <string name="dd1_workshop_folder_change_message">Local mods the current folder installed will be removed, and the new folder read in their place. Workshop mods are not affected.</string>
+    <string name="dd1_workshop_folder_unusable">That folder cannot be used as a mod folder. Choose one on internal storage or a memory card.</string>
+    <string name="dd1_workshop_heading_local">Local mods</string>
+    <string name="dd1_workshop_heading_steam">Steam Workshop</string>
+    <string name="dd1_workshop_import_none">Nothing in that folder looked like a mod. A mod is a ZIP, or a folder holding project.xml.</string>
     <string name="dd1_workshop_delete">Delete</string>
     <string name="dd1_workshop_delete_title">Delete this mod</string>
     <string name="dd1_workshop_delete_message">%s will be removed from this device. A campaign using it may stop loading correctly.</string>

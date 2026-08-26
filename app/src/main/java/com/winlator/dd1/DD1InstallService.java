@@ -16,10 +16,12 @@ import android.os.Looper;
 import android.provider.OpenableColumns;
 
 import androidx.core.app.NotificationCompat;
+import androidx.documentfile.provider.DocumentFile;
 
 import com.winlator.R;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -296,7 +298,9 @@ public final class DD1InstallService extends Service {
         DD1WorkshopSnapshot.Row row = workshopSnapshot.findDirectory(directoryName);
         worker.execute(() -> {
             try {
+                boolean fromFolder = DD1Workshop.cameFromFolder(getFilesDir(), directoryName);
                 DD1Workshop.delete(getFilesDir(), directoryName, row != null && row.disabled);
+                if (fromFolder) DD1Workshop.removeFromFolder(dropFolder(), directoryName);
                 workshopLog.append("Deleted " + directoryName);
                 publishWorkshop(joinedWorkshop());
             }
@@ -306,19 +310,196 @@ public final class DD1InstallService extends Service {
         });
     }
 
+    // The ZIP is not installed from here: it is unpacked into the drop folder and
+    // read back like anything else in it. One place a local mod lives, one thing
+    // to synchronise, and a mod added this way disappears the same way - by being
+    // taken out of the folder.
     public void importMod(Uri uri) {
         if (uri == null || refuseWhileBusy()) return;
         worker.execute(() -> {
+            File folder = dropFolder();
             try (InputStream input = getContentResolver().openInputStream(uri)) {
                 if (input == null) throw new IllegalStateException("Cannot open selected ZIP");
-                String directory = DD1Workshop.importZip(getFilesDir(), input, displayName(uri));
-                workshopLog.append("Imported " + directory);
-                publishWorkshop(joinedWorkshop());
+                if (!folder.isDirectory() && !folder.mkdirs())
+                    throw new IOException("Cannot create " + folder);
+                workshopLog.append("Unpacked "
+                    + DD1Workshop.unpackInto(folder, input, displayName(uri)));
             }
             catch (Exception error) {
                 publishWorkshop(joinedWorkshop().failed(reason(error)));
+                return;
+            }
+            importModFolder(DocumentFile.fromFile(folder), true);
+        });
+    }
+
+    // A folder the user keeps mods in, which the game cannot see: app data is not
+    // reachable by any file manager, and a document tree has no path to mount, so
+    // what is in there is copied. Every entry that looks like a mod - a ZIP, or a
+    // folder holding project.xml - is taken, and one that refuses is reported and
+    // stepped over rather than ending the batch.
+    // Where a mod dropped from a computer goes. App data is reachable by no file
+    // manager and a folder has no path to mount into the game, so this is a plain
+    // public folder that gets copied in.
+    public static File defaultDropFolder() {
+        return new File(android.os.Environment.getExternalStorageDirectory(), "DD1/mods");
+    }
+
+    public File dropFolder() {
+        String chosen = preferences().getString("mods_folder", null);
+        return chosen == null ? defaultDropFolder() : new File(chosen);
+    }
+
+    public void setDropFolder(Uri tree) {
+        File chosen = pathFromTree(tree);
+        if (chosen == null || !chosen.isDirectory() || !chosen.canRead()) {
+            publishWorkshop(workshopSnapshot.failed(
+                getString(R.string.dd1_workshop_folder_unusable)));
+            return;
+        }
+        if (refuseWhileBusy()) return;
+        worker.execute(() -> {
+            // The new folder is the whole answer to what is installed locally. What
+            // the old one brought goes with it - the folder is the user's to manage,
+            // and two folders' leftovers in one list is not a state anyone asked for.
+            try {
+                for (String removed : DD1Workshop.removeMissingFromFolder(getFilesDir(),
+                        java.util.Collections.emptyList()))
+                    workshopLog.append("Removed " + removed);
+            }
+            catch (Exception error) {
+                publishWorkshop(joinedWorkshop().failed(reason(error)));
+                return;
+            }
+            preferences().edit().putString("mods_folder", chosen.getPath()).apply();
+            publishWorkshop(joinedWorkshop());
+            syncImportFolder();
+        });
+    }
+
+    // A document tree names a volume and a path inside it, and the folder is read
+    // and written as a plain path - a ZIP is unpacked into it with a rename, which
+    // no document provider offers. Anything this cannot place is refused rather
+    // than half-supported.
+    private static File pathFromTree(Uri tree) {
+        if (tree == null) return null;
+        String id;
+        try {
+            id = android.provider.DocumentsContract.getTreeDocumentId(tree);
+        }
+        catch (Exception notATree) {
+            return null;
+        }
+        int colon = id == null ? -1 : id.indexOf(':');
+        if (colon < 0) return null;
+        String volume = id.substring(0, colon);
+        String inside = id.substring(colon + 1);
+        File root = "primary".equalsIgnoreCase(volume)
+            ? android.os.Environment.getExternalStorageDirectory()
+            : new File("/storage/" + volume);
+        return inside.isEmpty() ? root : new File(root, inside);
+    }
+
+    // Opening the screen, or pressing Refresh. What is new in the folder arrives,
+    // what left it goes, and nothing else is touched.
+    public void syncImportFolder() {
+        File folder = dropFolder();
+        if (!folder.isDirectory() && !folder.mkdirs()) return;
+        importModFolder(DocumentFile.fromFile(folder), false);
+    }
+
+    private void importModFolder(DocumentFile root, boolean announce) {
+        if (root == null || (announce ? refuseWhileBusy() : busy())) return;
+        worker.execute(() -> {
+            try {
+                if (!root.isDirectory()) throw new IOException("Cannot read " + dropFolder());
+                int taken = 0;
+                String lastFailure = null;
+                HashSet<String> present = new HashSet<>();
+                for (DocumentFile child : root.listFiles()) {
+                    String name = child.getName();
+                    if (name == null || name.startsWith(".")
+                            || !(child.isDirectory() || isZip(name))) continue;
+                    present.add(DD1Workshop.installedName(name));
+                    // Already installed is not a failure: there is nothing to do,
+                    // which is the same thing as having done it.
+                    if (DD1Workshop.alreadyInstalled(getFilesDir(), name)) continue;
+                    try {
+                        importDocument(child, name);
+                        workshopLog.append("Imported " + name);
+                        taken++;
+                    }
+                    catch (Exception one) {
+                        lastFailure = name + ": " + reason(one);
+                        workshopLog.append(lastFailure);
+                    }
+                }
+                int gone = 0;
+                for (String removed : DD1Workshop.removeMissingFromFolder(getFilesDir(), present)) {
+                    workshopLog.append("Removed " + removed);
+                    gone++;
+                }
+                if (taken > 0 || gone > 0) publishWorkshop(joinedWorkshop());
+                else if (lastFailure != null) publishWorkshop(joinedWorkshop().failed(lastFailure));
+                else if (announce) publishWorkshop(joinedWorkshop()
+                    .failed(getString(R.string.dd1_workshop_import_none)));
+            }
+            catch (Exception error) {
+                if (announce) publishWorkshop(joinedWorkshop().failed(reason(error)));
+                else workshopLog.append(reason(error));
             }
         });
+    }
+
+    private void importDocument(DocumentFile document, String name) throws IOException {
+        if (!document.isDirectory()) {
+            try (InputStream input = getContentResolver().openInputStream(document.getUri())) {
+                if (input == null) throw new IOException("Cannot open " + name);
+                DD1Workshop.importZip(getFilesDir(), input, name, true);
+            }
+            return;
+        }
+        File staging = DD1Workshop.importStaging(getFilesDir());
+        try {
+            copyDocuments(document, staging, new long[1]);
+        }
+        catch (IOException error) {
+            DD1Workshop.discardImport(getFilesDir());
+            throw error;
+        }
+        DD1Workshop.installImport(getFilesDir(), name, true);
+    }
+
+    private void copyDocuments(DocumentFile from, File to, long[] total) throws IOException {
+        for (DocumentFile child : from.listFiles()) {
+            String name = child.getName();
+            if (name == null || name.isEmpty() || name.equals(".") || name.equals("..")
+                    || name.indexOf('/') >= 0) continue;
+            File target = new File(to, name);
+            if (child.isDirectory()) {
+                if (!target.isDirectory() && !target.mkdirs())
+                    throw new IOException("Cannot create " + name);
+                copyDocuments(child, target, total);
+                continue;
+            }
+            try (InputStream input = getContentResolver().openInputStream(child.getUri())) {
+                if (input == null) throw new IOException("Cannot open " + name);
+                try (java.io.FileOutputStream output = new java.io.FileOutputStream(target)) {
+                    byte[] buffer = new byte[64 * 1024];
+                    int read;
+                    while ((read = input.read(buffer)) != -1) {
+                        total[0] += read;
+                        if (total[0] > DD1Workshop.MAX_IMPORT_BYTES)
+                            throw new IOException("The folder is larger than 512 MB");
+                        output.write(buffer, 0, read);
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean isZip(String name) {
+        return name.toLowerCase(java.util.Locale.ROOT).endsWith(".zip");
     }
 
     public CompletableFuture<DD1WorkshopItem> workshopDetail(long publishedFileId) {

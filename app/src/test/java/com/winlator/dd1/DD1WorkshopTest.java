@@ -190,7 +190,7 @@ public class DD1WorkshopTest {
 
         String directory = DD1Workshop.importZip(files,
             new ByteArrayInputStream(zip("wrapped/project.xml", "<Project/>")),
-            "My Mod.zip");
+            "My Mod.zip", false);
 
         assertEquals("My Mod", directory);
         assertTrue(new File(files, "game/mods/My Mod/project.xml").isFile());
@@ -198,11 +198,110 @@ public class DD1WorkshopTest {
     }
 
     @Test
+    public void installsAModCopiedIntoStagingAsAFolder() throws Exception {
+        File files = folder.newFolder();
+        File staging = DD1Workshop.importStaging(files);
+        File wrapped = new File(staging, "Wild monster");
+        wrapped.mkdirs();
+        touch(new File(wrapped, "project.xml"));
+        Files.write(new File(wrapped, ".dd1-workshop").toPath(),
+            "9\n1\nWas a Workshop mod\n".getBytes(StandardCharsets.UTF_8));
+
+        String directory = DD1Workshop.installImport(files, "Wild monster", true);
+
+        assertEquals("Wild monster", directory);
+        assertTrue(new File(files, "game/mods/Wild monster/project.xml").isFile());
+        assertFalse(new File(files, "game/mods/Wild monster/.dd1-workshop").exists());
+        assertFalse(new File(files, "local-import-staging").exists());
+        assertEquals(0L, DD1Workshop.scan(files).get(0).publishedFileId);
+    }
+
+    @Test
+    public void folderSyncRemovesOnlyWhatTheFolderPutThere() throws Exception {
+        File files = folder.newFolder();
+        staged(files, "From the folder");
+        staged(files, "Still in the folder");
+        DD1Workshop.importZip(files, new ByteArrayInputStream(zip("project.xml", "<Project/>")),
+            "By hand.zip", false);
+        File workshopMod = mkdir(files, "game/mods/42");
+        Files.write(new File(workshopMod, ".dd1-workshop").toPath(),
+            "42\n7\nSubscribed\n".getBytes(StandardCharsets.UTF_8));
+
+        List<String> removed = DD1Workshop.removeMissingFromFolder(files,
+            java.util.Collections.singletonList("Still in the folder"));
+
+        assertEquals(java.util.Collections.singletonList("From the folder"), removed);
+        assertFalse(new File(files, "game/mods/From the folder").exists());
+        assertTrue(new File(files, "game/mods/Still in the folder").isFile()
+            || new File(files, "game/mods/Still in the folder").isDirectory());
+        assertTrue(new File(files, "game/mods/By hand").isDirectory());
+        assertTrue(new File(files, "game/mods/42").isDirectory());
+    }
+
+    private static void staged(File files, String name) throws Exception {
+        File staging = DD1Workshop.importStaging(files);
+        touch(new File(staging, "project.xml"));
+        DD1Workshop.installImport(files, name, true);
+    }
+
+    @Test
+    public void unpacksAChosenZipIntoTheDropFolder() throws Exception {
+        File drop = folder.newFolder();
+
+        String name = DD1Workshop.unpackInto(drop,
+            new ByteArrayInputStream(zip("wrapped/project.xml", "<Project/>")), "My Mod.zip");
+
+        assertEquals("My Mod", name);
+        assertTrue(new File(drop, "My Mod/project.xml").isFile());
+        assertFalse(new File(drop, ".dd1-unpacking").exists());
+    }
+
+    @Test
+    public void refusesToUnpackSomethingThatIsNotAMod() throws Exception {
+        File drop = folder.newFolder();
+
+        expectIOException(() -> DD1Workshop.unpackInto(drop,
+            new ByteArrayInputStream(zip("readme.txt", "not a mod")), "Junk.zip"));
+
+        assertEquals(0, drop.listFiles().length);
+    }
+
+    @Test
+    public void deletingReachesTheFolderEntryThatInstalledIt() throws Exception {
+        File drop = folder.newFolder();
+        mkdir(drop, "Unpacked mod");
+        touch(new File(drop, "Zipped mod.zip"));
+        touch(new File(drop, "Another mod.zip"));
+
+        DD1Workshop.removeFromFolder(drop, "Zipped mod");
+
+        assertFalse(new File(drop, "Zipped mod.zip").exists());
+        assertTrue(new File(drop, "Unpacked mod").isDirectory());
+        assertTrue(new File(drop, "Another mod.zip").isFile());
+    }
+
+    @Test
+    public void changingFolderClearsWhatTheOldOneBroughtAndNothingElse() throws Exception {
+        File files = folder.newFolder();
+        staged(files, "From the old folder");
+        File workshopMod = mkdir(files, "game/mods/42");
+        Files.write(new File(workshopMod, ".dd1-workshop").toPath(),
+            "42\n7\nSubscribed\n".getBytes(StandardCharsets.UTF_8));
+
+        List<String> removed = DD1Workshop.removeMissingFromFolder(files,
+            Collections.<String>emptyList());
+
+        assertEquals(Collections.singletonList("From the old folder"), removed);
+        assertFalse(new File(files, "game/mods/From the old folder").exists());
+        assertTrue(new File(files, "game/mods/42").isDirectory());
+    }
+
+    @Test
     public void importRejectsPathsOutsideStaging() throws Exception {
         File files = folder.newFolder();
 
         expectIOException(() -> DD1Workshop.importZip(files,
-            new ByteArrayInputStream(zip("../outside", "bad")), "Bad.zip"));
+            new ByteArrayInputStream(zip("../outside", "bad")), "Bad.zip", false));
 
         assertFalse(new File(files, "outside").exists());
         assertFalse(new File(files, "local-import-staging").exists());
@@ -215,7 +314,7 @@ public class DD1WorkshopTest {
         touch(new File(existing, "old"));
 
         expectIOException(() -> DD1Workshop.importZip(files,
-            new ByteArrayInputStream(zip("project.xml", "<Project/>")), "My Mod.zip"));
+            new ByteArrayInputStream(zip("project.xml", "<Project/>")), "My Mod.zip", false));
 
         assertTrue(new File(existing, "old").isFile());
     }

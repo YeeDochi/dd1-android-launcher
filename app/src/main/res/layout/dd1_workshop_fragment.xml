@@ -78,9 +78,21 @@
             <Button android:id="@+id/BTWorkshopImport" style="@style/DD1Action"
                 android:layout_width="0dp" android:layout_weight="1"
                 android:text="@string/dd1_workshop_import" />
+            <Button android:id="@+id/BTWorkshopInstalledRefresh" style="@style/DD1Action"
+                android:layout_width="0dp" android:layout_weight="1"
+                android:text="@string/dd1_workshop_refresh" />
             <Button android:id="@+id/BTWorkshopSync" style="@style/DD1Action"
                 android:layout_width="0dp" android:layout_weight="1"
                 android:text="@string/dd1_workshop_sync" android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center_vertical" android:orientation="horizontal">
+            <TextView android:id="@+id/TVWorkshopDropFolder" style="@style/DD1Meta"
+                android:layout_width="0dp" android:layout_weight="1"
+                android:paddingStart="8dp" android:paddingTop="6dp" android:paddingEnd="8dp" />
+            <Button android:id="@+id/BTWorkshopDropFolder" style="@style/DD1Action"
+                android:layout_width="wrap_content"
+                android:text="@string/dd1_workshop_folder_change" />
         </LinearLayout>
         <ProgressBar android:id="@+id/PBWorkshopProgress"
             style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent"
@@ -89,8 +101,20 @@
             android:padding="8dp" android:visibility="gone" />
         <ScrollView android:layout_width="match_parent" android:layout_height="0dp"
             android:layout_weight="1">
-            <LinearLayout android:id="@+id/LLWorkshopList" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:orientation="vertical" />
+            <LinearLayout android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:orientation="vertical">
+                <TextView android:id="@+id/TVWorkshopLocalHeading" style="@style/DD1Meta"
+                    android:padding="8dp" android:text="@string/dd1_workshop_heading_local"
+                    android:visibility="gone" />
+                <LinearLayout android:id="@+id/LLWorkshopLocalList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+                <TextView android:id="@+id/TVWorkshopSteamHeading" style="@style/DD1Meta"
+                    android:padding="8dp" android:text="@string/dd1_workshop_heading_steam"
+                    android:visibility="gone" />
+                <LinearLayout android:id="@+id/LLWorkshopList" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical" />
+            </LinearLayout>
         </ScrollView>
     </LinearLayout>
 </LinearLayout>

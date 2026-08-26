@@ -16,7 +16,11 @@ import java.util.zip.ZipInputStream;
 
 public final class DD1Workshop {
     private static final String MARKER = ".dd1-workshop";
-    private static final long MAX_IMPORT_BYTES = 512L * 1024 * 1024;
+    // Which local mods the synchronised folder is answerable for. Without it a
+    // folder that lost a mod could take a hand-imported ZIP with it, and choosing
+    // the wrong folder once would delete every local mod on the device.
+    private static final String SOURCE = ".dd1-local";
+    static final long MAX_IMPORT_BYTES = 512L * 1024 * 1024;
 
     public static final class Mod {
         public final String directoryName;
@@ -24,14 +28,16 @@ public final class DD1Workshop {
         public final long updatedAt;
         public final String title;
         public final boolean disabled;
+        public final boolean fromFolder;
 
         private Mod(String directoryName, long publishedFileId, long updatedAt, String title,
-                boolean disabled) {
+                boolean disabled, boolean fromFolder) {
             this.directoryName = directoryName;
             this.publishedFileId = publishedFileId;
             this.updatedAt = updatedAt;
             this.title = title;
             this.disabled = disabled;
+            this.fromFolder = fromFolder;
         }
     }
 
@@ -106,17 +112,90 @@ public final class DD1Workshop {
         move(filesDir, directoryName, "mods-disabled", "mods");
     }
 
-    public static String importZip(File filesDir, InputStream input, String sourceName)
+    public static String importZip(File filesDir, InputStream input, String sourceName,
+            boolean fromFolder) throws IOException {
+        File staging = importStaging(filesDir);
+        try {
+            extractZip(input, staging);
+            return installImport(filesDir, sourceName, fromFolder);
+        }
+        finally {
+            deleteTree(staging);
+        }
+    }
+
+    // A chosen ZIP goes where a mod dropped from a computer goes, unpacked, so a
+    // local mod has one home and the list has one thing to be synchronised
+    // against. Staging sits in the same folder because a rename cannot cross from
+    // app data to the shared volume.
+    public static String unpackInto(File folder, InputStream input, String sourceName)
             throws IOException {
+        File staging = new File(folder, ".dd1-unpacking");
+        deleteTree(staging);
+        if (!staging.isDirectory() && !staging.mkdirs())
+            throw new IOException("Cannot write to " + folder);
+        try {
+            extractZip(input, staging);
+            File payload = payload(staging);
+            String name = importName(sourceName);
+            File destination = new File(folder, name);
+            if (!folder.equals(destination.getParentFile()))
+                throw new IOException("Invalid mod name");
+            if (destination.exists()) throw new IOException("A mod with this name already exists");
+            if (!payload.renameTo(destination))
+                throw new IOException("Cannot unpack into " + folder);
+            return name;
+        }
+        finally {
+            deleteTree(staging);
+        }
+    }
+
+    // A folder the user dropped where the game cannot see it. Its bytes arrive
+    // through a document provider rather than a path, so the caller copies them
+    // in here; what happens after that is what a ZIP gets.
+    public static File importStaging(File filesDir) throws IOException {
         File staging = new File(filesDir, "local-import-staging");
         deleteTree(staging);
         if (!staging.mkdirs()) throw new IOException("Cannot create import staging directory");
+        return staging;
+    }
+
+    // Cheap enough to ask before copying anything: a folder that is synchronised
+    // every time the screen opens must not read hundreds of megabytes to find out
+    // it has nothing to do.
+    public static boolean alreadyInstalled(File filesDir, String sourceName) {
+        String name = importName(sourceName);
+        return new File(filesDir, "game/mods/" + name).exists()
+            || new File(filesDir, "game/mods-disabled/" + name).exists();
+    }
+
+    // The directory a folder entry would land in, so a synchronisation can tell
+    // what is still there from what is gone by the same name it installed under.
+    public static String installedName(String sourceName) {
+        return importName(sourceName);
+    }
+
+    public static void discardImport(File filesDir) {
         try {
-            extractZip(input, staging);
+            deleteTree(new File(filesDir, "local-import-staging"));
+        }
+        catch (IOException halfDeleted) {
+            // The next import starts by clearing it, so a leftover is not a failure
+            // worth reporting over the one that got here.
+        }
+    }
+
+    public static String installImport(File filesDir, String sourceName, boolean fromFolder)
+            throws IOException {
+        File staging = new File(filesDir, "local-import-staging");
+        try {
             File payload = payload(staging);
             File marker = new File(payload, MARKER);
             if (marker.exists() && !marker.delete())
                 throw new IOException("Cannot remove Workshop marker from local mod");
+            if (fromFolder) Files.write(new File(payload, SOURCE).toPath(),
+                sourceName.getBytes(StandardCharsets.UTF_8));
 
             String directoryName = importName(sourceName);
             File mods = new File(filesDir, "game/mods").getCanonicalFile();
@@ -133,6 +212,38 @@ public final class DD1Workshop {
         finally {
             deleteTree(staging);
         }
+    }
+
+    public static boolean cameFromFolder(File filesDir, String directoryName) {
+        for (Mod mod : scan(filesDir))
+            if (mod.directoryName.equals(directoryName)) return mod.fromFolder;
+        return false;
+    }
+
+    // Deleting a mod the folder put there has to reach the folder, or the next
+    // synchronisation puts it straight back. Matched by the name it installed
+    // under, so a ZIP is found by what it unpacked to and not by its own spelling.
+    public static void removeFromFolder(File folder, String directoryName) throws IOException {
+        File[] entries = folder.listFiles();
+        if (entries == null) return;
+        for (File entry : entries) {
+            if (entry.getName().startsWith(".")) continue;
+            if (installedName(entry.getName()).equals(directoryName)) deleteTree(entry);
+        }
+    }
+
+    // The other half of synchronising a folder: a mod that is no longer in it goes,
+    // and nothing else does. Only mods the folder put there carry the marker, so a
+    // ZIP imported by hand and every Workshop mod are left alone.
+    public static List<String> removeMissingFromFolder(File filesDir, Collection<String> present)
+            throws IOException {
+        List<String> removed = new ArrayList<>();
+        for (Mod mod : scan(filesDir)) {
+            if (!mod.fromFolder || present.contains(mod.directoryName)) continue;
+            delete(filesDir, mod.directoryName, mod.disabled);
+            removed.add(mod.directoryName);
+        }
+        return removed;
     }
 
     public static void removeUnsubscribed(File filesDir, Collection<Long> subscribedIds)
@@ -152,10 +263,11 @@ public final class DD1Workshop {
             long updated = Long.parseLong(lines.get(1));
             if (id <= 0 || !directory.getName().equals(Long.toString(id)))
                 throw new IOException("Mismatched marker");
-            return new Mod(directory.getName(), id, updated, lines.get(2), disabled);
+            return new Mod(directory.getName(), id, updated, lines.get(2), disabled, false);
         }
         catch (Exception ignored) {
-            return new Mod(directory.getName(), 0, 0, directory.getName(), disabled);
+            return new Mod(directory.getName(), 0, 0, directory.getName(), disabled,
+                new File(directory, SOURCE).isFile());
         }
     }
 

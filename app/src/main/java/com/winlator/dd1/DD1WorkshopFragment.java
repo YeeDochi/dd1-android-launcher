@@ -4,7 +4,9 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ActivityNotFoundException;
+import android.Manifest;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -30,6 +32,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.winlator.R;
@@ -63,6 +66,19 @@ public final class DD1WorkshopFragment extends Fragment {
             pendingImport = uri;
             importPending();
         });
+    // The drop folder is a public one, so it takes the storage permission the
+    // launcher never had a reason to ask for before. Asked for on this screen,
+    // which is the only one that reads it.
+    private final ActivityResultLauncher<String[]> storage = registerForActivityResult(
+        new ActivityResultContracts.RequestMultiplePermissions(), granted -> {
+            if (service != null) service.syncImportFolder();
+        });
+    private final ActivityResultLauncher<Uri> chooseFolder = registerForActivityResult(
+        new ActivityResultContracts.OpenDocumentTree(), uri -> {
+            pendingFolder = uri;
+            importPending();
+        });
+    private Uri pendingFolder;
     private final DD1InstallService.WorkshopListener listener = this::renderSnapshot;
     private final ServiceConnection connection = new ServiceConnection();
 
@@ -73,6 +89,7 @@ public final class DD1WorkshopFragment extends Fragment {
             bound = true;
             service.observeWorkshop(listener);
             service.refreshWorkshop();
+            service.syncImportFolder();
             importPending();
         }
 
@@ -84,10 +101,17 @@ public final class DD1WorkshopFragment extends Fragment {
     }
 
     private void importPending() {
-        if (service == null || pendingImport == null) return;
-        Uri uri = pendingImport;
-        pendingImport = null;
-        service.importMod(uri);
+        if (service == null) return;
+        if (pendingFolder != null) {
+            Uri folder = pendingFolder;
+            pendingFolder = null;
+            service.setDropFolder(folder);
+        }
+        if (pendingImport != null) {
+            Uri uri = pendingImport;
+            pendingImport = null;
+            service.importMod(uri);
+        }
     }
 
     @Nullable
@@ -132,6 +156,7 @@ public final class DD1WorkshopFragment extends Fragment {
         view.findViewById(R.id.BTWorkshopRefresh).setOnClickListener(v -> {
             if (service != null) {
                 service.refreshWorkshop();
+                service.syncImportFolder();
                 search(false);
             }
         });
@@ -143,6 +168,28 @@ public final class DD1WorkshopFragment extends Fragment {
         // octet-stream or nothing at all, depending on what put it there, and a
         // filter that greys the file out reads as the import being broken. What
         // the file actually is, importZip decides by looking for project.xml.
+        // The store tab's Refresh is inside the store tab. This list had no way to
+        // be asked again, which is where the folder is read.
+        view.findViewById(R.id.BTWorkshopInstalledRefresh).setOnClickListener(v -> {
+            if (service != null) {
+                service.syncImportFolder();
+                service.refreshWorkshop();
+            }
+        });
+        ((TextView)view.findViewById(R.id.TVWorkshopDropFolder)).setText(
+            getString(R.string.dd1_workshop_drop_folder,
+                DD1InstallService.defaultDropFolder()));
+        view.findViewById(R.id.BTWorkshopDropFolder).setOnClickListener(v ->
+            new AlertDialog.Builder(requireContext(), R.style.DD1Dialog)
+                .setTitle(R.string.dd1_workshop_folder_change_title)
+                .setMessage(R.string.dd1_workshop_folder_change_message)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.dd1_workshop_folder_change,
+                    (dialog, which) -> chooseFolder.launch(null)).show());
+        if (ContextCompat.checkSelfPermission(requireContext(),
+                Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+            storage.launch(new String[] {Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE});
         view.findViewById(R.id.BTWorkshopImport).setOnClickListener(v ->
             importZip.launch(new String[] {"*/*"}));
         showTab(true);
@@ -286,7 +333,11 @@ public final class DD1WorkshopFragment extends Fragment {
         Button sync = view.findViewById(R.id.BTWorkshopSync);
         sync.setVisibility(snapshot.syncable() ? View.VISIBLE : View.GONE);
         view.findViewById(R.id.BTWorkshopImport).setEnabled(!syncing);
+        view.findViewById(R.id.BTWorkshopInstalledRefresh).setEnabled(!syncing);
 
+        if (service != null) ((TextView)view.findViewById(R.id.TVWorkshopDropFolder)).setText(
+            getString(R.string.dd1_workshop_drop_folder, service.dropFolder()));
+        view.findViewById(R.id.BTWorkshopDropFolder).setEnabled(!syncing);
         TextView message = view.findViewById(R.id.TVWorkshopMessage);
         String text = snapshot.message;
         if (snapshot.phase == DD1WorkshopSnapshot.Phase.READY && snapshot.rows.isEmpty())
@@ -295,10 +346,13 @@ public final class DD1WorkshopFragment extends Fragment {
         message.setVisibility(text == null ? View.GONE : View.VISIBLE);
 
         LinearLayout list = view.findViewById(R.id.LLWorkshopList);
+        LinearLayout local = view.findViewById(R.id.LLWorkshopLocalList);
         String shape = installedShape(snapshot);
-        if (shape.equals(builtInstalled) && list.getChildCount() == snapshot.rows.size()) return;
+        if (shape.equals(builtInstalled)
+                && list.getChildCount() + local.getChildCount() == snapshot.rows.size()) return;
         builtInstalled = shape;
         list.removeAllViews();
+        local.removeAllViews();
         for (DD1WorkshopSnapshot.Row item : snapshot.rows) {
             View row = LayoutInflater.from(requireContext()).inflate(
                 R.layout.dd1_workshop_row, list, false);
@@ -334,8 +388,14 @@ public final class DD1WorkshopFragment extends Fragment {
 
             // A mod imported from a ZIP has no Workshop page to show.
             if (item.publishedFileId != 0) row.setOnClickListener(v -> showDetail(item));
-            list.addView(row);
+            (item.publishedFileId == 0 ? local : list).addView(row);
         }
+        // A heading for a section with nothing in it is a claim that something is
+        // missing; the two lists are only ever named when they hold something.
+        view.findViewById(R.id.TVWorkshopLocalHeading).setVisibility(
+            local.getChildCount() == 0 ? View.GONE : View.VISIBLE);
+        view.findViewById(R.id.TVWorkshopSteamHeading).setVisibility(
+            list.getChildCount() == 0 ? View.GONE : View.VISIBLE);
     }
 
     private void loadImage(ImageView image, DD1WorkshopItem item) {
