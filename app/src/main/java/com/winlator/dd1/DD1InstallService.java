@@ -139,17 +139,18 @@ public final class DD1InstallService extends Service {
         if (!ownsGame) {
             if (snapshot.phase == DD1InstallPhase.RESTORING
                     || snapshot.phase == DD1InstallPhase.AUTHENTICATING) {
-                publishWorkshop(DD1WorkshopSnapshot.loading());
+                worker.execute(() -> publishWorkshop(joinedWorkshop().stillLoading()));
                 return;
             }
-            publishWorkshop(DD1WorkshopSnapshot.error(getString(R.string.dd1_workshop_sign_in)));
+            String signIn = getString(R.string.dd1_workshop_sign_in);
+            worker.execute(() -> publishWorkshop(joinedWorkshop().failed(signIn)));
             return;
         }
         if (workshopSnapshot.phase == DD1WorkshopSnapshot.Phase.SYNCING) return;
-        if (!keepTheList) publishWorkshop(DD1WorkshopSnapshot.loading());
+        if (!keepTheList) worker.execute(() -> publishWorkshop(joinedWorkshop().stillLoading()));
         steam.workshop().whenComplete((subscriptions, error) -> worker.execute(() -> {
             if (error != null) {
-                publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
+                publishWorkshop(joinedWorkshop().failed(reason(error)));
                 return;
             }
             workshopSubscriptions = Collections.unmodifiableList(new ArrayList<>(subscriptions));
@@ -162,7 +163,7 @@ public final class DD1InstallService extends Service {
                 publishWorkshop(joinedWorkshop());
             }
             catch (Exception cleanupError) {
-                publishWorkshop(DD1WorkshopSnapshot.error(reason(cleanupError)));
+                publishWorkshop(joinedWorkshop().failed(reason(cleanupError)));
                 return;
             }
             if (workshopBrowse.isEmpty()) browseWorkshop("", 0, false);
@@ -300,7 +301,7 @@ public final class DD1InstallService extends Service {
                 publishWorkshop(joinedWorkshop());
             }
             catch (Exception error) {
-                publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
+                publishWorkshop(joinedWorkshop().failed(reason(error)));
             }
         });
     }
@@ -315,7 +316,7 @@ public final class DD1InstallService extends Service {
                 publishWorkshop(joinedWorkshop());
             }
             catch (Exception error) {
-                publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
+                publishWorkshop(joinedWorkshop().failed(reason(error)));
             }
         });
     }
@@ -486,7 +487,7 @@ public final class DD1InstallService extends Service {
                     workshopSnapshot.total, false, workshopSnapshot.browseError));
         }
         catch (Throwable error) {
-            publishWorkshop(DD1WorkshopSnapshot.error(reason(error)));
+            publishWorkshop(joinedWorkshop().failed(reason(error)));
         }
         finally {
             syncingWorkshop = false;

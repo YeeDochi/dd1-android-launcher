@@ -96,6 +96,35 @@ public class DD1WorkshopSnapshotTest {
         assertFalse(snapshot.browseLoading);
     }
 
+    @Test
+    public void failureKeepsWhatIsOnDisk() throws Exception {
+        File files = folder.newFolder();
+        new File(files, "game/mods/imported by zip").mkdirs();
+
+        DD1WorkshopSnapshot snapshot = DD1WorkshopSnapshot.ready(Collections.emptyList(),
+            DD1Workshop.scan(files)).failed("Sign in to Steam");
+
+        assertEquals(DD1WorkshopSnapshot.Phase.ERROR, snapshot.phase);
+        assertEquals("Sign in to Steam", snapshot.message);
+        assertEquals(DD1WorkshopSnapshot.State.LOCAL,
+            snapshot.findDirectory("imported by zip").state);
+        assertFalse(snapshot.syncable());
+    }
+
+    @Test
+    public void loadingKeepsWhatIsOnDisk() throws Exception {
+        File files = folder.newFolder();
+        new File(files, "game/mods/imported by zip").mkdirs();
+
+        DD1WorkshopSnapshot snapshot = DD1WorkshopSnapshot.ready(Collections.emptyList(),
+            DD1Workshop.scan(files)).stillLoading();
+
+        assertEquals(DD1WorkshopSnapshot.Phase.LOADING, snapshot.phase);
+        assertEquals(DD1WorkshopSnapshot.State.LOCAL,
+            snapshot.findDirectory("imported by zip").state);
+        assertFalse(snapshot.syncable());
+    }
+
     private static void workshop(File files, long id, long updated, String title) throws Exception {
         File mod = new File(files, "game/mods/" + id);
         mod.mkdirs();

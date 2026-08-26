@@ -87,12 +87,6 @@ public final class DD1WorkshopSnapshot {
             "", 0, 0, 0, false, null);
     }
 
-    public static DD1WorkshopSnapshot error(String message) {
-        return new DD1WorkshopSnapshot(Phase.ERROR, Collections.emptyList(),
-            Collections.emptyList(), message, 0, Collections.singletonList(message),
-            Collections.emptyList(), "", 0, 0, 0, false, null);
-    }
-
     public static DD1WorkshopSnapshot ready(List<ModSyncPlan.Subscribed> subscribed,
             List<DD1Workshop.Mod> scanned) {
         List<ModSyncPlan.Installed> installed = new ArrayList<>();
@@ -135,6 +129,23 @@ public final class DD1WorkshopSnapshot {
         sync.addAll(plan.disabledUpdate);
         return new DD1WorkshopSnapshot(Phase.READY, rows, sync, null, 0,
             Collections.emptyList(), Collections.emptyList(), "", 0, 0, 0, false, null);
+    }
+
+    // The installed list is what is on disk; Steam only annotates it. Blanking it
+    // for the round trip is the other half of why a mod imported from a ZIP looked
+    // like it had never landed - the screen refreshes every time it is opened.
+    public DD1WorkshopSnapshot stillLoading() {
+        return copy(Phase.LOADING, rows, Collections.emptyList(), null, 0, log, browse, query,
+            sort, page, total, browseLoading, browseError);
+    }
+
+    // A Steam failure is no reason to forget what is on disk. error() blanks the
+    // rows, and a mod imported from a ZIP needs Steam for nothing at all: signed
+    // out or offline, the import landed and the list said the screen was empty.
+    public DD1WorkshopSnapshot failed(String message) {
+        return copy(Phase.ERROR, rows, Collections.emptyList(), message, 0,
+            Collections.singletonList(message), browse, query, sort, page, total, false,
+            browseError);
     }
 
     public DD1WorkshopSnapshot syncing(String message, int progress, List<String> log) {

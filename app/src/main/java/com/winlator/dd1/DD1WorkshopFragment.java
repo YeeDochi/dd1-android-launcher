@@ -53,9 +53,15 @@ public final class DD1WorkshopFragment extends Fragment {
     private String builtInstalled;
     AlertDialog detailDialog;
     private final ExecutorService images = Executors.newSingleThreadExecutor();
+    // The picker takes the screen, so onStop unbinds and the service is gone by
+    // the time the answer comes back: binding again is asynchronous and lands
+    // after this callback, so importing straight from here dropped the file on
+    // the floor - no mod, no message, every time. Held until there is a service.
+    private Uri pendingImport;
     private final ActivityResultLauncher<String[]> importZip = registerForActivityResult(
         new ActivityResultContracts.OpenDocument(), uri -> {
-            if (service != null && uri != null) service.importMod(uri);
+            pendingImport = uri;
+            importPending();
         });
     private final DD1InstallService.WorkshopListener listener = this::renderSnapshot;
     private final ServiceConnection connection = new ServiceConnection();
@@ -67,6 +73,7 @@ public final class DD1WorkshopFragment extends Fragment {
             bound = true;
             service.observeWorkshop(listener);
             service.refreshWorkshop();
+            importPending();
         }
 
         @Override
@@ -74,6 +81,13 @@ public final class DD1WorkshopFragment extends Fragment {
             service = null;
             bound = false;
         }
+    }
+
+    private void importPending() {
+        if (service == null || pendingImport == null) return;
+        Uri uri = pendingImport;
+        pendingImport = null;
+        service.importMod(uri);
     }
 
     @Nullable
@@ -125,8 +139,12 @@ public final class DD1WorkshopFragment extends Fragment {
         view.findViewById(R.id.BTWorkshopSync).setOnClickListener(v -> {
             if (service != null) service.syncWorkshop();
         });
+        // Any type: a ZIP reaches a phone as application/zip, x-zip-compressed,
+        // octet-stream or nothing at all, depending on what put it there, and a
+        // filter that greys the file out reads as the import being broken. What
+        // the file actually is, importZip decides by looking for project.xml.
         view.findViewById(R.id.BTWorkshopImport).setOnClickListener(v ->
-            importZip.launch(new String[] {"application/zip", "application/octet-stream"}));
+            importZip.launch(new String[] {"*/*"}));
         showTab(true);
     }
 
