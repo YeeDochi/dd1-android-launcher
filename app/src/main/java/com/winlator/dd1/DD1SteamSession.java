@@ -353,7 +353,23 @@ public final class DD1SteamSession implements Closeable {
             reconnects = 0;
             publish(events.loggedOn());
         }
+        // A stored token Steam refuses is not coming back: InvalidPassword is the
+        // answer an expired or revoked refresh token gets. Kept, it would greet
+        // every launch with the same error and no way past it; cleared, the next
+        // screen is the sign-in.
+        else if (savedSession != null && tokenRejected(callback.getResult())) {
+            savedSession = null;
+            tokens.clear();
+            expectedDisconnect = true;
+            client.disconnect();
+            publish(events.sessionExpired());
+        }
         else fail(new IllegalStateException("Steam logon result " + callback.getResult()));
+    }
+
+    static boolean tokenRejected(EResult result) {
+        return result == EResult.InvalidPassword || result == EResult.AccessDenied
+            || result == EResult.Expired;
     }
 
     private void onLicenses(LicenseListCallback callback) {
