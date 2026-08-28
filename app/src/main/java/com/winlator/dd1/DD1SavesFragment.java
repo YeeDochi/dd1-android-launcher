@@ -1,9 +1,11 @@
 package com.winlator.dd1;
 
+import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -15,9 +17,12 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.winlator.R;
@@ -37,6 +42,15 @@ public class DD1SavesFragment extends Fragment {
     private DD1InstallService installService;
     private boolean serviceBound;
     private DD1CloudListing cloud = DD1CloudListing.unknown();
+    // The backup folder is a public one, so it takes the storage permission the
+    // way the workshop's drop folder does. Asked for at the press that needs it,
+    // and the press finishes when it is granted.
+    private final ActivityResultLauncher<String[]> storage = registerForActivityResult(
+        new ActivityResultContracts.RequestMultiplePermissions(), granted -> {
+            if (Boolean.TRUE.equals(granted.get(Manifest.permission.WRITE_EXTERNAL_STORAGE)))
+                backup();
+            else log(getString(R.string.dd1_saves_backup_denied));
+        });
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
@@ -64,7 +78,42 @@ public class DD1SavesFragment extends Fragment {
         ((TextView)view.findViewById(R.id.TVScreenTitle)).setText(R.string.dd1_saves);
         view.findViewById(R.id.BTScreenBack).setOnClickListener(v ->
             requireActivity().getSupportFragmentManager().popBackStack());
+        view.findViewById(R.id.BTSaveBackup).setOnClickListener(v -> {
+            if (ContextCompat.checkSelfPermission(requireContext(),
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED) backup();
+            else storage.launch(new String[] {Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE});
+        });
         render();
+    }
+
+    // Where the keepsake goes: a folder a file manager can open, named by the
+    // moment it was taken, beside the mods folder the workshop screen already
+    // keeps out there. Nothing prunes it - it stays until the owner deletes it,
+    // which is the point: the snapshot ring dies with the app, this does not.
+    static File backupFolder(long atMillis) {
+        return new File(android.os.Environment.getExternalStorageDirectory(),
+            "DD1/saves/" + DD1SaveSnapshots.stamp(atMillis));
+    }
+
+    // Where the automatic mirror lives: its own folder under the manual backups,
+    // because the mirror prunes itself and must never prune a backup the owner
+    // took on purpose.
+    static File autoMirrorFolder() {
+        return new File(android.os.Environment.getExternalStorageDirectory(),
+            "DD1/saves/auto");
+    }
+
+    private void backup() {
+        File filesDir = requireContext().getFilesDir();
+        File destination = backupFolder(System.currentTimeMillis());
+        new Thread(() -> {
+            boolean done = DD1SaveSnapshots.export(filesDir, destination);
+            main.post(() -> log(done
+                ? getString(R.string.dd1_saves_backup_done, destination.getPath())
+                : getString(R.string.dd1_saves_backup_failed)));
+        }).start();
     }
 
     @Override

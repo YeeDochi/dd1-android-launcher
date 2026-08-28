@@ -83,10 +83,25 @@
                     android:orientation="vertical" />
             </ScrollView>
 
-            <TextView
-                style="@style/DD1SectionTitle"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:text="@string/dd1_saves_snapshots" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/DD1SectionTitle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginTop="0dp"
+                    android:text="@string/dd1_saves_snapshots" />
+
+                <Button
+                    android:id="@+id/BTSaveBackup"
+                    style="@style/DD1Action"
+                    android:text="@string/dd1_saves_backup" />
+            </LinearLayout>
 
             <!-- Shared by weight rather than capped: maxHeight is not an attribute
                  a ScrollView honours, so asking for one silently gave the

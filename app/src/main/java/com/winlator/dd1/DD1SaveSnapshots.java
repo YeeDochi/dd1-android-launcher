@@ -9,8 +9,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 // A copy of the saves taken before anything is allowed to change them. Three are
 // kept, because the point is to be able to go back and not to hoard.
@@ -73,6 +76,65 @@ public final class DD1SaveSnapshots {
         boolean recovered = copy(spare, root);
         FileUtils.delete(spare);
         return recovered;
+    }
+
+    // The keepsake, as against the ring: one whole copy of the saves in a folder
+    // a file manager can reach, kept until the owner deletes it. Nothing prunes
+    // it and nothing restores it from here - putting files back is the owner's
+    // own act, with the game closed.
+    public static boolean export(File filesDir, File destination) {
+        File root = DD1Saves.root(filesDir);
+        if (!DD1Saves.isSaveTree(root)) return false;
+        FileUtils.delete(destination);
+        if (!destination.mkdirs()) return false;
+        if (copy(root, destination)) return true;
+        // A half-copied backup is worse than none: it would be copied back one
+        // day and look like a save.
+        FileUtils.delete(destination);
+        return false;
+    }
+
+    public static final int MIRRORED = 3;
+
+    // A folder name that says when, and sorts as text in the order it happened.
+    static String stamp(long atMillis) {
+        return new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US)
+            .format(new Date(atMillis));
+    }
+
+    // The ring holds what the saves were before the launcher changed them, so
+    // even its newest entry is a play session old. The mirror holds what they
+    // are: whenever the live tree has moved, one copy of it goes outside the
+    // app, and only the newest MIRRORED stay. Deleting the app takes the ring
+    // with it; the mirror is what survives that.
+    // The answer is a sentence for the caller to log, because the quietest
+    // failure here - no storage permission - must not look like the mirror
+    // never ran. This class stays clear of android.util.Log so the tests can
+    // run it as plain Java.
+    public static String mirror(File filesDir, File mirrorRoot, long atMillis) {
+        File root = DD1Saves.root(filesDir);
+        if (!DD1Saves.isSaveTree(root)) return "Nothing to mirror: no save tree";
+        List<File> copies = mirrored(mirrorRoot);
+        if (!copies.isEmpty() && DD1SaveSummary.changed(
+                DD1SaveSummary.of(copies.get(0)), DD1SaveSummary.of(root)).isEmpty())
+            return "Unchanged since " + copies.get(0).getName();
+        File destination = new File(mirrorRoot, stamp(atMillis));
+        if (!export(filesDir, destination))
+            return "Could not write " + destination + " (storage permission?)";
+        copies = mirrored(mirrorRoot);
+        for (int i = MIRRORED; i < copies.size(); i++) FileUtils.delete(copies.get(i));
+        return "Mirrored to " + destination;
+    }
+
+    public static List<File> mirrored(File mirrorRoot) {
+        List<File> copies = new ArrayList<>();
+        File[] entries = mirrorRoot.listFiles();
+        if (entries == null) return copies;
+        for (File entry : entries) {
+            if (entry.isDirectory()) copies.add(entry);
+        }
+        copies.sort((left, right) -> right.getName().compareTo(left.getName()));
+        return copies;
     }
 
     public static List<File> kept(File filesDir) {

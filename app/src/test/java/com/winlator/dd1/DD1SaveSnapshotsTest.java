@@ -95,6 +95,77 @@ public class DD1SaveSnapshotsTest {
             new File(DD1Saves.root(files), "profile_0/persist.game.json").length());
     }
 
+    // The keepsake copy goes wherever it is pointed - in the app it is a public
+    // folder a file manager can open - and carries the whole tree unrenamed, so
+    // putting a file back is a plain copy.
+    @Test
+    public void exportingCopiesTheWholeTreeToTheGivenFolder() throws IOException {
+        File files = folder.newFolder();
+        save(files, "abc");
+        File destination = new File(folder.newFolder(), "2026-08-28_10-00-00");
+
+        assertTrue(DD1SaveSnapshots.export(files, destination));
+
+        assertEquals(3, new File(destination, "profile_0/persist.game.json").length());
+        assertTrue(new File(DD1Saves.root(files), "profile_0/persist.game.json").isFile());
+    }
+
+    @Test
+    public void thereIsNothingToExportBeforeTheGameHasSaved() throws IOException {
+        File destination = new File(folder.newFolder(), "backup");
+        assertFalse(DD1SaveSnapshots.export(folder.newFolder(), destination));
+        assertFalse(destination.exists());
+    }
+
+    // The mirror follows the live tree, not the ring: the ring's newest entry is
+    // always a play session old, and the mirror exists for the moment the app -
+    // and the ring inside it - is deleted.
+    @Test
+    public void theMirrorFollowsTheLiveTreeAndSkipsWhatHasNotMoved() throws IOException {
+        File files = folder.newFolder();
+        File mirror = new File(folder.newFolder(), "auto");
+        save(files, "first");
+
+        DD1SaveSnapshots.mirror(files, mirror, hours(1));
+        DD1SaveSnapshots.mirror(files, mirror, hours(2));
+
+        assertEquals(1, DD1SaveSnapshots.mirrored(mirror).size());
+
+        save(files, "second");
+        DD1SaveSnapshots.mirror(files, mirror, hours(3));
+
+        List<File> copies = DD1SaveSnapshots.mirrored(mirror);
+        assertEquals(2, copies.size());
+        assertEquals("second".length(),
+            new File(copies.get(0), "profile_0/persist.game.json").length());
+    }
+
+    @Test
+    public void onlyTheNewestThreeMirrorsAreKept() throws IOException {
+        File files = folder.newFolder();
+        File mirror = new File(folder.newFolder(), "auto");
+        for (int i = 1; i <= 4; i++) {
+            save(files, "state " + i);
+            DD1SaveSnapshots.mirror(files, mirror, hours(i));
+        }
+
+        List<File> copies = DD1SaveSnapshots.mirrored(mirror);
+        assertEquals(3, copies.size());
+        assertEquals("state 4".length(),
+            new File(copies.get(0), "profile_0/persist.game.json").length());
+    }
+
+    @Test
+    public void thereIsNothingToMirrorBeforeTheGameHasSaved() throws IOException {
+        File mirror = new File(folder.newFolder(), "auto");
+        DD1SaveSnapshots.mirror(folder.newFolder(), mirror, hours(1));
+        assertTrue(DD1SaveSnapshots.mirrored(mirror).isEmpty());
+    }
+
+    private static long hours(int count) {
+        return count * 3_600_000L;
+    }
+
     private static void save(File files, String content) throws IOException {
         File dir = new File(DD1Saves.root(files), "profile_0");
         dir.mkdirs();

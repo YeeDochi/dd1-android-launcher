@@ -155,6 +155,16 @@ public class DD1HomeFragment extends Fragment {
     public void onResume() {
         super.onResume();
         refresh();
+        // What the game wrote last session, put where deleting the app cannot
+        // reach it. This screen resuming is both moments that matter - the app
+        // opening, and the game closing - and the mirror skips itself when the
+        // saves have not moved, so an idle resume costs one scan. Without the
+        // storage permission (asked for on the saves and workshop screens) the
+        // copy quietly does not happen; it is a net, not a promise.
+        File filesDir = requireActivity().getFilesDir();
+        new Thread(() -> android.util.Log.i("DD1Mirror",
+            DD1SaveSnapshots.mirror(filesDir, DD1SavesFragment.autoMirrorFolder(),
+                System.currentTimeMillis())), "dd1-save-mirror").start();
     }
 
     @Override

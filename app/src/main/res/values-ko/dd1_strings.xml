@@ -59,6 +59,10 @@
     <string name="dd1_saves_restored">%1$s 시점으로 되돌렸습니다</string>
     <string name="dd1_saves_restore_failed">되돌릴 수 없었습니다</string>
     <string name="dd1_saves_snapshots">스냅샷</string>
+    <string name="dd1_saves_backup">저장공간으로 복사</string>
+    <string name="dd1_saves_backup_done">%1$s에 세이브를 복사했습니다</string>
+    <string name="dd1_saves_backup_failed">세이브를 복사하지 못했습니다</string>
+    <string name="dd1_saves_backup_denied">세이브를 내보내려면 저장공간 권한이 필요합니다</string>
     <string name="dd1_saves_sent">%1$d개 파일을 보냈습니다</string>
     <string name="dd1_saves_send_failed">Steam이 세이브를 받지 않았습니다</string>
     <string name="dd1_saves_get_failed">세이브를 온전히 받지 못했습니다</string>
