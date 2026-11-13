@@ -90,6 +90,32 @@ public class DD1DlcMergeTest {
         assertEquals(1, DD1DlcVersions.installed(files).size());
     }
 
+    // A stopped game download is resumed now, and it shares the staging tree a
+    // DLC is fetched into. Adding a DLC must not throw that half a game away.
+    @Test
+    public void aPartialGameDownloadSurvivesADlcBeingAdded() throws IOException {
+        File files = folder.newFolder();
+        staged(files, "580100_crimson_court", new byte[] {'D', 'D', 1, 0});
+        File partial = new File(files, "staging/game/_windows/win64/Darkest.exe");
+        partial.getParentFile().mkdirs();
+        assertTrue(partial.createNewFile());
+
+        assertTrue(DD1Installer.merge(files, gid(580100, "aaa")).success);
+
+        assertTrue(partial.isFile());
+        assertTrue(new File(files, "game/dlc/580100_crimson_court/content.dat").isFile());
+    }
+
+    @Test
+    public void aDlcOnlyTreeIsClearedOnceMerged() throws IOException {
+        File files = folder.newFolder();
+        staged(files, "580100_crimson_court", new byte[] {'D', 'D', 1, 0});
+
+        assertTrue(DD1Installer.merge(files, gid(580100, "aaa")).success);
+
+        assertFalse(new File(files, "staging/game").exists());
+    }
+
     private static void staged(File files, String folderName, byte[] content) throws IOException {
         File dlc = new File(files, "staging/game/dlc/" + folderName);
         dlc.mkdirs();

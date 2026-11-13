@@ -79,6 +79,11 @@ public final class DD1InstallService extends Service {
     private volatile DepotDownloader downloader;
     private volatile CountDownLatch completion;
     private volatile boolean cancelled;
+    // Which download is the current one. A cancelled job can still be asleep
+    // between retries when Download is pressed again, and that press clears the
+    // cancelled flag: the old job would wake, carry on, and on its way out mark
+    // the new one as finished. Each job checks its own number instead.
+    private volatile int downloadJob;
     private volatile boolean ownsGame;
     // Two jobs, one worker: a game or DLC download, and a Workshop sync. They were
     // one flag, which is why subscribing to a mod did nothing while either ran -
@@ -530,12 +535,12 @@ public final class DD1InstallService extends Service {
 
     public synchronized void download() {
         if (!ownsGame || downloader != null || busy()) return;
-        begin();
+        int job = begin();
         // Ask for the game and the DLC that was actually chosen. Left unsaid,
         // Steam sends every depot it has and the unwanted ones are deleted at
         // the end of the install - 530 MB fetched and thrown away on 2026-08-20.
         java.util.List<Integer> depots = steam.catalog().depotsFor(dlcSelection().selected());
-        worker.execute(() -> runDownload(depots, null, false));
+        worker.execute(() -> runDownload(depots, null, false, job));
     }
 
     // Checks the installed game against Steam's manifest and fetches only what
@@ -547,9 +552,9 @@ public final class DD1InstallService extends Service {
     public synchronized void repair() {
         if (!ownsGame || downloader != null || busy()) return;
         if (!new File(getFilesDir(), "game").isDirectory()) return;
-        begin();
+        int job = begin();
         java.util.List<Integer> depots = steam.catalog().depotsFor(dlcSelection().selected());
-        worker.execute(() -> runDownload(depots, null, true));
+        worker.execute(() -> runDownload(depots, null, true, job));
     }
 
     // Adding or updating one DLC on a game that is already installed. Only the
@@ -570,19 +575,25 @@ public final class DD1InstallService extends Service {
             publish(errorSnapshot(getString(R.string.dd1_dlc_no_depot)));
             return;
         }
-        begin();
-        worker.execute(() -> runDownload(depots, versions, false));
+        int job = begin();
+        worker.execute(() -> runDownload(depots, versions, false, job));
     }
 
-    private void begin() {
+    private int begin() {
+        int job = ++downloadJob;
         cancelled = false;
         downloadingGame = true;
         keepAlive(R.string.dd1_install_downloading);
         publish(downloadSnapshot(0, 0, 0, getString(R.string.dd1_state_starting), null));
+        return job;
     }
 
     public void cancel() {
         cancelled = true;
+        // Ends the current download job for good. The flag alone is not enough:
+        // starting a Workshop sync clears it, and a job asleep between retries
+        // would wake up and fetch the whole game with nothing on screen saying so.
+        downloadJob++;
         downloadingGame = false;
         syncingWorkshop = false;
         DepotDownloader active;
@@ -824,7 +835,9 @@ public final class DD1InstallService extends Service {
     }
 
     private void runDownload(java.util.List<Integer> depots,
-            java.util.Map<Integer, String> dlcVersions, boolean repair) {
+            java.util.Map<Integer, String> dlcVersions, boolean repair, int job) {
+        java.util.function.BooleanSupplier stopped = () -> cancelled || job != downloadJob;
+        if (stopped.getAsBoolean()) return;
         File staging = repair ? DD1Installer.beginRepair(getFilesDir())
             : DD1Installer.beginDownload(getFilesDir());
         try {
@@ -834,11 +847,11 @@ public final class DD1InstallService extends Service {
             // fetching the rest.
             for (int attempt = 1; ; attempt++) {
                 try {
-                    fetchOnce(staging, depots);
+                    fetchOnce(staging, depots, stopped);
                     break;
                 }
                 catch (Throwable error) {
-                    if (cancelled) return;
+                    if (stopped.getAsBoolean()) return;
                     if (attempt >= DOWNLOAD_ATTEMPTS) throw error;
                     log.append(getString(R.string.dd1_state_retrying, attempt + 1,
                         DOWNLOAD_ATTEMPTS, reason(error)));
@@ -846,13 +859,14 @@ public final class DD1InstallService extends Service {
                     if (repair) DD1Installer.beginRepair(getFilesDir());
                     else DD1Installer.beginDownload(getFilesDir());
                     Thread.sleep(5000L * attempt);
-                    if (cancelled) return;
+                    if (stopped.getAsBoolean()) return;
                 }
             }
-            if (cancelled) return;
+            if (stopped.getAsBoolean()) return;
 
             publish(new DD1InstallSnapshot(DD1InstallPhase.VERIFYING, 0, 0, 0,
                 getString(R.string.dd1_state_verifying), null, null, log.visibleLines()));
+            if (stopped.getAsBoolean()) return;
             DD1Installer.Result result;
             // No DLC filter here: what is installed stays installed. A DLC added
             // later through the DLC screen may not be in the saved choice.
@@ -869,38 +883,44 @@ public final class DD1InstallService extends Service {
                 getString(R.string.dd1_state_ready_to_play), null, null, log.visibleLines()));
         }
         catch (Throwable error) {
-            if (!cancelled) publish(errorSnapshot(error.getMessage() == null
+            if (!stopped.getAsBoolean()) publish(errorSnapshot(error.getMessage() == null
                 ? error.getClass().getSimpleName() : error.getMessage()));
         }
         finally {
-            downloadingGame = false;
             closeDownloader();
-            stopForeground(true);
-            stopSelf();
+            // A newer job owns the flag and the foreground state now.
+            if (job == downloadJob) {
+                downloadingGame = false;
+                stopForeground(true);
+                stopSelf();
+            }
         }
     }
 
     private static final int DOWNLOAD_ATTEMPTS = 6;
 
-    private void fetchOnce(File staging, java.util.List<Integer> depots) throws Throwable {
+    private void fetchOnce(File staging, java.util.List<Integer> depots,
+            java.util.function.BooleanSupplier stopped) throws Throwable {
         AtomicReference<Throwable> failure = new AtomicReference<>();
         DepotDownloader next;
+        CountDownLatch latch;
         synchronized (this) {
-            if (cancelled) return;
-            completion = new CountDownLatch(1);
+            if (stopped.getAsBoolean()) return;
+            latch = new CountDownLatch(1);
+            completion = latch;
             next = new DepotDownloader(steam.client(), steam.licenses(), false,
                 false, 4, 2, 1, true);
             downloader = next;
         }
-        next.addListener(new ProgressListener(failure));
+        next.addListener(new ProgressListener(failure, latch));
         // The second-to-last flag is verify: with it set the downloader only
         // checks the files it allocated and never fetches their contents.
         next.add(new AppItem(DD1SteamEvents.APP_ID, false, staging.getAbsolutePath(),
             "public", "", false, "windows", false, "64", false, "english",
             false, depots, Collections.emptyList(), false, false));
         next.finishAdding();
-        awaitCompletion();
-        if (cancelled) return;
+        awaitCompletion(latch, stopped);
+        if (stopped.getAsBoolean()) return;
         if (failure.get() != null) throw failure.get();
     }
 
@@ -929,10 +949,11 @@ public final class DD1InstallService extends Service {
     // so the useful thing to do is give up and say so.
     private static final long STALL_MILLIS = 3 * 60 * 1000L;
 
-    private void awaitCompletion() throws InterruptedException {
+    private void awaitCompletion(CountDownLatch waiting,
+            java.util.function.BooleanSupplier stopped) throws InterruptedException {
         lastHeard = System.currentTimeMillis();
-        while (!completion.await(20, java.util.concurrent.TimeUnit.SECONDS)) {
-            if (cancelled) return;
+        while (!waiting.await(20, java.util.concurrent.TimeUnit.SECONDS)) {
+            if (stopped.getAsBoolean()) return;
             if (System.currentTimeMillis() - lastHeard > STALL_MILLIS)
                 throw new IllegalStateException(getString(R.string.dd1_state_stalled));
         }
@@ -1079,8 +1100,14 @@ public final class DD1InstallService extends Service {
         private final AtomicReference<Throwable> failure;
         private final DownloadProgress progress = new DownloadProgress();
 
-        private ProgressListener(AtomicReference<Throwable> failure) {
+        // Its own attempt's latch, not the field: a callback that arrives after
+        // a retry has replaced the downloader must neither find the field empty
+        // nor end the next attempt early.
+        private final CountDownLatch done;
+
+        private ProgressListener(AtomicReference<Throwable> failure, CountDownLatch done) {
             this.failure = failure;
+            this.done = done;
         }
 
         @Override
@@ -1131,14 +1158,14 @@ public final class DD1InstallService extends Service {
 
         @Override
         public void onDownloadCompleted(DownloadItem item) {
-            completion.countDown();
+            done.countDown();
         }
 
         @Override
         public void onDownloadFailed(DownloadItem item, Throwable error) {
             android.util.Log.e("DD1Install", "Download failed", error);
             failure.set(error);
-            completion.countDown();
+            done.countDown();
         }
     }
 

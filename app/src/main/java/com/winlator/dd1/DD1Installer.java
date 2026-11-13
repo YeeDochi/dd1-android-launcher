@@ -39,10 +39,8 @@ public final class DD1Installer {
         File stagingRoot = new File(filesDir, "staging");
         File staging = new File(stagingRoot, "game");
         File attempt = new File(stagingRoot, ATTEMPT_MARKER);
-        if (attempt.isFile()) {
-            new File(staging, DEPOT_RECORD).delete();
-            new File(stagingRoot, COMPLETE_MARKER).delete();
-        }
+        new File(staging, DEPOT_RECORD).delete();
+        if (attempt.isFile()) new File(stagingRoot, COMPLETE_MARKER).delete();
         staging.mkdirs();
         try {
             attempt.createNewFile();
@@ -92,11 +90,16 @@ public final class DD1Installer {
                 return new Result(false, "Unable to install content for " + entry.getKey());
             DD1DlcVersions.record(filesDir, entry.getKey(), entry.getValue());
         }
-        // The tree did its job, and leaving the attempt on record would make the
-        // next download throw away a staging directory for no reason.
-        FileUtils.delete(new File(filesDir, "staging/game"));
-        new File(filesDir, "staging/" + ATTEMPT_MARKER).delete();
-        new File(filesDir, "staging/" + COMPLETE_MARKER).delete();
+        // A DLC is fetched into the same staging tree a game download uses, and
+        // that tree may hold half a game from a download that was stopped - which
+        // is now resumed rather than thrown away. So only a tree that held
+        // nothing but DLC goes; a partial game stays for its download to finish.
+        File tree = new File(filesDir, "staging/game");
+        if (!new File(tree, "_windows").exists()) {
+            FileUtils.delete(tree);
+            new File(filesDir, "staging/" + ATTEMPT_MARKER).delete();
+            new File(filesDir, "staging/" + COMPLETE_MARKER).delete();
+        }
         return new Result(true, null);
     }
 
