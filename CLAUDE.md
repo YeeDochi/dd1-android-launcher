@@ -109,9 +109,8 @@ adb -s <serial> shell monkey -p com.winlator -c android.intent.category.LAUNCHER
 adb -s <serial> shell run-as com.winlator ls files    # game, staging, rootfs
 ```
 
-On Windows, `DD1WorkshopCdnTest.targetCannotEscapeStagingDirectory` and
-`DD1WorkshopTest.payloadContainingASymlinkCannotEscapeStaging` fail: one expects
-a POSIX path root, the other needs the symlink privilege. Everything else runs.
+The unit tests run on Windows as well; the symlink test skips itself where the
+host will not make one.
 
 `MainActivity.DEBUG_MODE` routes Wine and box64 output to logcat; it is off in
 committed code.

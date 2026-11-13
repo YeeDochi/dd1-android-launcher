@@ -9,7 +9,9 @@ import org.junit.Test;
 public class DD1WorkshopCdnTest {
     @Test
     public void targetCannotEscapeStagingDirectory() {
-        File root = new File("/tmp/workshop");
+        // Absolute on every host: on Windows "/tmp" has no drive and resolves
+        // against the current one, so the expectation has to as well.
+        File root = new File("/tmp/workshop").getAbsoluteFile();
 
         assertEquals(new File(root, "heroes/a.txt").toPath(),
             DD1WorkshopCdn.safeTarget(root, "heroes\\a.txt"));

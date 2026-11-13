@@ -105,7 +105,13 @@ public class DD1WorkshopTest {
         touch(new File(payload, "project.xml"));
         File outside = new File(files, "outside");
         touch(outside);
-        Files.createSymbolicLink(new File(payload, "escape").toPath(), outside.toPath());
+        try {
+            Files.createSymbolicLink(new File(payload, "escape").toPath(), outside.toPath());
+        }
+        catch (java.io.IOException | UnsupportedOperationException noLinks) {
+            // Windows needs a privilege to make one; the phone never does.
+            org.junit.Assume.assumeNoException(noLinks);
+        }
 
         expectIOException(() -> DD1Workshop.promote(files, 42, 8, "Linked"));
 
