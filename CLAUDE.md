@@ -43,6 +43,10 @@ edits**, except:
 - `app/AndroidManifest.xml`, `app/build.gradle` - project files
 - `XServerDisplayActivity` - two lines that attach the touch overlay, and
   nothing else; `docs/RUNTIME_UPDATE.md` carries them verbatim
+- the side-by-side build's hooks, each marked `dd1`: `TarCompressorUtils`
+  (unpacked files go through `DD1Relocation`), `AppUtils.INTERNAL_STORAGE`,
+  the FileProvider authority in `FileUtils`, and the path defines in
+  `gladio.h`, `vortek.h` and `winlator.h`; `docs/RUNTIME_UPDATE.md` lists them
 
 `docs/RUNTIME_UPDATE.md` describes how to take a new Winlator release. If the
 launcher needs behaviour the runtime does not offer, add it in
@@ -52,10 +56,12 @@ per-game settings.
 
 ## Constraints that look wrong but are not
 
-- **`applicationId` must stay `com.winlator`.** The Winlator root filesystem has
-  `/data/data/com.winlator/...` baked into box64's ELF interpreter, wineserver,
-  ntdll and `ld.so.cache`, in fixed-size fields. A different id needs a
-  same-length one (<=12 chars) plus a rewrite pass over the extracted tree.
+- **`applicationId` stays `com.winlator` in the standard build.** The Winlator
+  root filesystem has `/data/data/com.winlator/...` baked into box64's ELF
+  interpreter, wineserver, ntdll and `ld.so.cache`, in fixed-size fields.
+  `-PbesideWinlator` builds `com.dd1.wine` - same length - and `DD1Relocation`
+  rewrites the path in every file as the runtime unpacks it. Existing users stay
+  on the standard build: a new id is a new app, with a fresh 3.7 GB download.
 - **`targetSdkVersion` must stay 28.** Android 29+ forbids executing files in the
   app data directory, and the runtime unpacks box64 and Wine there. Android shows
   a compatibility warning for this; it is expected.
@@ -96,11 +102,16 @@ per-game settings.
 
 ```
 ./gradlew assembleDebug testDebugUnitTest     # what every change must pass
+./gradlew assembleRelease -PbesideWinlator    # the build that installs beside Winlator
 ./gradlew connectedDebugAndroidTest           # only with the phone unplugged
 adb -s <serial> install -r app/build/outputs/apk/debug/app-debug.apk
 adb -s <serial> shell monkey -p com.winlator -c android.intent.category.LAUNCHER 1
 adb -s <serial> shell run-as com.winlator ls files    # game, staging, rootfs
 ```
+
+On Windows, `DD1WorkshopCdnTest.targetCannotEscapeStagingDirectory` and
+`DD1WorkshopTest.payloadContainingASymlinkCannotEscapeStaging` fail: one expects
+a POSIX path root, the other needs the symlink privilege. Everything else runs.
 
 `MainActivity.DEBUG_MODE` routes Wine and box64 output to logcat; it is off in
 committed code.
@@ -147,7 +158,8 @@ committed code.
   box64 binary and one patch file, so a same-length id is a byte-for-byte
   replacement with no ELF surgery - but the new id is a new app to Android, and
   no app can read another's data directory: every install would start again from
-  a 3.7 GB download.
+  a 3.7 GB download. So it is a second APK (`-PbesideWinlator`) for the people
+  who need Winlator too, not a migration for everyone.
 - **Turnip is the Adreno driver whatever the number after it says.** The runtime
   picks it by matching `adreno[^678]*([678][0-9]{2})`, so a 9-series, a
   four-digit model or the X-series naming reads as "not an Adreno" and gets
