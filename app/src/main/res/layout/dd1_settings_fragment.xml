@@ -95,6 +95,21 @@
 
             <TextView
                 style="@style/DD1SectionTitle"
+                android:text="@string/dd1_game_location" />
+
+            <RadioGroup
+                android:id="@+id/RGGameLocation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:id="@+id/TVGameLocationHint"
+                style="@style/DD1Meta"
+                android:text="@string/dd1_game_location_hint" />
+
+            <TextView
+                style="@style/DD1SectionTitle"
                 android:text="@string/dd1_refresh_rate" />
 
             <RadioGroup

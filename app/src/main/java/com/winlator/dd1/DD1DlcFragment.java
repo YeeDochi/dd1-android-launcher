@@ -128,7 +128,7 @@ public class DD1DlcFragment extends Fragment {
     // content cannot be undone without downloading it again, so it takes a press
     // and a confirmation.
     private void renderPending(View view, DlcSelection selection) {
-        File gameDir = new File(requireContext().getFilesDir(), "game");
+        File gameDir = DD1GameLocation.gameDir(requireContext());
         List<Integer> installed = DlcInstallFilter.installed(gameDir);
 
         List<Integer> removable = new ArrayList<>(installed);
@@ -141,7 +141,7 @@ public class DD1DlcFragment extends Fragment {
         // on disk at a version the record remembers, and only the record can tell.
         List<Integer> outdated = new ArrayList<>();
         DD1DepotCatalog catalog = installService.depotCatalog();
-        File filesDir = requireContext().getFilesDir();
+        File filesDir = DD1GameLocation.root(requireContext());
         DD1DlcVersions.adopt(filesDir, installed, catalog);
         java.util.Map<Integer, String> known = DD1DlcVersions.installed(filesDir);
         for (int appId : installed) {
@@ -186,7 +186,7 @@ public class DD1DlcFragment extends Fragment {
                 DlcInstallFilter.apply(gameDir, selection.selected());
                 // Content that is gone has no version, and leaving the line would
                 // report an install that is not there.
-                DD1DlcVersions.forget(requireContext().getFilesDir(), removable);
+                DD1DlcVersions.forget(DD1GameLocation.root(requireContext()), removable);
                 renderList();
             })
             .show();

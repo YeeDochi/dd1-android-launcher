@@ -112,6 +112,13 @@ adb -s <serial> shell run-as com.winlator ls files    # game, staging, rootfs
 The unit tests run on Windows as well; the symlink test skips itself where the
 host will not make one.
 
+The game can live in the app (`files/game`, the default) or in shared storage
+(`DD1/game`), chosen in settings. `DD1GameLocation.root` is the directory that
+holds `game/`, `staging/`, the Workshop and import staging and the DLC version
+record, and every one of those is reached through it - never through
+`getFilesDir()` directly. Staging has to sit on the same side as the game,
+because promoting a download is a rename. Saves stay in the Wine prefix.
+
 `MainActivity.DEBUG_MODE` routes Wine and box64 output to logcat; it is off in
 committed code.
 

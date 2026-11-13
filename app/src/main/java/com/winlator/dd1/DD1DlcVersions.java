@@ -15,7 +15,7 @@ import java.util.Map;
 public final class DD1DlcVersions {
     private DD1DlcVersions() {}
 
-    private static final String FILE = "dlc-versions";
+    static final String FILE = "dlc-versions";
 
     public static Map<Integer, String> installed(File filesDir) {
         Map<Integer, String> versions = new LinkedHashMap<>();

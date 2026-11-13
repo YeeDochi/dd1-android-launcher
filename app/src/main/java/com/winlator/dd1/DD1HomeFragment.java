@@ -179,7 +179,7 @@ public class DD1HomeFragment extends Fragment {
         if (rootView == null) return;
 
         Activity activity = getActivity();
-        File executable = DD1Game.findExecutable(activity.getFilesDir());
+        File executable = DD1Game.findExecutable(DD1GameLocation.root(activity));
         ContainerManager manager = DD1Profiles.manager(activity);
         Container container = DD1Profiles.first(manager);
         boolean runtimeReady = RootFS.find(activity).isValid();
@@ -263,7 +263,7 @@ public class DD1HomeFragment extends Fragment {
         if (rootView == null) return;
         setLog(TextUtils.join("\n", snapshot.logLines));
 
-        boolean installed = DD1Game.findExecutable(requireContext().getFilesDir()) != null;
+        boolean installed = DD1Game.findExecutable(DD1GameLocation.root(requireContext())) != null;
         DD1RightPane pane = DD1RightPane.from(snapshot.phase, installed,
             snapshot.challengeUrl != null || snapshot.codePrompt != null);
         setInstallPanelVisible(pane == DD1RightPane.SIGN_IN || pane == DD1RightPane.INSTALL);
@@ -370,7 +370,7 @@ public class DD1HomeFragment extends Fragment {
     // instead of in every branch that draws the screen. A half-finished download
     // holds gigabytes in staging and has to be removable too.
     private void applyDeleteVisibility() {
-        File filesDir = requireContext().getFilesDir();
+        File filesDir = DD1GameLocation.root(requireContext());
         boolean anything = new File(filesDir, "game").isDirectory()
             || new File(filesDir, "staging").isDirectory();
         rootView.findViewById(R.id.BTDeleteGame)
@@ -413,12 +413,14 @@ public class DD1HomeFragment extends Fragment {
             .show();
     }
 
+    // G: follows the game when it moves, so an older G: is replaced rather than
+    // a second one added beside it.
     private static void mapGameDrive(Activity activity, Container container) {
-        File gameDir = new File(activity.getFilesDir(), "game");
-        if (!container.getDrives().contains(gameDir.getPath())) {
-            container.setDrives(container.getDrives()+"G:"+gameDir.getPath());
-            container.saveData();
-        }
+        String drives = DD1Drives.withGame(container.getDrives(),
+            DD1GameLocation.gameDir(activity).getPath());
+        if (drives.equals(container.getDrives())) return;
+        container.setDrives(drives);
+        container.saveData();
     }
 
     // While downloading the panel is one progress bar, so it takes only the
@@ -467,7 +469,7 @@ public class DD1HomeFragment extends Fragment {
     private void deleteGame(Activity activity) {
         // A running download would keep writing into the folder we just removed.
         withService(DD1InstallService::cancel);
-        if (!DD1Installer.uninstall(activity.getFilesDir()))
+        if (!DD1Installer.uninstall(DD1GameLocation.root(activity)))
             Toast.makeText(activity, R.string.dd1_delete_game_failed, Toast.LENGTH_LONG).show();
         refresh();
     }
@@ -538,7 +540,7 @@ public class DD1HomeFragment extends Fragment {
         if (DD1SavePolicy.worthTaking(activity.getFilesDir()))
             DD1SaveSnapshots.take(activity.getFilesDir(), System.currentTimeMillis());
 
-        File gameDir = new File(activity.getFilesDir(), "game");
+        File gameDir = DD1GameLocation.gameDir(activity);
         mapGameDrive(activity, container);
 
         File system32 = new File(container.getRootDir(), ".wine/drive_c/windows/system32");

@@ -166,7 +166,7 @@ public final class DD1InstallService extends Service {
                 HashSet<Long> subscribedIds = new HashSet<>();
                 for (ModSyncPlan.Subscribed item : subscriptions)
                     subscribedIds.add(item.publishedFileId);
-                DD1Workshop.removeUnsubscribed(getFilesDir(), subscribedIds);
+                DD1Workshop.removeUnsubscribed(gameRoot(), subscribedIds);
                 publishWorkshop(joinedWorkshop());
             }
             catch (Exception cleanupError) {
@@ -267,7 +267,7 @@ public final class DD1InstallService extends Service {
             DD1WorkshopSnapshot.Row row = workshopSnapshot.find(publishedFileId);
             try {
                 if (row != null && row.installed)
-                    DD1Workshop.delete(getFilesDir(), row.directoryName, row.disabled);
+                    DD1Workshop.delete(gameRoot(), row.directoryName, row.disabled);
             }
             catch (Exception deleteError) {
                 publishWorkshop(workshopSnapshot.browseFailed(reason(deleteError)));
@@ -303,8 +303,8 @@ public final class DD1InstallService extends Service {
         DD1WorkshopSnapshot.Row row = workshopSnapshot.findDirectory(directoryName);
         worker.execute(() -> {
             try {
-                boolean fromFolder = DD1Workshop.cameFromFolder(getFilesDir(), directoryName);
-                DD1Workshop.delete(getFilesDir(), directoryName, row != null && row.disabled);
+                boolean fromFolder = DD1Workshop.cameFromFolder(gameRoot(), directoryName);
+                DD1Workshop.delete(gameRoot(), directoryName, row != null && row.disabled);
                 if (fromFolder) DD1Workshop.removeFromFolder(dropFolder(), directoryName);
                 workshopLog.append("Deleted " + directoryName);
                 publishWorkshop(joinedWorkshop());
@@ -368,7 +368,7 @@ public final class DD1InstallService extends Service {
             // the old one brought goes with it - the folder is the user's to manage,
             // and two folders' leftovers in one list is not a state anyone asked for.
             try {
-                for (String removed : DD1Workshop.removeMissingFromFolder(getFilesDir(),
+                for (String removed : DD1Workshop.removeMissingFromFolder(gameRoot(),
                         java.util.Collections.emptyList()))
                     workshopLog.append("Removed " + removed);
             }
@@ -428,7 +428,7 @@ public final class DD1InstallService extends Service {
                     present.add(DD1Workshop.installedName(name));
                     // Already installed is not a failure: there is nothing to do,
                     // which is the same thing as having done it.
-                    if (DD1Workshop.alreadyInstalled(getFilesDir(), name)) continue;
+                    if (DD1Workshop.alreadyInstalled(gameRoot(), name)) continue;
                     try {
                         importDocument(child, name);
                         workshopLog.append("Imported " + name);
@@ -440,7 +440,7 @@ public final class DD1InstallService extends Service {
                     }
                 }
                 int gone = 0;
-                for (String removed : DD1Workshop.removeMissingFromFolder(getFilesDir(), present)) {
+                for (String removed : DD1Workshop.removeMissingFromFolder(gameRoot(), present)) {
                     workshopLog.append("Removed " + removed);
                     gone++;
                 }
@@ -460,20 +460,20 @@ public final class DD1InstallService extends Service {
         if (!document.isDirectory()) {
             try (InputStream input = getContentResolver().openInputStream(document.getUri())) {
                 if (input == null) throw new IOException("Cannot open " + name);
-                DD1Workshop.importZip(getFilesDir(), input, name, true);
+                DD1Workshop.importZip(gameRoot(), input, name, true);
             }
             return;
         }
-        File staging = DD1Workshop.importStaging(getFilesDir());
+        File staging = DD1Workshop.importStaging(gameRoot());
         try {
             copyDocuments(document, staging,
                 new long[] {0, DD1Workshop.importBudget(staging)});
         }
         catch (IOException error) {
-            DD1Workshop.discardImport(getFilesDir());
+            DD1Workshop.discardImport(gameRoot());
             throw error;
         }
-        DD1Workshop.installImport(getFilesDir(), name, true);
+        DD1Workshop.installImport(gameRoot(), name, true);
     }
 
     // total[0] is what has been copied, total[1] what may be.
@@ -543,6 +543,45 @@ public final class DD1InstallService extends Service {
         worker.execute(() -> runDownload(depots, null, false, job));
     }
 
+    // Moves the install between the app and the phone's storage. Refused while
+    // a download or sync owns the files - it would be copying them as they
+    // change.
+    public synchronized boolean moveGame(String location) {
+        if (downloader != null || busy()) return false;
+        if (location.equals(DD1GameLocation.chosen(this))) return true;
+        int job = begin();
+        worker.execute(() -> runMove(location, job));
+        return true;
+    }
+
+    private void runMove(String location, int job) {
+        java.util.function.BooleanSupplier stopped = () -> cancelled || job != downloadJob;
+        if (stopped.getAsBoolean()) return;
+        String moving = getString(R.string.dd1_state_moving);
+        try {
+            File to = DD1GameLocation.rootFor(this, location);
+            DD1GameLocation.move(gameRoot(), to,
+                (done, total) -> publish(downloadSnapshot(done, total, 0, moving, null)),
+                stopped::getAsBoolean);
+            if (stopped.getAsBoolean()) return;
+            DD1GameLocation.choose(this, location);
+            if (DD1GameLocation.STORAGE.equals(location)) DD1GameLocation.hideFromMedia(to);
+            log.append(getString(R.string.dd1_state_moved) + ": " + new File(to, "game"));
+            publish(new DD1InstallSnapshot(DD1InstallPhase.READY, 0, 0, 0,
+                getString(R.string.dd1_state_moved), null, null, log.visibleLines()));
+        }
+        catch (Throwable error) {
+            if (!stopped.getAsBoolean()) publish(errorSnapshot(reason(error)));
+        }
+        finally {
+            if (job == downloadJob) {
+                downloadingGame = false;
+                stopForeground(true);
+                stopSelf();
+            }
+        }
+    }
+
     // Checks the installed game against Steam's manifest and fetches only what
     // differs. A game file overwritten by hand - a proxy DLL, an older
     // Darkest.exe - that keeps the game from starting used to mean deleting the
@@ -551,7 +590,7 @@ public final class DD1InstallService extends Service {
     // mods folder, are left where they are.
     public synchronized void repair() {
         if (!ownsGame || downloader != null || busy()) return;
-        if (!new File(getFilesDir(), "game").isDirectory()) return;
+        if (!new File(gameRoot(), "game").isDirectory()) return;
         int job = begin();
         java.util.List<Integer> depots = steam.catalog().depotsFor(dlcSelection().selected());
         worker.execute(() -> runDownload(depots, null, true, job));
@@ -663,7 +702,7 @@ public final class DD1InstallService extends Service {
                 if (done >= syncQueue.size()) break;
                 ModSyncPlan.Subscribed item = syncQueue.get(done);
                 queueIndex = done + 1;
-                File staging = DD1Workshop.staging(getFilesDir(), item.publishedFileId);
+                File staging = DD1Workshop.staging(gameRoot(), item.publishedFileId);
                 workshopLog.append("Downloading " + item.title);
                 publishWorkshop(base.syncing(queued(item.title),
                     done * 100 / Math.max(1, queueTotal), workshopLog.visibleLines()));
@@ -678,7 +717,7 @@ public final class DD1InstallService extends Service {
                                 workshopLog.visibleLines()));
                         }, () -> cancelled);
                     if (cancelled) return;
-                    DD1Workshop.promote(getFilesDir(), item.publishedFileId, item.updatedAt,
+                    DD1Workshop.promote(gameRoot(), item.publishedFileId, item.updatedAt,
                         item.title);
                     workshopLog.append("Installed " + item.title);
                 }
@@ -689,7 +728,7 @@ public final class DD1InstallService extends Service {
                 done++;
             }
             publishWorkshop(DD1WorkshopSnapshot.ready(workshopSubscriptions,
-                DD1Workshop.scan(getFilesDir())).withBrowse(workshopBrowse,
+                DD1Workshop.scan(gameRoot())).withBrowse(workshopBrowse,
                     workshopSnapshot.query, workshopSnapshot.sort, workshopSnapshot.page,
                     workshopSnapshot.total, false, workshopSnapshot.browseError));
         }
@@ -716,7 +755,7 @@ public final class DD1InstallService extends Service {
     private List<ModSyncPlan.Subscribed> stillToFetch() {
         try {
             return DD1WorkshopSnapshot.ready(workshopSubscriptions,
-                DD1Workshop.scan(getFilesDir())).syncItems();
+                DD1Workshop.scan(gameRoot())).syncItems();
         }
         catch (Throwable unreadable) {
             return Collections.emptyList();
@@ -755,7 +794,7 @@ public final class DD1InstallService extends Service {
     }
 
     private DD1WorkshopSnapshot joinedWorkshop() {
-        return DD1WorkshopSnapshot.ready(workshopSubscriptions, DD1Workshop.scan(getFilesDir()))
+        return DD1WorkshopSnapshot.ready(workshopSubscriptions, DD1Workshop.scan(gameRoot()))
             .withBrowse(workshopBrowse, workshopSnapshot.query, workshopSnapshot.sort,
                 workshopSnapshot.page, workshopSnapshot.total, false,
                 workshopSnapshot.browseError);
@@ -765,8 +804,8 @@ public final class DD1InstallService extends Service {
         if (refuseWhileBusy()) return;
         worker.execute(() -> {
             try {
-                if (enable) DD1Workshop.enable(getFilesDir(), directoryName);
-                else DD1Workshop.disable(getFilesDir(), directoryName);
+                if (enable) DD1Workshop.enable(gameRoot(), directoryName);
+                else DD1Workshop.disable(gameRoot(), directoryName);
                 publishWorkshop(joinedWorkshop());
             }
             catch (Exception error) {
@@ -807,6 +846,11 @@ public final class DD1InstallService extends Service {
         preferences().edit().putString("dlc_excluded", selection.serialize()).apply();
     }
 
+    // game/, staging/ and the DLC record, wherever the owner chose to keep them.
+    private File gameRoot() {
+        return DD1GameLocation.root(this);
+    }
+
     private android.content.SharedPreferences preferences() {
         return getSharedPreferences("dd1", MODE_PRIVATE);
     }
@@ -838,8 +882,8 @@ public final class DD1InstallService extends Service {
             java.util.Map<Integer, String> dlcVersions, boolean repair, int job) {
         java.util.function.BooleanSupplier stopped = () -> cancelled || job != downloadJob;
         if (stopped.getAsBoolean()) return;
-        File staging = repair ? DD1Installer.beginRepair(getFilesDir())
-            : DD1Installer.beginDownload(getFilesDir());
+        File staging = repair ? DD1Installer.beginRepair(gameRoot())
+            : DD1Installer.beginDownload(gameRoot());
         try {
             // A server that goes quiet, or a connection that drops, ends one
             // attempt and not the install: what arrived stays on disk and the
@@ -856,8 +900,8 @@ public final class DD1InstallService extends Service {
                     log.append(getString(R.string.dd1_state_retrying, attempt + 1,
                         DOWNLOAD_ATTEMPTS, reason(error)));
                     closeDownloader();
-                    if (repair) DD1Installer.beginRepair(getFilesDir());
-                    else DD1Installer.beginDownload(getFilesDir());
+                    if (repair) DD1Installer.beginRepair(gameRoot());
+                    else DD1Installer.beginDownload(gameRoot());
                     Thread.sleep(5000L * attempt);
                     if (stopped.getAsBoolean()) return;
                 }
@@ -870,14 +914,16 @@ public final class DD1InstallService extends Service {
             DD1Installer.Result result;
             // No DLC filter here: what is installed stays installed. A DLC added
             // later through the DLC screen may not be in the saved choice.
-            if (repair) result = DD1Installer.checkRepaired(getFilesDir());
+            if (repair) result = DD1Installer.checkRepaired(gameRoot());
             else if (dlcVersions == null) {
-                DD1Installer.markDownloadComplete(getFilesDir());
+                DD1Installer.markDownloadComplete(gameRoot());
                 DlcInstallFilter.apply(staging, dlcSelection().selected());
-                result = DD1Installer.activate(getFilesDir());
+                result = DD1Installer.activate(gameRoot());
             }
-            else result = DD1Installer.merge(getFilesDir(), dlcVersions);
+            else result = DD1Installer.merge(gameRoot(), dlcVersions);
             if (!result.success) throw new IllegalStateException(result.error);
+            if (DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(this)))
+                DD1GameLocation.hideFromMedia(gameRoot());
             log.append("Darkest Dungeon installation ready");
             publish(new DD1InstallSnapshot(DD1InstallPhase.READY, 0, 0, 0,
                 getString(R.string.dd1_state_ready_to_play), null, null, log.visibleLines()));

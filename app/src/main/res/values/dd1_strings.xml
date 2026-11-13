@@ -154,6 +154,16 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_box64_performance_hint">Lets box64 skip checks it normally makes while turning the game’s x86 code into ARM. It can crash or corrupt the picture on some scenes; turn it back off if anything looks wrong. Applies on the next launch.</string>
     <string name="dd1_cpu_budget">Processor cores</string>
     <string name="dd1_cpu_budget_hint">The game has no frame limit, so it renders as fast as the cores let it and spends the battery doing it. Holding it off the fastest cores costs speed and buys back running time. Applies on the next launch.</string>
+    <string name="dd1_game_location">Game location</string>
+    <string name="dd1_game_location_app">Inside the app</string>
+    <string name="dd1_game_location_storage">Phone storage (DD1/game)</string>
+    <string name="dd1_game_location_hint">In phone storage the game files can be opened and edited with any file manager - for mods that replace game files or add a DLL. They also stay when the app is removed. Inside the app is reachable only from the launcher. Moving copies about 4 GB, so it needs that much free space for a while.</string>
+    <string name="dd1_game_location_move_title">Move the game?</string>
+    <string name="dd1_game_location_move_message">The game is copied to %1$s and then removed from where it was. This takes several minutes. Saves are not affected.</string>
+    <string name="dd1_game_location_move">Move</string>
+    <string name="dd1_game_location_busy">Wait for the current download to finish first.</string>
+    <string name="dd1_state_moving">Moving the game</string>
+    <string name="dd1_state_moved">Game moved</string>
     <string name="dd1_refresh_rate">Screen refresh rate</string>
     <string name="dd1_refresh_rate_hint">The panel draws at 120 Hz whatever the game is doing. Halving it while the game runs saves power on the screen itself and leaves the game alone.</string>
     <string-array name="dd1_cpu_budgets">

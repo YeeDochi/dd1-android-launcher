@@ -28,6 +28,53 @@ import java.util.List;
 // Language and the size the game draws at. Both are read back from where they
 // actually live rather than mirrored in the launcher's own preferences.
 public class DD1SettingsFragment extends Fragment {
+    private DD1InstallService installService;
+    private boolean serviceBound;
+    private String pendingLocation;
+    private final android.content.ServiceConnection serviceConnection =
+        new android.content.ServiceConnection() {
+            @Override
+            public void onServiceConnected(android.content.ComponentName name,
+                    android.os.IBinder binder) {
+                installService = ((DD1InstallService.LocalBinder)binder).getService();
+                serviceBound = true;
+            }
+
+            @Override
+            public void onServiceDisconnected(android.content.ComponentName name) {
+                installService = null;
+                serviceBound = false;
+            }
+        };
+    // Phone storage takes the storage permission, asked for at the choice that
+    // needs it; the move carries on once it is granted.
+    private final androidx.activity.result.ActivityResultLauncher<String[]> storage =
+        registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions(),
+            granted -> {
+                if (Boolean.TRUE.equals(granted.get(
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                        && pendingLocation != null) confirmMove(pendingLocation);
+                else if (getView() != null)
+                    buildGameLocation(getView().findViewById(R.id.RGGameLocation));
+            });
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        requireContext().bindService(new android.content.Intent(requireContext(),
+            DD1InstallService.class), serviceConnection, android.content.Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    public void onStop() {
+        if (serviceBound) {
+            requireContext().unbindService(serviceConnection);
+            serviceBound = false;
+            installService = null;
+        }
+        super.onStop();
+    }
     // The panel is 1080 tall, so 1920x1080 is 1:1 and the sharpest. Smaller is
     // the same interface at fewer pixels, not a bigger one; 2340x1080 fills the
     // screen and takes the bars the Esc button sits in.
@@ -57,6 +104,59 @@ public class DD1SettingsFragment extends Fragment {
         buildCpuBudget(view.findViewById(R.id.RGCpuBudget));
         buildRefreshRate(view.findViewById(R.id.RGRefreshRate));
         buildGraphicsDriver(view.findViewById(R.id.RGGraphicsDriver));
+        buildGameLocation(view.findViewById(R.id.RGGameLocation));
+    }
+
+    private static final List<String> LOCATIONS =
+        Arrays.asList(DD1GameLocation.APP, DD1GameLocation.STORAGE);
+
+    // Choosing moves the game, so the radio does not change on its own: it is
+    // drawn again from where the game actually is once the move is settled.
+    private void buildGameLocation(RadioGroup group) {
+        group.setOnCheckedChangeListener(null);
+        group.removeAllViews();
+        String current = DD1GameLocation.chosen(requireContext());
+        group.addView(choice(getString(R.string.dd1_game_location_app),
+            DD1GameLocation.APP.equals(current)));
+        group.addView(choice(getString(R.string.dd1_game_location_storage),
+            DD1GameLocation.STORAGE.equals(current)));
+        group.setOnCheckedChangeListener((ignored, checkedId) -> {
+            String chosen = LOCATIONS.get(indexOf(group, checkedId));
+            if (chosen.equals(DD1GameLocation.chosen(requireContext()))) return;
+            pendingLocation = chosen;
+            if (DD1GameLocation.STORAGE.equals(chosen)
+                    && androidx.core.content.ContextCompat.checkSelfPermission(requireContext(),
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                storage.launch(new String[] {android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE});
+                return;
+            }
+            confirmMove(chosen);
+        });
+    }
+
+    private void confirmMove(String location) {
+        RadioGroup group = requireView().findViewById(R.id.RGGameLocation);
+        String where = DD1GameLocation.STORAGE.equals(location)
+            ? DD1GameLocation.storageRoot().getPath() + "/game"
+            : getString(R.string.dd1_game_location_app);
+        new android.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.dd1_game_location_move_title)
+            .setMessage(getString(R.string.dd1_game_location_move_message, where))
+            .setPositiveButton(R.string.dd1_game_location_move, (dialog, which) -> {
+                if (installService == null || !installService.moveGame(location)) {
+                    android.widget.Toast.makeText(requireContext(),
+                        R.string.dd1_game_location_busy, android.widget.Toast.LENGTH_LONG).show();
+                    buildGameLocation(group);
+                    return;
+                }
+                // The move reports on the home screen, where the download does.
+                requireActivity().getSupportFragmentManager().popBackStack();
+            })
+            .setNegativeButton(android.R.string.cancel, (dialog, which) -> buildGameLocation(group))
+            .setOnCancelListener(dialog -> buildGameLocation(group))
+            .show();
     }
 
     // Automatic first, then the pairs, each with a line saying who it is for. A
