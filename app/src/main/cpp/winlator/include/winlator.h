@@ -11,7 +11,12 @@
 #define BITMASK_UNSET(bits, flag) bits &= ~flag
 #define GETEXP(x) (31 - __builtin_clz(x))
 
+/* dd1: the side-by-side build lives under its own package name. */
+#ifdef DD1_BESIDE_WINLATOR
+#define APP_CACHE_DIR "/data/data/com.dd1.wine/cache"
+#else
 #define APP_CACHE_DIR "/data/data/com.winlator/cache"
+#endif
 #define LIBVULKAN_PATH "/system/lib64/libvulkan.so"
 
 #define CLOSEFD(x) \

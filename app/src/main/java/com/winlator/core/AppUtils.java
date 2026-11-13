@@ -44,7 +44,8 @@ import java.util.TimerTask;
 
 public abstract class AppUtils {
     public static final String DIRECTORY_DOWNLOADS = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath();
-    public static final String INTERNAL_STORAGE = "/data/data/com.winlator/storage";
+    // dd1: the side-by-side build has its own data directory.
+    public static final String INTERNAL_STORAGE = "/data/data/" + com.winlator.BuildConfig.APPLICATION_ID + "/storage";
     private static WeakReference<Toast> globalToastReference = null;
 
     public static class RestartApplicationOptions {

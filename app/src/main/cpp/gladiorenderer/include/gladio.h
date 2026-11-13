@@ -12,7 +12,12 @@
 #define CLIENT_RING_BUFFER_SIZE 33554432
 #define THREAD_POOL_NUM_THREADS 4
 #define PIXEL_READ_CACHE_SKIP_FRAMES 3
+/* dd1: the side-by-side build lives under its own package name. */
+#ifdef DD1_BESIDE_WINLATOR
+#define X11_SERVER_PATH "/data/data/com.dd1.wine/files/rootfs/tmp/.X11-unix/X0"
+#else
 #define X11_SERVER_PATH "/data/data/com.winlator/files/rootfs/tmp/.X11-unix/X0"
+#endif
 
 #define GL_STRING_VERSION "3.3"
 #define GL_STRING_RENDERER "Gladio"

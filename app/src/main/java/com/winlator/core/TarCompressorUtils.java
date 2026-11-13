@@ -164,10 +164,10 @@ public abstract class TarCompressorUtils {
                 }
                 else {
                     if (entry.isSymbolicLink()) {
-                        FileUtils.symlink(entry.getLinkName(), file.getAbsolutePath());
+                        FileUtils.symlink(com.winlator.dd1.DD1Relocation.link(entry.getLinkName()), file.getAbsolutePath()); // dd1
                     }
                     else {
-                        try (BufferedOutputStream outStream = new BufferedOutputStream(new FileOutputStream(file), StreamUtils.BUFFER_SIZE)) {
+                        try (BufferedOutputStream outStream = new BufferedOutputStream(com.winlator.dd1.DD1Relocation.wrap(new FileOutputStream(file)), StreamUtils.BUFFER_SIZE)) { // dd1
                             if (!StreamUtils.copy(tar, outStream)) return false;
                         }
                     }

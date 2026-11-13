@@ -3,6 +3,7 @@ apply plugin: 'com.android.application'
 // Signing details live outside the repository. Without the file a release build
 // still assembles, unsigned, so a checkout without the key is not broken.
 def keystoreFile = rootProject.file('keystore.properties')
+def besideWinlator = project.hasProperty('besideWinlator')
 def keystore = new Properties()
 if (keystoreFile.exists()) keystoreFile.withInputStream { keystore.load(it) }
 
@@ -15,12 +16,24 @@ android {
         targetCompatibility JavaVersion.VERSION_11
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
-        // ponytail: the Winlator rootfs bakes /data/data/com.winlator into
-        // wineserver, ntdll and ld.so.cache, and the ELF fields are fixed-size,
-        // so a different id needs a same-length one (<=12 chars) plus a rootfs
-        // path-rewrite pass. Revisit before any public release.
-        applicationId 'com.winlator'
+        // The Winlator rootfs bakes /data/data/com.winlator into wineserver,
+        // ntdll, box64 and ld.so.cache in fixed-size fields, so the id stays
+        // com.winlator - and the launcher cannot be installed beside Winlator.
+        // -PbesideWinlator builds the variant that can: a same-length id, with
+        // every unpacked runtime file rewritten to it (DD1Relocation) and the
+        // native libraries told where their sockets now live.
+        applicationId besideWinlator ? 'com.dd1.wine' : 'com.winlator'
+        manifestPlaceholders = [providerAuthority: (besideWinlator ? 'com.dd1.wine' : 'com.winlator') + '.FileProvider']
+        externalNativeBuild {
+            cmake {
+                if (besideWinlator) cFlags '-DDD1_BESIDE_WINLATOR=1'
+            }
+        }
         minSdkVersion 26
         targetSdkVersion 28
         versionCode 13

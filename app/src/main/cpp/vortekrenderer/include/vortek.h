@@ -5,7 +5,12 @@
 #define MEMORY_POOL_MAX_SIZE 65536
 #define SERVER_RING_BUFFER_SIZE 4194304
 #define CLIENT_RING_BUFFER_SIZE 262144
+/* dd1: the side-by-side build lives under its own package name. */
+#ifdef DD1_BESIDE_WINLATOR
+#define VORTEK_SERVER_PATH "/data/data/com.dd1.wine/files/rootfs/tmp/.vortek/V0"
+#else
 #define VORTEK_SERVER_PATH "/data/data/com.winlator/files/rootfs/tmp/.vortek/V0"
+#endif
 #define VK_HANDLE_BYTE_COUNT 8
 #define THREAD_POOL_NUM_THREADS 8
 
