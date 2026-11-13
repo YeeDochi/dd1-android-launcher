@@ -55,6 +55,12 @@
             style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:indeterminate="true"
             android:visibility="gone" />
+        <!-- Shown from the moment the screen opens: the store is only asked for
+             once Steam has listed the subscriptions, which takes seconds, and an
+             empty screen in the meantime reads as nothing being there. -->
+        <ProgressBar android:id="@+id/PBWorkshopStoreSpinner"
+            android:layout_width="48dp" android:layout_height="48dp"
+            android:layout_gravity="center_horizontal" android:layout_marginTop="64dp" />
         <ScrollView android:layout_width="match_parent" android:layout_height="0dp"
             android:layout_weight="1">
             <LinearLayout android:layout_width="match_parent"
@@ -102,6 +108,9 @@
             android:layout_height="wrap_content" android:max="100" android:visibility="gone" />
         <TextView android:id="@+id/TVWorkshopMessage" style="@style/DD1Meta"
             android:padding="8dp" android:visibility="gone" />
+        <ProgressBar android:id="@+id/PBWorkshopInstalledSpinner"
+            android:layout_width="48dp" android:layout_height="48dp"
+            android:layout_gravity="center_horizontal" android:layout_marginTop="64dp" />
         <ScrollView android:layout_width="match_parent" android:layout_height="0dp"
             android:layout_weight="1">
             <LinearLayout android:layout_width="match_parent"

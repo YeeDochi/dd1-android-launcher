@@ -297,8 +297,6 @@ public final class DD1WorkshopFragment extends Fragment {
     }
 
     private void renderStore(View view, DD1WorkshopSnapshot snapshot) {
-        view.findViewById(R.id.PBWorkshopLoading).setVisibility(
-            snapshot.browseLoading ? View.VISIBLE : View.GONE);
         TextView message = view.findViewById(R.id.TVWorkshopStoreMessage);
         String text = snapshot.browseError;
         if (text == null && snapshot.phase == DD1WorkshopSnapshot.Phase.ERROR)
@@ -307,6 +305,15 @@ public final class DD1WorkshopFragment extends Fragment {
                 && snapshot.browse.isEmpty()) text = getString(R.string.dd1_workshop_store_empty);
         message.setText(text);
         message.setVisibility(text == null ? View.GONE : View.VISIBLE);
+        // Nothing to show yet and nothing gone wrong: the first page is on its
+        // way, so the screen says so in its middle. With cards already there, a
+        // further page or a new search only needs the thin bar along the top.
+        boolean firstLoad = snapshot.browse.isEmpty() && text == null
+            && (snapshot.browseLoading || snapshot.page == 0);
+        view.findViewById(R.id.PBWorkshopStoreSpinner).setVisibility(
+            firstLoad ? View.VISIBLE : View.GONE);
+        view.findViewById(R.id.PBWorkshopLoading).setVisibility(
+            snapshot.browseLoading && !firstLoad ? View.VISIBLE : View.GONE);
 
         GridLayout grid = view.findViewById(R.id.GLWorkshopCards);
         String shape = storeShape(snapshot);
@@ -385,9 +392,15 @@ public final class DD1WorkshopFragment extends Fragment {
         for (DD1WorkshopSnapshot.Row row : snapshot.rows)
             if (row.state == DD1WorkshopSnapshot.State.UPDATE
                     || row.state == DD1WorkshopSnapshot.State.INSTALL) updates++;
-        ((TextView)view.findViewById(R.id.TVWorkshopSummary)).setText(updates > 0
-            ? getString(R.string.dd1_workshop_summary_updates, snapshot.rows.size(), updates)
-            : getString(R.string.dd1_workshop_summary, snapshot.rows.size()));
+        boolean loading = snapshot.phase == DD1WorkshopSnapshot.Phase.LOADING
+            && snapshot.rows.isEmpty();
+        view.findViewById(R.id.PBWorkshopInstalledSpinner).setVisibility(
+            loading ? View.VISIBLE : View.GONE);
+        ((TextView)view.findViewById(R.id.TVWorkshopSummary)).setText(loading
+            ? getString(R.string.dd1_workshop_loading)
+            : updates > 0
+                ? getString(R.string.dd1_workshop_summary_updates, snapshot.rows.size(), updates)
+                : getString(R.string.dd1_workshop_summary, snapshot.rows.size()));
         ((TextView)view.findViewById(R.id.BTWorkshopTabInstalled)).setText(snapshot.rows.isEmpty()
             ? getString(R.string.dd1_workshop_tab_installed)
             : getString(R.string.dd1_workshop_tab_installed_count,

@@ -105,6 +105,7 @@
     <string name="dd1_workshop_more_actions">더 보기</string>
     <string name="dd1_workshop_state_disabled">꺼짐</string>
     <string name="dd1_workshop_summary">모드 %1$d개</string>
+    <string name="dd1_workshop_loading">불러오는 중…</string>
     <string name="dd1_workshop_summary_updates">모드 %1$d개 · 설치/업데이트할 것 %2$d개</string>
     <string name="dd1_workshop_tab_installed_count">%1$s · %2$d</string>
     <string name="dd1_workshop_mods_in_game">모드 폴더: %1$s · 여기에 넣으면 바로 적용됩니다.</string>

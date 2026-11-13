@@ -106,6 +106,7 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_workshop_more_actions">More actions</string>
     <string name="dd1_workshop_state_disabled">Off</string>
     <string name="dd1_workshop_summary">%1$d mods</string>
+    <string name="dd1_workshop_loading">Loading…</string>
     <string name="dd1_workshop_summary_updates">%1$d mods · %2$d to install or update</string>
     <string name="dd1_workshop_tab_installed_count">%1$s · %2$d</string>
     <string name="dd1_workshop_mods_in_game">Mods folder: %1$s. Mods put here work straight away.</string>
