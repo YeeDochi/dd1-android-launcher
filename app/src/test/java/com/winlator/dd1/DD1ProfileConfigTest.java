@@ -18,7 +18,10 @@ public class DD1ProfileConfigTest {
         assertEquals("turnip,gladio", config.get("graphicsDriver"));
         assertEquals("0,1,2,3", config.get("cpuList"));
         assertEquals("0,1,2,3", config.get("cpuListWoW64"));
-        assertEquals("dxvk", config.get("dxwrapper"));
+        // OpenGL, FMOD and the 2015+ runtime: no Direct3D layer, no native
+        // Windows component, and so nothing of them unpacked at the first launch.
+        assertEquals("wined3d", config.get("dxwrapper"));
+        assertEquals(false, String.valueOf(config.get("wincomponents")).contains("=1"));
         assertEquals("alsa", config.get("audioDriver"));
         assertEquals((byte)1, config.get("startupSelection"));
         assertEquals("INTERMEDIATE", config.get("box64Preset"));

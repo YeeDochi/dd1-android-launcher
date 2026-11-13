@@ -280,10 +280,12 @@ public class DD1HomeFragment extends Fragment {
         else if (container != null && !driverChecked) {
             driverChecked = true;
             String belongs = DD1GraphicsChoice.resolve(activity);
+            boolean changed = DD1ProfileConfig.trim(container);
             if (!belongs.equals(container.getGraphicsDriver())) {
                 container.setGraphicsDriver(belongs);
-                container.saveData();
+                changed = true;
             }
+            if (changed) container.saveData();
         }
 
         DD1HomeState state = DD1HomeState.from(runtimeReady, executable != null, container != null);

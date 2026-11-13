@@ -4,6 +4,32 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public abstract class DD1ProfileConfig {
+    // Darkest Dungeon draws with OpenGL, plays sound through FMOD and imports only
+    // the 2015+ C runtime, which the game's own redistributable installs. None of
+    // the native Windows components or a Direct3D translation layer is touched,
+    // and each one that is switched on is unpacked into the prefix at the first
+    // launch - DXVK, 31 MB of Direct3D DLLs, XAudio - for nothing. Wine's built-in
+    // versions stay in place of all of them.
+    static final String DXWRAPPER = "wined3d";
+    static final String WINCOMPONENTS = "direct3d=0,directsound=0,directmusic=0,directshow=0,"
+        + "directplay=0,xaudio=0,vcrun2005=0,vcrun2010=0,wmdecoder=0";
+
+    // Brings a profile made by an earlier build in line. Switching a component
+    // off restores Wine's built-in DLLs, and switching to wined3d does the same,
+    // so the runtime needs none of the files left out of the APK to do it.
+    public static boolean trim(com.winlator.container.Container container) {
+        boolean changed = false;
+        if (!DXWRAPPER.equals(container.getDXWrapper())) {
+            container.setDXWrapper(DXWRAPPER);
+            changed = true;
+        }
+        if (!WINCOMPONENTS.equals(container.getWinComponents())) {
+            container.setWinComponents(WINCOMPONENTS);
+            changed = true;
+        }
+        return changed;
+    }
+
     public static Map<String, Object> create(String graphicsDriver, String cpuList) {
         Map<String, Object> config = new LinkedHashMap<>();
         config.put("name", "Darkest Dungeon");
@@ -17,9 +43,9 @@ public abstract class DD1ProfileConfig {
         config.put("cpuList", cpuList);
         config.put("cpuListWoW64", cpuList);
         config.put("graphicsDriver", graphicsDriver);
-        config.put("dxwrapper", "dxvk");
+        config.put("dxwrapper", DXWRAPPER);
         config.put("audioDriver", "alsa");
-        config.put("wincomponents", "direct3d=1,directsound=1,directmusic=1,directshow=0,directplay=0,xaudio=1,vcrun2005=0,vcrun2010=1,wmdecoder=1");
+        config.put("wincomponents", WINCOMPONENTS);
         config.put("hudMode", (byte)0);
         config.put("startupSelection", (byte)1);
         config.put("box64Preset", "INTERMEDIATE");

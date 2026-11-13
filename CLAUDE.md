@@ -140,7 +140,14 @@ committed code.
   allocates and validates files without downloading them. Wine answered
   `ERROR_BAD_EXE_FORMAT` and every symptom above it looked like a runtime fault.
   Read the first bytes (`MZ`) before believing an install.
-- DD1 is an OpenGL game; `err:wgl:egl_init` in the log is harmless.
+- DD1 is an OpenGL game; `err:wgl:egl_init` in the log is harmless. It imports
+  only `OPENGL32`, SDL2, FMOD and the 2015+ C runtime, so the profile runs on
+  `wined3d` with every native Windows component off (`DD1ProfileConfig`, which
+  also trims older profiles), and `app/build.gradle` leaves DXVK, d7vk, d8vk,
+  cnc-ddraw, the component archives and the sound font out of the APK - 55 MB.
+  vkd3d stays: the runtime unpacks it on every launch whatever the layer.
+  Measured on the S22, neither fewer Windows services (`startupSelection` 2)
+  nor box64's performance preset moved the time to the first frame.
 - DLC arrives in its own Steam package, so ownership is read across all packages
   - and the packages name other games too, so **which appids are this game's DLC
   is read from the game's own PICS depot table** (`DD1DepotCatalog.dlcAppIds`),

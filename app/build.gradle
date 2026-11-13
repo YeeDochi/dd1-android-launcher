@@ -79,6 +79,20 @@ android {
         checkReleaseBuilds false
     }
 
+    // Runtime parts the game profile never asks for (DD1ProfileConfig): the
+    // Direct3D layers, the native Windows components and the MIDI sound font.
+    // Upstream's assets stay as they are; they are only left out of the APK.
+    // vkd3d stays - the runtime unpacks it on every launch whatever the layer.
+    // The first entries are aapt's own defaults, which this pattern replaces.
+    // aapt takes '*' only at the start or the end of a name.
+    androidResources {
+        ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~' +
+            ':!dxvk-*:!d7vk-*:!d8vk-*:!<dir>cnc-ddraw-*' +
+            ':!direct3d.tzst:!directsound.tzst:!directmusic.tzst:!directshow.tzst' +
+            ':!directplay.tzst:!xaudio.tzst:!vcrun2005.tzst:!vcrun2010.tzst:!wmdecoder.tzst' +
+            ':!<dir>soundfont'
+    }
+
     ndkVersion '24.0.8215888'
 
     externalNativeBuild {

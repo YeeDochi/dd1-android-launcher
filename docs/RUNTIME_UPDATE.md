@@ -82,7 +82,12 @@ library still carries the other path, delete `app/.cxx` and build again.
    side-by-side edits; see above. Search the new release for
    `/data/data/com.winlator` and `"com.winlator` - a new hard-coded path is
    one more place the side-by-side build has to be told about.
-5. Build, run the unit tests, then launch the game once on a device and check
+5. Check the `ignoreAssetsPattern` in `app/build.gradle` against the new
+   release's `assets/`. It leaves out the runtime parts the game profile never
+   asks for (Direct3D layers, native Windows components, the MIDI sound font);
+   a renamed asset slips back in, and a profile that starts asking for one of
+   them needs it taken off the list.
+6. Build, run the unit tests, then launch the game once on a device and check
    that a tap still lands where it was aimed.
 
 ## Rule
