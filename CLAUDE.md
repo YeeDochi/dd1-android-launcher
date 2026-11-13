@@ -60,8 +60,13 @@ per-game settings.
   root filesystem has `/data/data/com.winlator/...` baked into box64's ELF
   interpreter, wineserver, ntdll and `ld.so.cache`, in fixed-size fields.
   `-PbesideWinlator` builds `com.dd1.wine` - same length - and `DD1Relocation`
-  rewrites the path in every file as the runtime unpacks it. Existing users stay
-  on the standard build: a new id is a new app, with a fresh 3.7 GB download.
+  rewrites the path in every file as the runtime unpacks it.
+- **Releases from 0.1.13 are the `-PbesideWinlator` build.** The key that signed
+  `com.winlator` up to 0.1.12 was lost with the machine that built it, so no
+  `com.winlator` APK can update an existing install again. Everyone moved to
+  `com.dd1.wine` once (saves through Steam Cloud, the game downloaded again into
+  `DD1/game`). The standard build stays for development on devices that already
+  carry it. **Back up the release keystore** - losing it forces that move again.
 - **`targetSdkVersion` must stay 28.** Android 29+ forbids executing files in the
   app data directory, and the runtime unpacks box64 and Wine there. Android shows
   a compatibility warning for this; it is expected.
@@ -102,7 +107,7 @@ per-game settings.
 
 ```
 ./gradlew assembleDebug testDebugUnitTest     # what every change must pass
-./gradlew assembleRelease -PbesideWinlator    # the build that installs beside Winlator
+./gradlew assembleRelease -PbesideWinlator    # the release build (com.dd1.wine)
 ./gradlew connectedDebugAndroidTest           # only with the phone unplugged
 adb -s <serial> install -r app/build/outputs/apk/debug/app-debug.apk
 adb -s <serial> shell monkey -p com.winlator -c android.intent.category.LAUNCHER 1
@@ -169,8 +174,8 @@ committed code.
   box64 binary and one patch file, so a same-length id is a byte-for-byte
   replacement with no ELF surgery - but the new id is a new app to Android, and
   no app can read another's data directory: every install would start again from
-  a 3.7 GB download. So it is a second APK (`-PbesideWinlator`) for the people
-  who need Winlator too, not a migration for everyone.
+  a 3.7 GB download. It was meant as a second APK for the people who need
+  Winlator too; losing the `com.winlator` key made it the only one.
 - **Turnip is the Adreno driver whatever the number after it says.** The runtime
   picks it by matching `adreno[^678]*([678][0-9]{2})`, so a 9-series, a
   four-digit model or the X-series naming reads as "not an Adreno" and gets
