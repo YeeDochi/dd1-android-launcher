@@ -22,6 +22,12 @@
     <string name="dd1_download">Download game and owned DLC</string>
     <string name="dd1_retry">Retry</string>
     <string name="dd1_open_source_info">Open-source information</string>
+    <string name="dd1_game_files">Open game files</string>
+    <string name="dd1_repair_game">Check and repair game files</string>
+    <string name="dd1_repair_game_message">Every game file is checked against Steam, and only the parts that differ are downloaded again. The check reads the whole install, so it takes a few minutes.
+
+Files Steam does not ship, such as a DLL you added, are not removed. If one of those stops the game from starting, remove it with Open game files.</string>
+    <string name="dd1_repair_game_start">Check</string>
     <string name="dd1_delete_game">Delete game files</string>
     <string name="dd1_delete_game_message">The game and any unfinished download will be removed. Signing in again and downloading roughly 4 GB will be required to play. Saves are kept.</string>
     <string name="dd1_delete_game_failed">Some game files could not be removed</string>
@@ -137,6 +143,7 @@
     <string name="dd1_state_starting">Starting download</string>
     <string name="dd1_state_part">Part %s</string>
     <string name="dd1_state_stalled">Steam stopped answering; try again</string>
+    <string name="dd1_state_retrying">Retrying (%1$d/%2$d), keeping what has arrived: %3$s</string>
     <string name="dd1_state_verifying">Verifying downloaded game</string>
     <string name="dd1_state_ready_to_play">Ready to play</string>
     <string name="dd1_state_preparing">Preparing</string>

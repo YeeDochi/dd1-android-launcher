@@ -9,6 +9,9 @@ public final class DD1Installer {
 
     private static final String COMPLETE_MARKER = "download-complete";
     private static final String ATTEMPT_MARKER = "download-started";
+    // JavaSteam's DepotDownloader.CONFIG_DIR plus the file its DepotConfigStore
+    // keeps: depot id -> manifest id of what it believes is fully on disk.
+    static final String DEPOT_RECORD = ".DepotDownloader/depot.config";
 
     // The downloader writes this once it has handed over every depot. Without it
     // a staging tree is a download that stopped partway, and promoting that gives
@@ -21,18 +24,23 @@ public final class DD1Installer {
         catch (java.io.IOException ignored) {}
     }
 
-    // The downloader trusts whatever it finds on disk when it resumes: a depot
-    // whose files are the right size is reported complete with zero bytes
-    // transferred, so a file left half written by a killed process is accepted
-    // for good and the install is quietly broken. Only a download that ended in
-    // a working install may be built on; an interrupted one takes its staging
-    // tree with it, at the cost of fetching the whole 4 GB again.
+    // An interrupted download is picked up where it stopped, not thrown away.
+    // Throwing it away is what made a slow or flaky connection hopeless: every
+    // stall started the 4 GB over, so the data went and the bar never moved.
+    //
+    // What the downloader trusts on resume is the depot record it keeps in the
+    // tree. A depot it never finished is already marked as unknown there, and an
+    // unknown depot has every chunk of every file checked against the manifest's
+    // checksum - a file of zeros or one cut off halfway fails that and is fetched
+    // again. A depot it did finish is taken on its word, by file hash alone. The
+    // record is dropped here so that no depot is taken on its word: the check is
+    // a read of what is already on the phone, which costs minutes, not data.
     public static File beginDownload(File filesDir) {
         File stagingRoot = new File(filesDir, "staging");
         File staging = new File(stagingRoot, "game");
         File attempt = new File(stagingRoot, ATTEMPT_MARKER);
         if (attempt.isFile()) {
-            FileUtils.delete(staging);
+            new File(staging, DEPOT_RECORD).delete();
             new File(stagingRoot, COMPLETE_MARKER).delete();
         }
         staging.mkdirs();
@@ -41,6 +49,22 @@ public final class DD1Installer {
         }
         catch (java.io.IOException ignored) {}
         return staging;
+    }
+
+    // A repair downloads into the installed game itself. With the depot record
+    // gone the downloader checks every chunk of every file it ships against the
+    // manifest and fetches the ones that differ, and it has no record of a file
+    // it never shipped, so a mod or a dropped-in DLL is not its business.
+    public static File beginRepair(File filesDir) {
+        File game = new File(filesDir, "game");
+        new File(game, DEPOT_RECORD).delete();
+        return game;
+    }
+
+    public static Result checkRepaired(File filesDir) {
+        DD1Game.Validation validation = DD1Game.validate(new File(filesDir, "game"));
+        return validation.valid ? new Result(true, null)
+            : new Result(false, "Missing " + validation.missingPath);
     }
 
     // Puts one or more downloaded DLC into a game that is already installed.
@@ -126,10 +150,29 @@ public final class DD1Installer {
             if (previous.exists()) previous.renameTo(active);
             return new Result(false, "Unable to activate downloaded game");
         }
+        carryOver(previous, active, "mods");
+        carryOver(previous, active, "mods-disabled");
         FileUtils.delete(previous);
         new File(stagingRoot, COMPLETE_MARKER).delete();
         new File(stagingRoot, ATTEMPT_MARKER).delete();
         return new Result(true, null);
+    }
+
+    // Mods live inside the game tree, so replacing the tree used to delete them:
+    // every Workshop mod was fetched again from the start and every local one
+    // copied in again, and a reinstall or a game update looked like the mod
+    // manager forgetting everything. Each mod the old tree had and the new one
+    // does not is moved across; anything the download itself brought wins.
+    static void carryOver(File previous, File active, String folder) {
+        File from = new File(previous, folder);
+        File[] mods = from.listFiles();
+        if (mods == null) return;
+        File to = new File(active, folder);
+        if (!to.isDirectory() && !to.mkdirs()) return;
+        for (File mod : mods) {
+            File target = new File(to, mod.getName());
+            if (!target.exists()) mod.renameTo(target);
+        }
     }
 
     // Frees the installed game and any interrupted download. The Wine prefix is

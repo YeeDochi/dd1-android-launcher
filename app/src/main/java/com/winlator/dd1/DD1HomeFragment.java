@@ -91,6 +91,8 @@ public class DD1HomeFragment extends Fragment {
         view.findViewById(R.id.BTMenu).setOnClickListener(
             v -> ((DD1Activity)requireActivity()).toggleDrawer());
         view.findViewById(R.id.BTDeleteGame).setOnClickListener(v -> confirmDeleteGame());
+        view.findViewById(R.id.BTGameFiles).setOnClickListener(v -> openGameFiles());
+        view.findViewById(R.id.BTRepairGame).setOnClickListener(v -> confirmRepair());
         view.findViewById(R.id.BTSignOutAlways)
             .setOnClickListener(v -> withService(DD1InstallService::signOut));
         view.findViewById(R.id.BTCancelSignIn)
@@ -373,6 +375,50 @@ public class DD1HomeFragment extends Fragment {
             || new File(filesDir, "staging").isDirectory();
         rootView.findViewById(R.id.BTDeleteGame)
             .setVisibility(anything ? View.VISIBLE : View.GONE);
+        // Only with a game to open or check, and not while a download owns it.
+        boolean installed = new File(filesDir, "game").isDirectory();
+        boolean idle = installSnapshot == null
+            || (installSnapshot.phase != DD1InstallPhase.DOWNLOADING
+                && installSnapshot.phase != DD1InstallPhase.VERIFYING);
+        rootView.findViewById(R.id.BTGameFiles)
+            .setVisibility(installed && idle ? View.VISIBLE : View.GONE);
+        rootView.findViewById(R.id.BTRepairGame).setVisibility(installed && idle
+            && installService != null && installService.canDownload()
+            ? View.VISIBLE : View.GONE);
+    }
+
+    // The game folder used to be reachable only from inside the running game,
+    // through the runtime's menu and its task manager. A DLL that stopped the
+    // game from starting therefore also took away the only way to remove it.
+    // This starts the runtime with nothing but its file manager: the game is G:,
+    // the phone's Download folder is D: and its whole storage is E:.
+    private void openGameFiles() {
+        Activity activity = getActivity();
+        if (activity == null) return;
+        Container container = DD1Profiles.first(activity);
+        if (container == null) return;
+        mapGameDrive(activity, container);
+        Intent intent = new Intent(activity, XServerDisplayActivity.class);
+        intent.putExtra("container_id", container.id);
+        activity.startActivity(intent);
+    }
+
+    private void confirmRepair() {
+        new android.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.dd1_repair_game)
+            .setMessage(R.string.dd1_repair_game_message)
+            .setPositiveButton(R.string.dd1_repair_game_start,
+                (dialog, which) -> withService(DD1InstallService::repair))
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
+    }
+
+    private static void mapGameDrive(Activity activity, Container container) {
+        File gameDir = new File(activity.getFilesDir(), "game");
+        if (!container.getDrives().contains(gameDir.getPath())) {
+            container.setDrives(container.getDrives()+"G:"+gameDir.getPath());
+            container.saveData();
+        }
     }
 
     // While downloading the panel is one progress bar, so it takes only the
@@ -493,10 +539,7 @@ public class DD1HomeFragment extends Fragment {
             DD1SaveSnapshots.take(activity.getFilesDir(), System.currentTimeMillis());
 
         File gameDir = new File(activity.getFilesDir(), "game");
-        if (!container.getDrives().contains(gameDir.getPath())) {
-            container.setDrives(container.getDrives()+"G:"+gameDir.getPath());
-            container.saveData();
-        }
+        mapGameDrive(activity, container);
 
         File system32 = new File(container.getRootDir(), ".wine/drive_c/windows/system32");
         File redist = DD1Game.pendingRedistributable(gameDir, system32);

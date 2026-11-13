@@ -461,7 +461,8 @@ public final class DD1InstallService extends Service {
         }
         File staging = DD1Workshop.importStaging(getFilesDir());
         try {
-            copyDocuments(document, staging, new long[1]);
+            copyDocuments(document, staging,
+                new long[] {0, DD1Workshop.importBudget(staging)});
         }
         catch (IOException error) {
             DD1Workshop.discardImport(getFilesDir());
@@ -470,6 +471,7 @@ public final class DD1InstallService extends Service {
         DD1Workshop.installImport(getFilesDir(), name, true);
     }
 
+    // total[0] is what has been copied, total[1] what may be.
     private void copyDocuments(DocumentFile from, File to, long[] total) throws IOException {
         for (DocumentFile child : from.listFiles()) {
             String name = child.getName();
@@ -489,8 +491,7 @@ public final class DD1InstallService extends Service {
                     int read;
                     while ((read = input.read(buffer)) != -1) {
                         total[0] += read;
-                        if (total[0] > DD1Workshop.MAX_IMPORT_BYTES)
-                            throw new IOException("The folder is larger than 512 MB");
+                        if (total[0] > total[1]) throw DD1Workshop.outOfRoom(total[1]);
                         output.write(buffer, 0, read);
                     }
                 }
@@ -534,7 +535,21 @@ public final class DD1InstallService extends Service {
         // Steam sends every depot it has and the unwanted ones are deleted at
         // the end of the install - 530 MB fetched and thrown away on 2026-08-20.
         java.util.List<Integer> depots = steam.catalog().depotsFor(dlcSelection().selected());
-        worker.execute(() -> runDownload(depots, null));
+        worker.execute(() -> runDownload(depots, null, false));
+    }
+
+    // Checks the installed game against Steam's manifest and fetches only what
+    // differs. A game file overwritten by hand - a proxy DLL, an older
+    // Darkest.exe - that keeps the game from starting used to mean deleting the
+    // install and fetching 4 GB again; this reads what is on the phone and
+    // fetches the chunks that do not match. Files Steam does not ship, and the
+    // mods folder, are left where they are.
+    public synchronized void repair() {
+        if (!ownsGame || downloader != null || busy()) return;
+        if (!new File(getFilesDir(), "game").isDirectory()) return;
+        begin();
+        java.util.List<Integer> depots = steam.catalog().depotsFor(dlcSelection().selected());
+        worker.execute(() -> runDownload(depots, null, true));
     }
 
     // Adding or updating one DLC on a game that is already installed. Only the
@@ -556,7 +571,7 @@ public final class DD1InstallService extends Service {
             return;
         }
         begin();
-        worker.execute(() -> runDownload(depots, versions));
+        worker.execute(() -> runDownload(depots, versions, false));
     }
 
     private void begin() {
@@ -809,28 +824,40 @@ public final class DD1InstallService extends Service {
     }
 
     private void runDownload(java.util.List<Integer> depots,
-            java.util.Map<Integer, String> dlcVersions) {
-        AtomicReference<Throwable> failure = new AtomicReference<>();
-        completion = new CountDownLatch(1);
-        File staging = DD1Installer.beginDownload(getFilesDir());
+            java.util.Map<Integer, String> dlcVersions, boolean repair) {
+        File staging = repair ? DD1Installer.beginRepair(getFilesDir())
+            : DD1Installer.beginDownload(getFilesDir());
         try {
-            downloader = new DepotDownloader(steam.client(), steam.licenses(), false,
-                false, 2, 1, 1, true);
-            downloader.addListener(new ProgressListener(failure));
-            // The second-to-last flag is verify: with it set the downloader only
-            // checks the files it allocated and never fetches their contents.
-            downloader.add(new AppItem(DD1SteamEvents.APP_ID, false, staging.getAbsolutePath(),
-                "public", "", false, "windows", false, "64", false, "english",
-                false, depots, Collections.emptyList(), false, false));
-            downloader.finishAdding();
-            awaitCompletion();
+            // A server that goes quiet, or a connection that drops, ends one
+            // attempt and not the install: what arrived stays on disk and the
+            // next attempt draws other servers and checks what is there before
+            // fetching the rest.
+            for (int attempt = 1; ; attempt++) {
+                try {
+                    fetchOnce(staging, depots);
+                    break;
+                }
+                catch (Throwable error) {
+                    if (cancelled) return;
+                    if (attempt >= DOWNLOAD_ATTEMPTS) throw error;
+                    log.append(getString(R.string.dd1_state_retrying, attempt + 1,
+                        DOWNLOAD_ATTEMPTS, reason(error)));
+                    closeDownloader();
+                    if (repair) DD1Installer.beginRepair(getFilesDir());
+                    else DD1Installer.beginDownload(getFilesDir());
+                    Thread.sleep(5000L * attempt);
+                    if (cancelled) return;
+                }
+            }
             if (cancelled) return;
-            if (failure.get() != null) throw failure.get();
 
             publish(new DD1InstallSnapshot(DD1InstallPhase.VERIFYING, 0, 0, 0,
                 getString(R.string.dd1_state_verifying), null, null, log.visibleLines()));
             DD1Installer.Result result;
-            if (dlcVersions == null) {
+            // No DLC filter here: what is installed stays installed. A DLC added
+            // later through the DLC screen may not be in the saved choice.
+            if (repair) result = DD1Installer.checkRepaired(getFilesDir());
+            else if (dlcVersions == null) {
                 DD1Installer.markDownloadComplete(getFilesDir());
                 DlcInstallFilter.apply(staging, dlcSelection().selected());
                 result = DD1Installer.activate(getFilesDir());
@@ -847,11 +874,51 @@ public final class DD1InstallService extends Service {
         }
         finally {
             downloadingGame = false;
-            if (downloader != null) downloader.close();
-            downloader = null;
-            completion = null;
+            closeDownloader();
             stopForeground(true);
             stopSelf();
+        }
+    }
+
+    private static final int DOWNLOAD_ATTEMPTS = 6;
+
+    private void fetchOnce(File staging, java.util.List<Integer> depots) throws Throwable {
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        DepotDownloader next;
+        synchronized (this) {
+            if (cancelled) return;
+            completion = new CountDownLatch(1);
+            next = new DepotDownloader(steam.client(), steam.licenses(), false,
+                false, 4, 2, 1, true);
+            downloader = next;
+        }
+        next.addListener(new ProgressListener(failure));
+        // The second-to-last flag is verify: with it set the downloader only
+        // checks the files it allocated and never fetches their contents.
+        next.add(new AppItem(DD1SteamEvents.APP_ID, false, staging.getAbsolutePath(),
+            "public", "", false, "windows", false, "64", false, "english",
+            false, depots, Collections.emptyList(), false, false));
+        next.finishAdding();
+        awaitCompletion();
+        if (cancelled) return;
+        if (failure.get() != null) throw failure.get();
+    }
+
+    private void closeDownloader() {
+        DepotDownloader active;
+        synchronized (this) {
+            active = downloader;
+            downloader = null;
+            completion = null;
+        }
+        if (active != null) {
+            try {
+                active.close();
+            }
+            catch (Throwable ignored) {
+                // A downloader that will not close cleanly is being thrown away
+                // either way; the next attempt makes its own.
+            }
         }
     }
 

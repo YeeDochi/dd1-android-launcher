@@ -43,23 +43,56 @@ public class DD1InstallCompletionTest {
         assertFalse(DD1Installer.activate(second).success);
     }
 
-    // The downloader reports a depot complete with zero bytes transferred when
-    // its files are already the right size on disk, so a tree left behind by a
-    // killed process would be accepted as finished and quietly ship a broken
-    // install.
+    // An interrupted download is resumed, not thrown away - starting the 4 GB over
+    // on every stall is what made a slow connection hopeless. What keeps a
+    // half-written file from being trusted is the downloader's depot record:
+    // with it gone, every chunk on disk is checked against the manifest.
     @Test
-    public void aDownloadInterruptedMidFlightIsNotResumed() throws IOException {
+    public void anInterruptedDownloadIsResumedWithEveryDepotCheckedAgain() throws IOException {
         File files = staging();
         DD1Installer.beginDownload(files);
         assertTrue("the attempt is on record",
             new File(files, "staging/download-started").isFile());
 
         File leftover = new File(files, "staging/game/_windows/win64/Darkest.exe");
-        assertTrue(leftover.isFile());
+        File record = new File(files, "staging/game/" + DD1Installer.DEPOT_RECORD);
+        record.getParentFile().mkdirs();
+        assertTrue(record.createNewFile());
         DD1Installer.beginDownload(files);
 
-        assertFalse("the interrupted tree is gone", leftover.exists());
-        assertTrue(new File(files, "staging/game").isDirectory());
+        assertTrue("what arrived is kept", leftover.isFile());
+        assertFalse("no depot is taken on its word", record.exists());
+    }
+
+    @Test
+    public void aRepairChecksTheInstalledGameInPlace() throws IOException {
+        File files = staging();
+        DD1Installer.markDownloadComplete(files);
+        assertTrue(DD1Installer.activate(files).success);
+        File record = new File(files, "game/" + DD1Installer.DEPOT_RECORD);
+        record.getParentFile().mkdirs();
+        assertTrue(record.createNewFile());
+
+        assertTrue(DD1Installer.beginRepair(files).equals(new File(files, "game")));
+        assertFalse(record.exists());
+        assertTrue(DD1Installer.checkRepaired(files).success);
+    }
+
+    // Mods live inside the game tree, and replacing the tree took them with it:
+    // every Workshop mod was fetched again after a reinstall or an update.
+    @Test
+    public void modsSurviveTheGameBeingReplaced() throws IOException {
+        File files = staging();
+        File installed = new File(files, "game");
+        new File(installed, "mods/12345").mkdirs();
+        new File(installed, "mods-disabled/678").mkdirs();
+        assertTrue(new File(installed, "mods/12345/project.xml").createNewFile());
+        DD1Installer.markDownloadComplete(files);
+
+        assertTrue(DD1Installer.activate(files).success);
+        assertTrue(new File(files, "game/mods/12345/project.xml").isFile());
+        assertTrue(new File(files, "game/mods-disabled/678").isDirectory());
+        assertTrue(new File(files, "game/_windows/win64/Darkest.exe").isFile());
     }
 
     @Test

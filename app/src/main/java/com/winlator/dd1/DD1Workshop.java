@@ -20,7 +20,23 @@ public final class DD1Workshop {
     // folder that lost a mod could take a hand-imported ZIP with it, and choosing
     // the wrong folder once would delete every local mod on the device.
     private static final String SOURCE = ".dd1-local";
-    static final long MAX_IMPORT_BYTES = 512L * 1024 * 1024;
+    // A mod may be as large as the phone has room for. A fixed 512 MB stood here,
+    // and an all-in-one pack - the only way some mods ship - expands past it from
+    // a 400 MB ZIP. What is kept back is room for the game to go on writing its
+    // saves and shader cache after the import.
+    static final long KEEP_FREE_BYTES = 256L * 1024 * 1024;
+
+    static long importBudget(File directory) {
+        File existing = directory;
+        while (existing != null && !existing.exists()) existing = existing.getParentFile();
+        long usable = existing == null ? 0 : existing.getUsableSpace();
+        return Math.max(0, usable - KEEP_FREE_BYTES);
+    }
+
+    static IOException outOfRoom(long budget) {
+        return new IOException("Not enough free space: the mod needs more than "
+            + (budget / (1024 * 1024)) + " MB");
+    }
 
     public static final class Mod {
         public final String directoryName;
@@ -307,6 +323,7 @@ public final class DD1Workshop {
     private static void extractZip(InputStream input, File staging) throws IOException {
         String root = staging.getCanonicalPath() + File.separator;
         long total = 0;
+        long budget = importBudget(staging);
         byte[] buffer = new byte[64 * 1024];
         try (ZipInputStream zip = new ZipInputStream(input)) {
             ZipEntry entry;
@@ -326,8 +343,7 @@ public final class DD1Workshop {
                         int read;
                         while ((read = zip.read(buffer)) != -1) {
                             total += read;
-                            if (total > MAX_IMPORT_BYTES)
-                                throw new IOException("ZIP expands beyond 512 MB");
+                            if (total > budget) throw outOfRoom(budget);
                             output.write(buffer, 0, read);
                         }
                     }
