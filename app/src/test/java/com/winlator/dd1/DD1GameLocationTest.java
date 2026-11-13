@@ -32,6 +32,20 @@ public class DD1GameLocationTest {
     }
 
     @Test
+    public void aNewInstallGoesToStorageAndAnExistingOneStays() throws IOException {
+        File fresh = folder.newFolder("fresh");
+        assertEquals(DD1GameLocation.STORAGE, DD1GameLocation.defaultFor(fresh));
+
+        File installed = folder.newFolder("installed");
+        game(new File(installed, "game"));
+        assertEquals(DD1GameLocation.APP, DD1GameLocation.defaultFor(installed));
+
+        File partial = folder.newFolder("partial");
+        new File(partial, "staging/game").mkdirs();
+        assertEquals(DD1GameLocation.APP, DD1GameLocation.defaultFor(partial));
+    }
+
+    @Test
     public void theInstallMovesWithItsModsAndDlcRecord() throws IOException {
         File app = folder.newFolder("app");
         File storage = new File(folder.getRoot(), "storage/DD1");
@@ -49,6 +63,9 @@ public class DD1GameLocationTest {
         assertTrue(DD1Game.validate(new File(storage, "game")).valid);
         assertTrue(new File(storage, "game/mods/123/project.xml").isFile());
         assertTrue(new File(storage, DD1DlcVersions.FILE).isFile());
+        assertTrue("the old copy waits for the caller", new File(app, "game").exists());
+
+        DD1GameLocation.clearSource(app);
         assertFalse("the old copy is gone", new File(app, "game").exists());
         assertFalse("partial downloads do not follow", new File(app, "staging").exists());
         assertFalse(new File(storage, "game-moving").exists());
@@ -67,6 +84,7 @@ public class DD1GameLocationTest {
         DD1GameLocation.move(app, storage, (done, total) -> {
             throw new AssertionError("nothing should be copied");
         }, () -> false);
+        DD1GameLocation.clearSource(app);
 
         assertTrue(new File(storage, "game/theirs").isFile());
         assertFalse(new File(app, "game").exists());

@@ -42,6 +42,7 @@ public final class DD1Installer {
         new File(staging, DEPOT_RECORD).delete();
         if (attempt.isFile()) new File(stagingRoot, COMPLETE_MARKER).delete();
         staging.mkdirs();
+        DD1GameLocation.noMedia(stagingRoot);
         try {
             attempt.createNewFile();
         }

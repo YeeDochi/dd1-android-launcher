@@ -8,6 +8,8 @@ import android.text.style.RelativeSizeSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -55,9 +57,10 @@ public class DD1SettingsFragment extends Fragment {
                 if (Boolean.TRUE.equals(granted.get(
                         android.Manifest.permission.WRITE_EXTERNAL_STORAGE))
                         && pendingLocation != null) confirmMove(pendingLocation);
-                else if (getView() != null)
-                    buildGameLocation(getView().findViewById(R.id.RGGameLocation));
+                else android.widget.Toast.makeText(requireContext(), R.string.dd1_storage_needed,
+                    android.widget.Toast.LENGTH_LONG).show();
             });
+    private int section;
 
     @Override
     public void onStart() {
@@ -104,58 +107,97 @@ public class DD1SettingsFragment extends Fragment {
         buildCpuBudget(view.findViewById(R.id.RGCpuBudget));
         buildRefreshRate(view.findViewById(R.id.RGRefreshRate));
         buildGraphicsDriver(view.findViewById(R.id.RGGraphicsDriver));
-        buildGameLocation(view.findViewById(R.id.RGGameLocation));
+        buildGameLocation(view);
+        if (savedInstanceState != null) section = savedInstanceState.getInt("section", 0);
+        LinearLayout tabs = view.findViewById(R.id.LLSettingsTabs);
+        for (int i = 0; i < tabs.getChildCount(); i++) {
+            int index = i;
+            tabs.getChildAt(i).setOnClickListener(v -> showSection(index));
+        }
+        showSection(section);
     }
 
-    private static final List<String> LOCATIONS =
-        Arrays.asList(DD1GameLocation.APP, DD1GameLocation.STORAGE);
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt("section", section);
+    }
 
-    // Choosing moves the game, so the radio does not change on its own: it is
-    // drawn again from where the game actually is once the move is settled.
-    private void buildGameLocation(RadioGroup group) {
-        group.setOnCheckedChangeListener(null);
-        group.removeAllViews();
-        String current = DD1GameLocation.chosen(requireContext());
-        group.addView(choice(getString(R.string.dd1_game_location_app),
-            DD1GameLocation.APP.equals(current)));
-        group.addView(choice(getString(R.string.dd1_game_location_storage),
-            DD1GameLocation.STORAGE.equals(current)));
-        group.setOnCheckedChangeListener((ignored, checkedId) -> {
-            String chosen = LOCATIONS.get(indexOf(group, checkedId));
-            if (chosen.equals(DD1GameLocation.chosen(requireContext()))) return;
-            pendingLocation = chosen;
-            if (DD1GameLocation.STORAGE.equals(chosen)
-                    && androidx.core.content.ContextCompat.checkSelfPermission(requireContext(),
-                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                storage.launch(new String[] {android.Manifest.permission.READ_EXTERNAL_STORAGE,
-                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE});
-                return;
-            }
-            confirmMove(chosen);
-        });
+    private void showSection(int index) {
+        View view = getView();
+        if (view == null) return;
+        section = index;
+        LinearLayout tabs = view.findViewById(R.id.LLSettingsTabs);
+        ViewGroup sections = view.findViewById(R.id.FLSettingsSections);
+        for (int i = 0; i < sections.getChildCount(); i++) {
+            boolean shown = i == index;
+            sections.getChildAt(i).setVisibility(shown ? View.VISIBLE : View.GONE);
+            TextView tab = (TextView)tabs.getChildAt(i);
+            tab.setSelected(shown);
+            tab.setTextColor(themeColor(shown ? R.attr.colorPrimaryText : R.attr.colorSecondaryText));
+        }
+        view.findViewById(R.id.SVSettings).scrollTo(0, 0);
+    }
+
+    private int themeColor(int attr) {
+        android.util.TypedValue value = new android.util.TypedValue();
+        requireContext().getTheme().resolveAttribute(attr, value, true);
+        return value.resourceId != 0
+            ? androidx.core.content.ContextCompat.getColor(requireContext(), value.resourceId)
+            : value.data;
+    }
+
+    // Where the game is, and the one thing to do about it. A radio button here
+    // dressed a 4 GB copy up as a preference, and had to undo itself whenever the
+    // copy was refused or cancelled.
+    private void buildGameLocation(View view) {
+        boolean inStorage = DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(requireContext()));
+        ((TextView)view.findViewById(R.id.TVGameLocation)).setText(inStorage
+            ? getString(R.string.dd1_game_location_here_storage,
+                DD1GameLocation.gameDir(requireContext()).getPath())
+            : getString(R.string.dd1_game_location_here_app));
+        Button move = view.findViewById(R.id.BTGameLocationMove);
+        move.setText(inStorage ? R.string.dd1_game_location_to_app
+            : R.string.dd1_game_location_to_storage);
+        move.setOnClickListener(v -> requestMove(inStorage
+            ? DD1GameLocation.APP : DD1GameLocation.STORAGE));
+        View open = view.findViewById(R.id.BTGameLocationOpen);
+        open.setVisibility(inStorage ? View.VISIBLE : View.GONE);
+        open.setOnClickListener(v -> DD1FileManager.open(requireContext(),
+            DD1GameLocation.gameDir(requireContext())));
+    }
+
+    // Either way the move reads or writes phone storage, so the permission comes
+    // first; the move carries on once it is granted.
+    private void requestMove(String location) {
+        pendingLocation = location;
+        if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(),
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            storage.launch(new String[] {android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE});
+            return;
+        }
+        confirmMove(location);
     }
 
     private void confirmMove(String location) {
-        RadioGroup group = requireView().findViewById(R.id.RGGameLocation);
         String where = DD1GameLocation.STORAGE.equals(location)
             ? DD1GameLocation.storageRoot().getPath() + "/game"
             : getString(R.string.dd1_game_location_app);
-        new android.app.AlertDialog.Builder(requireContext())
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext(), R.style.DD1Dialog)
             .setTitle(R.string.dd1_game_location_move_title)
             .setMessage(getString(R.string.dd1_game_location_move_message, where))
             .setPositiveButton(R.string.dd1_game_location_move, (dialog, which) -> {
                 if (installService == null || !installService.moveGame(location)) {
                     android.widget.Toast.makeText(requireContext(),
                         R.string.dd1_game_location_busy, android.widget.Toast.LENGTH_LONG).show();
-                    buildGameLocation(group);
                     return;
                 }
                 // The move reports on the home screen, where the download does.
                 requireActivity().getSupportFragmentManager().popBackStack();
             })
-            .setNegativeButton(android.R.string.cancel, (dialog, which) -> buildGameLocation(group))
-            .setOnCancelListener(dialog -> buildGameLocation(group))
+            .setNegativeButton(android.R.string.cancel, null)
             .show();
     }
 
@@ -170,16 +212,21 @@ public class DD1SettingsFragment extends Fragment {
         options.addAll(DD1GraphicsChoice.PAIRS);
         String stored = DD1GraphicsChoice.stored(requireContext());
         if (!options.contains(stored)) stored = DD1GraphicsChoice.AUTOMATIC;
-        String detected = DD1GraphicsDriver.forRenderer(
-            GPUHelper.glGetRenderer(requireContext()));
+        String renderer = GPUHelper.glGetRenderer(requireContext());
+        String detected = DD1GraphicsDriver.forRenderer(renderer);
+        // The answer first: which GPU, and what it is drawing with now. It is the
+        // line to quote in a bug report, and usually all anyone needs to see.
+        TextView status = ((View)group.getParent()).findViewById(R.id.TVGraphicsStatus);
+        String inUse = DD1GraphicsChoice.resolve(requireContext());
+        status.setText(getString(R.string.dd1_graphics_status,
+            renderer == null || renderer.isEmpty() ? "?" : renderer,
+            options.contains(inUse) ? getString(labelOf(inUse)) : inUse));
         for (String option : options) {
             RadioButton button = choice(label(option, detected), option.equals(stored));
             group.addView(button);
             TextView hint = new TextView(requireContext());
-            hint.setText(option.equals(DD1GraphicsChoice.AUTOMATIC)
-                ? autoHint() : hintOf(option));
-            hint.setTextColor(getResources().getColor(
-                android.R.color.darker_gray, requireContext().getTheme()));
+            hint.setText(hintOf(option));
+            hint.setTextColor(themeColor(R.attr.colorSecondaryText));
             hint.setTextSize(12);
             // Closer to the button it belongs to than to the next one, or it reads
             // as the beginning of the option below.
@@ -216,21 +263,10 @@ public class DD1SettingsFragment extends Fragment {
             : option.equals(detected) ? getString(R.string.dd1_graphics_same_as_auto) : null;
         if (note == null) return name;
         SpannableString text = new SpannableString(name + "   " + note);
-        text.setSpan(new ForegroundColorSpan(0x99AAAAAA), name.length(), text.length(),
+        text.setSpan(new ForegroundColorSpan(themeColor(R.attr.colorSecondaryText)),
+            name.length(), text.length(),
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         text.setSpan(new RelativeSizeSpan(0.85f), name.length(), text.length(),
-            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        return text;
-    }
-
-    // The GPU this device reported, above the explanation, because it is what the
-    // automatic answer was read from - and the line to quote in a bug report.
-    private CharSequence autoHint() {
-        String renderer = GPUHelper.glGetRenderer(requireContext());
-        String explanation = getString(R.string.dd1_graphics_auto_hint);
-        if (renderer == null || renderer.isEmpty()) return explanation;
-        SpannableString text = new SpannableString(renderer + "\n" + explanation);
-        text.setSpan(new ForegroundColorSpan(0xFFBBBBBB), 0, renderer.length(),
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return text;
     }
@@ -299,7 +335,7 @@ public class DD1SettingsFragment extends Fragment {
     // which says the draw is in translating instructions rather than drawing
     // pixels. This is the only knob on that side, and it trades safety for it, so
     // it is off by default and says what it risks.
-    private void buildBox64Preset(android.widget.CheckBox toggle) {
+    private void buildBox64Preset(android.widget.CompoundButton toggle) {
         Container container = firstContainer();
         if (container == null) {
             toggle.setEnabled(false);
@@ -312,7 +348,7 @@ public class DD1SettingsFragment extends Fragment {
         });
     }
 
-    private void buildRuntimeMenu(android.widget.CheckBox toggle) {
+    private void buildRuntimeMenu(android.widget.CompoundButton toggle) {
         toggle.setChecked(DD1RuntimeMenu.enabled(requireContext()));
         toggle.setOnCheckedChangeListener((ignored, checked) ->
             DD1RuntimeMenu.setEnabled(requireContext(), checked));
@@ -354,6 +390,12 @@ public class DD1SettingsFragment extends Fragment {
         button.setId(View.generateViewId());
         button.setText(label);
         button.setChecked(checked);
+        // Most groups lie in a row now; the gap keeps one choice from running
+        // into the next.
+        RadioGroup.LayoutParams params = new RadioGroup.LayoutParams(
+            RadioGroup.LayoutParams.WRAP_CONTENT, RadioGroup.LayoutParams.WRAP_CONTENT);
+        params.setMarginEnd(Math.round(20 * getResources().getDisplayMetrics().density));
+        button.setLayoutParams(params);
         return button;
     }
 

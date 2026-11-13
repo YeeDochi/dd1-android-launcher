@@ -1,153 +1,170 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One long column put the graphics driver - the setting people come here to
+     fix - past a landscape phone's second screen. The settings are grouped by
+     what they are for, one group at a time, each fitting a screen. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:paddingStart="16dp"
-    android:paddingTop="12dp"
+    android:paddingTop="8dp"
     android:paddingEnd="16dp"
-    android:paddingBottom="12dp">
+    android:paddingBottom="8dp">
 
-    <include layout="@layout/dd1_screen_header" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center_vertical" android:orientation="horizontal">
+        <TextView android:id="@+id/BTScreenBack" android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:contentDescription="@string/dd1_back" android:gravity="center"
+            android:text="‹" android:textColor="?attr/colorSecondaryText"
+            android:textSize="28sp" />
+        <TextView android:id="@+id/TVScreenTitle" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_marginStart="4dp"
+            android:layout_marginEnd="20dp" android:textColor="?attr/colorPrimaryText"
+            android:textSize="@dimen/dd1_title_size" android:textStyle="bold" />
+        <HorizontalScrollView android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:scrollbars="none">
+            <LinearLayout android:id="@+id/LLSettingsTabs" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:orientation="horizontal">
+                <TextView style="@style/DD1Tab" android:text="@string/dd1_settings_tab_display" />
+                <TextView style="@style/DD1Tab" android:text="@string/dd1_settings_tab_graphics" />
+                <TextView style="@style/DD1Tab" android:text="@string/dd1_settings_tab_performance" />
+                <TextView style="@style/DD1Tab" android:text="@string/dd1_settings_tab_files" />
+                <TextView style="@style/DD1Tab" android:text="@string/dd1_settings_tab_general" />
+            </LinearLayout>
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="?attr/colorSecondarySurface" />
 
     <ScrollView
+        android:id="@+id/SVSettings"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="8dp">
+        android:layout_weight="1">
 
-        <LinearLayout
+        <FrameLayout
+            android:id="@+id/FLSettingsSections"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:paddingBottom="8dp">
 
-            <TextView
-                style="@style/DD1SectionTitle"
-                android:text="@string/dd1_language" />
+            <!-- Display -->
+            <LinearLayout android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:orientation="vertical">
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <TextView style="@style/DD1SectionTitle" android:layout_marginTop="0dp"
+                        android:text="@string/dd1_resolution" />
+                    <RadioGroup android:id="@+id/RGResolution" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                        android:orientation="horizontal" />
+                    <TextView android:id="@+id/TVResolutionHint" style="@style/DD1Meta"
+                        android:layout_marginTop="4dp" android:text="@string/dd1_resolution_hint" />
+                </LinearLayout>
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <TextView style="@style/DD1SectionTitle" android:layout_marginTop="0dp"
+                        android:text="@string/dd1_refresh_rate" />
+                    <RadioGroup android:id="@+id/RGRefreshRate" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                        android:orientation="horizontal" />
+                    <TextView android:id="@+id/TVRefreshRateHint" style="@style/DD1Meta"
+                        android:layout_marginTop="4dp" android:text="@string/dd1_refresh_rate_hint" />
+                </LinearLayout>
+            </LinearLayout>
 
-            <RadioGroup
-                android:id="@+id/RGLanguage"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
+            <!-- Graphics -->
+            <LinearLayout android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:orientation="vertical"
+                android:visibility="gone">
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <TextView style="@style/DD1SectionTitle" android:layout_marginTop="0dp"
+                        android:text="@string/dd1_graphics_driver" />
+                    <TextView android:id="@+id/TVGraphicsStatus" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:layout_marginTop="6dp"
+                        android:textColor="?attr/colorPrimaryText" android:textSize="14sp"
+                        android:textIsSelectable="true" />
+                    <TextView android:id="@+id/TVGraphicsDriverHint" style="@style/DD1Meta"
+                        android:layout_marginTop="4dp" android:text="@string/dd1_graphics_driver_hint" />
+                    <RadioGroup android:id="@+id/RGGraphicsDriver" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:layout_marginTop="8dp" />
+                </LinearLayout>
+            </LinearLayout>
 
-            <TextView
-                style="@style/DD1SectionTitle"
-                android:text="@string/dd1_resolution" />
+            <!-- Performance -->
+            <LinearLayout android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:orientation="vertical"
+                android:visibility="gone">
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <Switch android:id="@+id/CBBox64Performance" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:minHeight="44dp"
+                        android:text="@string/dd1_box64_performance"
+                        android:textColor="?attr/colorPrimaryText" android:textSize="15sp" />
+                    <TextView android:id="@+id/TVBox64Hint" style="@style/DD1Meta"
+                        android:text="@string/dd1_box64_performance_hint" />
+                </LinearLayout>
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <TextView style="@style/DD1SectionTitle" android:layout_marginTop="0dp"
+                        android:text="@string/dd1_cpu_budget" />
+                    <RadioGroup android:id="@+id/RGCpuBudget" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                        android:orientation="horizontal" />
+                    <TextView android:id="@+id/TVCpuBudgetHint" style="@style/DD1Meta"
+                        android:layout_marginTop="4dp" android:text="@string/dd1_cpu_budget_hint" />
+                </LinearLayout>
+            </LinearLayout>
 
-            <RadioGroup
-                android:id="@+id/RGResolution"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
+            <!-- Game files -->
+            <LinearLayout android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:orientation="vertical"
+                android:visibility="gone">
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <TextView style="@style/DD1SectionTitle" android:layout_marginTop="0dp"
+                        android:text="@string/dd1_game_location" />
+                    <LinearLayout android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                        android:gravity="center_vertical" android:orientation="horizontal">
+                        <TextView android:id="@+id/TVGameLocation" android:layout_width="0dp"
+                            android:layout_height="wrap_content" android:layout_weight="1"
+                            android:textColor="?attr/colorPrimaryText" android:textSize="15sp" />
+                        <Button android:id="@+id/BTGameLocationOpen" style="@style/DD1Action"
+                            android:text="@string/dd1_workshop_folder_open"
+                            android:visibility="gone" />
+                        <Button android:id="@+id/BTGameLocationMove"
+                            android:layout_width="wrap_content" android:layout_height="40dp"
+                            android:layout_marginStart="8dp" android:textSize="13sp" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/TVGameLocationHint" style="@style/DD1Meta"
+                        android:layout_marginTop="6dp" android:text="@string/dd1_game_location_hint" />
+                </LinearLayout>
+            </LinearLayout>
 
-            <TextView
-                android:id="@+id/TVResolutionHint"
-                style="@style/DD1Meta"
-                android:layout_marginTop="8dp"
-                android:text="@string/dd1_resolution_hint" />
-
-            <TextView
-                style="@style/DD1SectionTitle"
-                android:text="@string/dd1_performance" />
-
-            <CheckBox
-                android:id="@+id/CBBox64Performance"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/dd1_box64_performance" />
-
-            <TextView
-                android:id="@+id/TVBox64Hint"
-                style="@style/DD1Meta"
-                android:text="@string/dd1_box64_performance_hint" />
-
-            <TextView
-                style="@style/DD1SectionTitle"
-                android:text="@string/dd1_runtime_menu" />
-
-            <CheckBox
-                android:id="@+id/CBRuntimeMenu"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/dd1_runtime_menu_enable" />
-
-            <TextView
-                style="@style/DD1Meta"
-                android:text="@string/dd1_runtime_menu_hint" />
-
-            <TextView
-                style="@style/DD1SectionTitle"
-                android:text="@string/dd1_cpu_budget" />
-
-            <RadioGroup
-                android:id="@+id/RGCpuBudget"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
-
-            <TextView
-                android:id="@+id/TVCpuBudgetHint"
-                style="@style/DD1Meta"
-                android:text="@string/dd1_cpu_budget_hint" />
-
-            <TextView
-                style="@style/DD1SectionTitle"
-                android:text="@string/dd1_game_location" />
-
-            <RadioGroup
-                android:id="@+id/RGGameLocation"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
-
-            <TextView
-                android:id="@+id/TVGameLocationHint"
-                style="@style/DD1Meta"
-                android:text="@string/dd1_game_location_hint" />
-
-            <TextView
-                style="@style/DD1SectionTitle"
-                android:text="@string/dd1_refresh_rate" />
-
-            <RadioGroup
-                android:id="@+id/RGRefreshRate"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
-
-            <TextView
-                android:id="@+id/TVRefreshRateHint"
-                style="@style/DD1Meta"
-                android:text="@string/dd1_refresh_rate_hint" />
-
-            <TextView
-                style="@style/DD1SectionTitle"
-                android:text="@string/dd1_graphics_driver" />
-
-            <RadioGroup
-                android:id="@+id/RGGraphicsDriver"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
-
-            <TextView
-                android:id="@+id/TVGraphicsDriverHint"
-                style="@style/DD1Meta"
-                android:layout_marginTop="10dp"
-                android:text="@string/dd1_graphics_driver_hint" />
-
-            <TextView
-                style="@style/DD1SectionTitle"
-                android:text="@string/dd1_open_source" />
-
-            <TextView
-                android:id="@+id/TVOpenSource"
-                style="@style/DD1Meta"
-                android:layout_marginTop="4dp"
-                android:text="@string/dd1_open_source_notice" />
-        </LinearLayout>
+            <!-- General -->
+            <LinearLayout android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:orientation="vertical"
+                android:visibility="gone">
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <TextView style="@style/DD1SectionTitle" android:layout_marginTop="0dp"
+                        android:text="@string/dd1_language" />
+                    <RadioGroup android:id="@+id/RGLanguage" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                        android:orientation="horizontal" />
+                </LinearLayout>
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <Switch android:id="@+id/CBRuntimeMenu" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:minHeight="44dp"
+                        android:text="@string/dd1_runtime_menu_enable"
+                        android:textColor="?attr/colorPrimaryText" android:textSize="15sp" />
+                    <TextView style="@style/DD1Meta" android:text="@string/dd1_runtime_menu_hint" />
+                </LinearLayout>
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <TextView style="@style/DD1SectionTitle" android:layout_marginTop="0dp"
+                        android:text="@string/dd1_open_source" />
+                    <TextView android:id="@+id/TVOpenSource" style="@style/DD1Meta"
+                        android:layout_marginTop="4dp" android:text="@string/dd1_open_source_notice" />
+                </LinearLayout>
+            </LinearLayout>
+        </FrameLayout>
     </ScrollView>
 </LinearLayout>

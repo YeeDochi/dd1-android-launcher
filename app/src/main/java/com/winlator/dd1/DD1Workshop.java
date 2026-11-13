@@ -77,6 +77,7 @@ public final class DD1Workshop {
         File directory = new File(filesDir, "workshop-staging/" + publishedFileId);
         deleteTree(directory);
         if (!directory.mkdirs()) throw new IOException("Cannot create Workshop staging directory");
+        DD1GameLocation.noMedia(directory.getParentFile());
         return directory;
     }
 

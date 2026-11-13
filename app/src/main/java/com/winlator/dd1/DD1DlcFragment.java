@@ -56,6 +56,32 @@ public class DD1DlcFragment extends Fragment {
         }
     };
 
+    // The game may be in phone storage, and the permission can be withdrawn in
+    // system settings after it was put there.
+    private List<Integer> pendingFetch;
+    private final androidx.activity.result.ActivityResultLauncher<String[]> storage =
+        registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions(),
+            granted -> {
+                if (Boolean.TRUE.equals(granted.get(
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE))) fetchPending();
+                else android.widget.Toast.makeText(requireContext(), R.string.dd1_storage_needed,
+                    android.widget.Toast.LENGTH_LONG).show();
+            });
+
+    private void fetchPending() {
+        if (installService == null || pendingFetch == null) return;
+        if (!installService.downloadDlc(pendingFetch)) {
+            android.widget.Toast.makeText(requireContext(), R.string.dd1_busy,
+                android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+        pendingFetch = null;
+        // The download reports itself on the home screen, which is where the log
+        // and the progress bar live.
+        requireActivity().getSupportFragmentManager().popBackStack();
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -166,10 +192,16 @@ public class DD1DlcFragment extends Fragment {
         Button fetch = view.findViewById(R.id.BTDlcFetch);
         fetch.setVisibility(fetchable.isEmpty() ? View.GONE : View.VISIBLE);
         fetch.setOnClickListener(v -> {
-            installService.downloadDlc(fetchable);
-            // The download reports itself on the home screen, which is where the
-            // log and the progress bar live.
-            requireActivity().getSupportFragmentManager().popBackStack();
+            pendingFetch = fetchable;
+            if (DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(requireContext()))
+                    && androidx.core.content.ContextCompat.checkSelfPermission(requireContext(),
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                storage.launch(new String[] {android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE});
+                return;
+            }
+            fetchPending();
         });
 
         Button apply = view.findViewById(R.id.BTDlcApply);

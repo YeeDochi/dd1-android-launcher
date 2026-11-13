@@ -1,21 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- What a mod is and how it stands are shown, not spelled out; the switch is
+     both the state and the way to change it. Removing things is behind the
+     menu, so it is never one stray tap away. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    style="@style/DD1Card" android:gravity="center_vertical" android:orientation="horizontal">
+    style="@style/DD1Card" android:layout_marginTop="6dp" android:gravity="center_vertical"
+    android:orientation="horizontal" android:paddingTop="8dp" android:paddingBottom="8dp">
     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
         android:layout_weight="1" android:orientation="vertical">
         <TextView android:id="@+id/TVWorkshopTitle" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:textColor="?attr/colorPrimaryText"
-            android:textSize="14sp" android:textStyle="bold" />
-        <TextView android:id="@+id/TVWorkshopMeta" style="@style/DD1Meta" />
+            android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
+            android:textColor="?attr/colorPrimaryText" android:textSize="14sp"
+            android:textStyle="bold" />
+        <LinearLayout android:id="@+id/LLWorkshopChips" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="4dp"
+            android:orientation="horizontal" />
     </LinearLayout>
-    <Button android:id="@+id/BTWorkshopEnable" style="@style/DD1Action"
-        android:text="@string/dd1_workshop_enable" android:visibility="gone" />
-    <Button android:id="@+id/BTWorkshopDisable" style="@style/DD1Action"
-        android:text="@string/dd1_workshop_disable" android:visibility="gone" />
     <Button android:id="@+id/BTWorkshopUpdate" style="@style/DD1Action"
         android:text="@string/dd1_workshop_update" android:visibility="gone" />
-    <Button android:id="@+id/BTWorkshopUnsubscribe" style="@style/DD1Action"
-        android:text="@string/dd1_workshop_unsubscribe" android:visibility="gone" />
-    <Button android:id="@+id/BTWorkshopDelete" style="@style/DD1Action"
-        android:text="@string/dd1_workshop_delete" android:visibility="gone" />
+    <Switch android:id="@+id/SWWorkshopEnabled" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:layout_marginStart="8dp"
+        android:contentDescription="@string/dd1_workshop_enabled" android:visibility="gone" />
+    <TextView android:id="@+id/BTWorkshopMenu" android:layout_width="40dp"
+        android:layout_height="40dp" android:layout_marginStart="4dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/dd1_workshop_more_actions" android:gravity="center"
+        android:text="⋮" android:textColor="?attr/colorSecondaryText" android:textSize="20sp"
+        android:visibility="gone" />
 </LinearLayout>

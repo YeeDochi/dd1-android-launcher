@@ -321,6 +321,20 @@ public final class DD1InstallService extends Service {
     // taken out of the folder.
     public void importMod(Uri uri) {
         if (uri == null || refuseWhileBusy()) return;
+        if (modsInGame()) {
+            worker.execute(() -> {
+                try (InputStream input = getContentResolver().openInputStream(uri)) {
+                    if (input == null) throw new IllegalStateException("Cannot open selected ZIP");
+                    workshopLog.append("Imported "
+                        + DD1Workshop.importZip(gameRoot(), input, displayName(uri), false));
+                    publishWorkshop(joinedWorkshop());
+                }
+                catch (Exception error) {
+                    publishWorkshop(joinedWorkshop().failed(reason(error)));
+                }
+            });
+            return;
+        }
         worker.execute(() -> {
             File folder = dropFolder();
             try (InputStream input = getContentResolver().openInputStream(uri)) {
@@ -353,6 +367,18 @@ public final class DD1InstallService extends Service {
     public File dropFolder() {
         String chosen = preferences().getString("mods_folder", null);
         return chosen == null ? defaultDropFolder() : new File(chosen);
+    }
+
+    // With the game in phone storage its own mods folder is a public one, so a mod
+    // goes straight in and there is nothing to copy across. A folder the user
+    // picked themselves is still synchronised: they asked for it.
+    public boolean modsInGame() {
+        return DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(this))
+            && preferences().getString("mods_folder", null) == null;
+    }
+
+    public File modsFolder() {
+        return modsInGame() ? new File(gameRoot(), "game/mods") : dropFolder();
     }
 
     public void setDropFolder(Uri tree) {
@@ -408,6 +434,7 @@ public final class DD1InstallService extends Service {
     // Opening the screen, or pressing Refresh. What is new in the folder arrives,
     // what left it goes, and nothing else is touched.
     public void syncImportFolder() {
+        if (modsInGame()) return;
         File folder = dropFolder();
         if (!folder.isDirectory() && !folder.mkdirs()) return;
         importModFolder(DocumentFile.fromFile(folder), false);
@@ -533,14 +560,19 @@ public final class DD1InstallService extends Service {
         startForeground(1, notification(getString(message)));
     }
 
-    public synchronized void download() {
-        if (!ownsGame || downloader != null || busy()) return;
+    // download, repair and downloadDlc answer false when another job holds the
+    // files, so the button that was pressed can say so instead of doing nothing:
+    // a Workshop sync starts on its own right after signing in.
+    public synchronized boolean download() {
+        if (!ownsGame) return true;
+        if (downloader != null || busy()) return false;
         int job = begin();
         // Ask for the game and the DLC that was actually chosen. Left unsaid,
         // Steam sends every depot it has and the unwanted ones are deleted at
         // the end of the install - 530 MB fetched and thrown away on 2026-08-20.
         java.util.List<Integer> depots = steam.catalog().depotsFor(dlcSelection().selected());
         worker.execute(() -> runDownload(depots, null, false, job));
+        return true;
     }
 
     // Moves the install between the app and the phone's storage. Refused while
@@ -564,8 +596,15 @@ public final class DD1InstallService extends Service {
                 (done, total) -> publish(downloadSnapshot(done, total, 0, moving, null)),
                 stopped::getAsBoolean);
             if (stopped.getAsBoolean()) return;
+            File from = gameRoot();
             DD1GameLocation.choose(this, location);
             if (DD1GameLocation.STORAGE.equals(location)) DD1GameLocation.hideFromMedia(to);
+            try {
+                DD1GameLocation.clearSource(from);
+            }
+            catch (IOException leftover) {
+                log.append("Could not remove the old copy: " + reason(leftover));
+            }
             log.append(getString(R.string.dd1_state_moved) + ": " + new File(to, "game"));
             publish(new DD1InstallSnapshot(DD1InstallPhase.READY, 0, 0, 0,
                 getString(R.string.dd1_state_moved), null, null, log.visibleLines()));
@@ -588,19 +627,21 @@ public final class DD1InstallService extends Service {
     // install and fetching 4 GB again; this reads what is on the phone and
     // fetches the chunks that do not match. Files Steam does not ship, and the
     // mods folder, are left where they are.
-    public synchronized void repair() {
-        if (!ownsGame || downloader != null || busy()) return;
-        if (!new File(gameRoot(), "game").isDirectory()) return;
+    public synchronized boolean repair() {
+        if (!ownsGame || !new File(gameRoot(), "game").isDirectory()) return true;
+        if (downloader != null || busy()) return false;
         int job = begin();
         java.util.List<Integer> depots = steam.catalog().depotsFor(dlcSelection().selected());
         worker.execute(() -> runDownload(depots, null, true, job));
+        return true;
     }
 
     // Adding or updating one DLC on a game that is already installed. Only the
     // depots asked for are fetched, and what arrives is merged into the install
     // rather than replacing it.
-    public synchronized void downloadDlc(java.util.Collection<Integer> appIds) {
-        if (!ownsGame || downloader != null || appIds.isEmpty() || busy()) return;
+    public synchronized boolean downloadDlc(java.util.Collection<Integer> appIds) {
+        if (!ownsGame || appIds.isEmpty()) return true;
+        if (downloader != null || busy()) return false;
         DD1DepotCatalog catalog = steam.catalog();
         java.util.List<Integer> depots = new java.util.ArrayList<>();
         java.util.Map<Integer, String> versions = new java.util.LinkedHashMap<>();
@@ -612,10 +653,11 @@ public final class DD1InstallService extends Service {
         }
         if (depots.isEmpty()) {
             publish(errorSnapshot(getString(R.string.dd1_dlc_no_depot)));
-            return;
+            return true;
         }
         int job = begin();
         worker.execute(() -> runDownload(depots, versions, false, job));
+        return true;
     }
 
     private int begin() {
@@ -644,7 +686,7 @@ public final class DD1InstallService extends Service {
         // Releasing the worker is what stops the download; the button must not
         // wait on it.
         if (waiting != null) waiting.countDown();
-        publish(stoppedSnapshot("Download cancelled"));
+        publish(stoppedSnapshot("Cancelled"));
         stopForeground(true);
         stopSelf();
         // Closing shuts down the downloader's connections and blocks, so it

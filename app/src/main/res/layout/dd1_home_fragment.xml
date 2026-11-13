@@ -65,11 +65,18 @@
 
         <!-- The status box and the actions read as one block. It sits a little
              above the middle of what the header leaves: dead centre reads as
-             sagging with the title pinned to the top. -->
-        <LinearLayout
+             sagging with the title pinned to the top. A phone in landscape is
+             too short for every action, so the block scrolls; fillViewport
+             keeps the weighted spacing wherever it does fit. -->
+        <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical">
 
             <View
@@ -164,6 +171,7 @@
                 android:layout_height="0dp"
                 android:layout_weight="6" />
         </LinearLayout>
+        </ScrollView>
     </LinearLayout>
 
     <View

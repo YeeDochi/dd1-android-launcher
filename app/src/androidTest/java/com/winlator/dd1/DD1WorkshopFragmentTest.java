@@ -1,6 +1,7 @@
 package com.winlator.dd1;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -206,8 +207,6 @@ public class DD1WorkshopFragmentTest {
     @Test
     public void drawerOpensAStorefrontAndInstalledModManager() throws Exception {
         Context context = ApplicationProvider.getApplicationContext();
-        context.getSharedPreferences("dd1", Context.MODE_PRIVATE).edit()
-            .putInt("workshop_columns", 2).commit();
         File local = new File(context.getFilesDir(), "game/mods-disabled/local-fixture");
         if (local.exists()) DD1Workshop.delete(context.getFilesDir(), "local-fixture", true);
         assertTrue(local.mkdirs());
@@ -228,11 +227,11 @@ public class DD1WorkshopFragmentTest {
                 assertNotNull(activity.findViewById(R.id.BTWorkshopTabStore));
                 assertNotNull(activity.findViewById(R.id.BTWorkshopTabInstalled));
                 assertNotNull(activity.findViewById(R.id.BTWorkshopImport));
-                assertNotNull(activity.findViewById(R.id.BTWorkshopColumns));
-                assertTrue(activity.findViewById(R.id.BTWorkshopSearch).getLayoutParams().width
-                    >= 80 * activity.getResources().getDisplayMetrics().density);
+                assertNotNull(activity.findViewById(R.id.BTWorkshopSearch));
                 assertEquals(0, activity.getResources().getIdentifier(
                     "TVWorkshopLog", "id", activity.getPackageName()));
+                assertEquals(0, activity.getResources().getIdentifier(
+                    "BTWorkshopRotate", "id", activity.getPackageName()));
 
                 DD1WorkshopSnapshot snapshot = DD1WorkshopSnapshot.ready(
                     Collections.emptyList(), DD1Workshop.scan(context.getFilesDir()))
@@ -252,7 +251,7 @@ public class DD1WorkshopFragmentTest {
                 GridLayout cards = activity.findViewById(R.id.GLWorkshopCards);
                 assertTrue(((GridLayout.LayoutParams)cards.getChildAt(0)
                     .getLayoutParams()).topMargin > 0);
-                assertEquals(ImageView.ScaleType.FIT_CENTER,
+                assertEquals(ImageView.ScaleType.CENTER_CROP,
                     ((ImageView)activity.findViewById(R.id.IVWorkshopCard)).getScaleType());
                 cards.getChildAt(0).performClick();
                 assertNotNull(workshop.detailDialog);
@@ -294,98 +293,40 @@ public class DD1WorkshopFragmentTest {
                 instrumentation.removeMonitor(monitor);
                 workshop.detailDialog.dismiss();
 
-                context.getSharedPreferences("dd1", Context.MODE_PRIVATE).edit()
-                    .putInt("workshop_columns", 4).commit();
-                AttachedChildStrictGrid strict = new AttachedChildStrictGrid(activity);
-                strict.setId(R.id.GLWorkshopCards);
-                strict.setLayoutParams(cards.getLayoutParams());
-                while (cards.getChildCount() > 0) {
-                    View child = cards.getChildAt(0);
-                    cards.removeViewAt(0);
-                    strict.addView(child);
-                }
-                ViewGroup gridParent = (ViewGroup)cards.getParent();
-                int gridIndex = gridParent.indexOfChild(cards);
-                gridParent.removeViewAt(gridIndex);
-                gridParent.addView(strict, gridIndex);
-                ((GridLayout.LayoutParams)strict.getChildAt(0).getLayoutParams()).columnSpec =
-                    GridLayout.spec(3, 1f);
-                activity.findViewById(R.id.BTWorkshopColumns).performClick();
-                assertEquals(2, strict.getColumnCount());
-                assertEquals(2, strict.getChildCount());
+                // The width decides the columns; there is no control for it.
+                assertEquals(DD1WorkshopFragment.columnsFor(
+                        activity.getResources().getConfiguration().screenWidthDp),
+                    cards.getColumnCount());
 
                 activity.findViewById(R.id.BTWorkshopTabInstalled).performClick();
                 workshop.renderSnapshot(snapshot);
                 // The list is whatever the device actually has installed, so a
                 // real mod left there by hand sorts wherever it sorts. Find the
                 // fixture rather than assuming it came first.
-                LinearLayout rows = activity.findViewById(R.id.LLWorkshopList);
                 View fixture = null;
-                for (int i = 0; i < rows.getChildCount(); i++) {
-                    View row = rows.getChildAt(i);
-                    if ("local-fixture".equals(((TextView)row.findViewById(
-                            R.id.TVWorkshopTitle)).getText().toString())) fixture = row;
+                for (int list : new int[] {R.id.LLWorkshopList, R.id.LLWorkshopLocalList}) {
+                    LinearLayout rows = activity.findViewById(list);
+                    for (int i = 0; i < rows.getChildCount(); i++) {
+                        View row = rows.getChildAt(i);
+                        if ("local-fixture".equals(((TextView)row.findViewById(
+                                R.id.TVWorkshopTitle)).getText().toString())) fixture = row;
+                    }
                 }
                 assertNotNull(fixture);
-                assertEquals(View.VISIBLE,
-                    fixture.findViewById(R.id.BTWorkshopEnable).getVisibility());
-            });
-            scenario.onActivity(activity -> {
-                int saved = activity.getSharedPreferences("dd1", Context.MODE_PRIVATE)
-                    .getInt("workshop_columns", -1);
-                assertEquals(2, saved);
-                assertEquals(2,
-                    ((GridLayout)activity.findViewById(R.id.GLWorkshopCards)).getColumnCount());
-                View rotate = activity.findViewById(R.id.BTWorkshopRotate);
-                LinearLayout controls = (LinearLayout)rotate.getParent();
-                assertEquals(rotate, controls.getChildAt(controls.getChildCount() - 1));
-                int expected = activity.getResources().getConfiguration().orientation
-                    == Configuration.ORIENTATION_LANDSCAPE
-                    ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
-                    : ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
-                rotate.performClick();
-                assertEquals(expected, activity.getRequestedOrientation());
+                // A disabled mod shows a switch that is off, which is both its
+                // state and the way to turn it on.
+                android.widget.Switch enabled = fixture.findViewById(R.id.SWWorkshopEnabled);
+                assertEquals(View.VISIBLE, enabled.getVisibility());
+                assertFalse(enabled.isChecked());
             });
         }
         DD1Workshop.delete(context.getFilesDir(), "local-fixture", true);
     }
 
-    private static final class AttachedChildStrictGrid extends GridLayout {
-        AttachedChildStrictGrid(Context context) {
-            super(context);
-            super.setColumnCount(4);
-        }
-
-        @Override
-        public void setColumnCount(int count) {
-            if (getChildCount() > 0 && count < getColumnCount())
-                throw new IllegalArgumentException("attached children must be detached first");
-            super.setColumnCount(count);
-        }
-    }
-
-    // The rotate button asks the activity for portrait, and the activity outlives
-    // the screen that asked. Leaving the mod manager still turned sideways left
-    // every other screen sideways with no control anywhere to undo it.
     @Test
-    public void leavingTheModManagerGivesTheScreenBackItsOrientation() {
-        try (ActivityScenario<DD1Activity> scenario = ActivityScenario.launch(DD1Activity.class)) {
-            scenario.onActivity(activity -> {
-                activity.toggleDrawer();
-                activity.findViewById(R.id.BTDrawerWorkshop).performClick();
-                activity.getSupportFragmentManager().executePendingTransactions();
-
-                activity.findViewById(R.id.BTWorkshopRotate).performClick();
-                assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT,
-                    activity.getRequestedOrientation());
-
-                activity.toggleDrawer();
-                activity.findViewById(R.id.BTDrawerSettings).performClick();
-                activity.getSupportFragmentManager().executePendingTransactions();
-            });
-            scenario.onActivity(activity -> assertEquals(
-                ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE,
-                activity.getRequestedOrientation()));
-        }
+    public void columnsFollowTheWidth() {
+        assertEquals(1, DD1WorkshopFragment.columnsFor(360));
+        assertEquals(2, DD1WorkshopFragment.columnsFor(832));
+        assertEquals(4, DD1WorkshopFragment.columnsFor(1280));
     }
 }

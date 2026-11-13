@@ -112,8 +112,13 @@ adb -s <serial> shell run-as com.winlator ls files    # game, staging, rootfs
 The unit tests run on Windows as well; the symlink test skips itself where the
 host will not make one.
 
-The game can live in the app (`files/game`, the default) or in shared storage
-(`DD1/game`), chosen in settings. `DD1GameLocation.root` is the directory that
+The game can live in shared storage (`DD1/game`, the default for new installs) or
+in the app (`files/game`, where installs from before stay, and where a download
+goes if storage access is refused). The choice is made once and remembered
+(`DD1GameLocation.chosen`); settings and "open game files" move it. With the game
+in storage and no custom mods folder, `DD1/game/mods` is the mods folder and the
+`DD1/mods` copy step is skipped (`DD1InstallService.modsInGame`).
+`DD1GameLocation.root` is the directory that
 holds `game/`, `staging/`, the Workshop and import staging and the DLC version
 record, and every one of those is reached through it - never through
 `getFilesDir()` directly. Staging has to sit on the same side as the game,

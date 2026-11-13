@@ -28,9 +28,21 @@ public final class DD1GameLocation {
 
     private DD1GameLocation() {}
 
+    // Phone storage unless an install already sits inside the app: moving it
+    // would copy 4 GB nobody asked to move. Decided once and remembered, so a
+    // game deleted later does not quietly change where the next one goes.
     public static String chosen(Context context) {
-        return context.getSharedPreferences("dd1", Context.MODE_PRIVATE)
-            .getString(KEY, APP);
+        String chosen = context.getSharedPreferences("dd1", Context.MODE_PRIVATE)
+            .getString(KEY, null);
+        if (chosen != null) return chosen;
+        String decided = defaultFor(context.getFilesDir());
+        choose(context, decided);
+        return decided;
+    }
+
+    static String defaultFor(File appFiles) {
+        return new File(appFiles, "game").exists() || new File(appFiles, "staging").exists()
+            ? APP : STORAGE;
     }
 
     static void choose(Context context, String location) {
@@ -73,6 +85,10 @@ public final class DD1GameLocation {
     // A game already at the destination - put there by the other build, or by a
     // move that finished copying and was interrupted after - is adopted rather
     // than copied over.
+    //
+    // The old copy is not removed here: once the new one is in place the caller
+    // records the new location first, so a source that will not delete cleanly
+    // cannot leave the launcher pointing at a half-removed game.
     static void move(File from, File to, Progress progress, Stop stop) throws IOException {
         File source = new File(from, "game");
         File target = new File(to, "game");
@@ -81,6 +97,8 @@ public final class DD1GameLocation {
         if (!DD1Game.validate(target).valid && source.isDirectory()) {
             File side = new File(to, "game-moving");
             delete(side);
+            if (!side.mkdirs()) throw new IOException("Cannot create " + side);
+            noMedia(side);
             long total = size(source);
             long room = to.getUsableSpace();
             if (room < total + DD1Workshop.KEEP_FREE_BYTES)
@@ -102,8 +120,12 @@ public final class DD1GameLocation {
             if (!side.renameTo(target)) throw new IOException("Cannot put the game in " + to);
         }
         copyFile(new File(from, DD1DlcVersions.FILE), new File(to, DD1DlcVersions.FILE));
+    }
 
-        delete(source);
+    // What the move left behind at the old place: the game and the partial
+    // downloads and imports that cannot follow it.
+    static void clearSource(File from) throws IOException {
+        delete(new File(from, "game"));
         for (String name : new String[] {"staging", "workshop-staging", "local-import-staging"})
             delete(new File(from, name));
         new File(from, DD1DlcVersions.FILE).delete();
@@ -113,9 +135,14 @@ public final class DD1GameLocation {
     // pictures and music.
     static void hideFromMedia(File root) {
         File game = new File(root, "game");
-        if (!game.isDirectory()) return;
+        if (game.isDirectory()) noMedia(game);
+    }
+
+    // Also written into the folders a download fills, so art does not reach the
+    // gallery while it arrives. Harmless inside the app, where nothing scans.
+    static void noMedia(File dir) {
         try {
-            new File(game, ".nomedia").createNewFile();
+            new File(dir, ".nomedia").createNewFile();
         }
         catch (IOException ignored) {}
     }

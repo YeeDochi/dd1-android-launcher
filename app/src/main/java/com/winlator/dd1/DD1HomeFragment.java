@@ -78,6 +78,78 @@ public class DD1HomeFragment extends Fragment {
         }
     };
 
+    private java.util.function.Consumer<Boolean> afterStorage;
+    private final androidx.activity.result.ActivityResultLauncher<String[]> storagePermission =
+        registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions(),
+            granted -> {
+                java.util.function.Consumer<Boolean> next = afterStorage;
+                afterStorage = null;
+                if (next != null) next.accept(Boolean.TRUE.equals(
+                    granted.get(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)));
+            });
+
+    private boolean hasStorage() {
+        return androidx.core.content.ContextCompat.checkSelfPermission(requireContext(),
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            == android.content.pm.PackageManager.PERMISSION_GRANTED;
+    }
+
+    // For work on a game that may sit in phone storage: the permission can be
+    // taken back in system settings after the game was put there.
+    private void withStorageWhereNeeded(Runnable then) {
+        if (!DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(requireContext()))) {
+            then.run();
+            return;
+        }
+        withStorage(granted -> {
+            if (granted) then.run();
+            else Toast.makeText(requireContext(), R.string.dd1_storage_needed,
+                Toast.LENGTH_LONG).show();
+        });
+    }
+
+    private void withStorage(java.util.function.Consumer<Boolean> then) {
+        if (hasStorage()) {
+            then.accept(true);
+            return;
+        }
+        afterStorage = then;
+        storagePermission.launch(new String[] {android.Manifest.permission.READ_EXTERNAL_STORAGE,
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE});
+    }
+
+    // The game goes to phone storage by default, which takes the storage
+    // permission. Refused, it goes inside the app rather than nowhere.
+    //
+    // Without the permission DD1/game cannot be seen, so a reinstall, or the
+    // build beside Winlator, offers a download over a game already there. Once
+    // access is granted it is looked for again and used if it is whole.
+    private void startDownload() {
+        Context context = requireContext();
+        if (!DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(context))) {
+            startJob(DD1InstallService::download);
+            return;
+        }
+        withStorage(granted -> {
+            if (!granted) {
+                DD1GameLocation.choose(context, DD1GameLocation.APP);
+                Toast.makeText(context, R.string.dd1_storage_denied, Toast.LENGTH_LONG).show();
+            }
+            else if (DD1Game.findExecutable(DD1GameLocation.root(context)) != null) {
+                Toast.makeText(context, R.string.dd1_storage_found_game, Toast.LENGTH_LONG).show();
+                refresh();
+                return;
+            }
+            startJob(DD1InstallService::download);
+        });
+    }
+
+    private void startJob(java.util.function.Predicate<DD1InstallService> job) {
+        if (installService != null && !job.test(installService))
+            Toast.makeText(requireContext(), R.string.dd1_busy, Toast.LENGTH_LONG).show();
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -100,8 +172,8 @@ public class DD1HomeFragment extends Fragment {
         view.findViewById(R.id.BTSteamLogin).setOnClickListener(v -> withService(DD1InstallService::startQr));
         view.findViewById(R.id.BTSteamCredentials).setOnClickListener(v -> startCredentials());
         view.findViewById(R.id.BTSteamCode).setOnClickListener(v -> submitCode());
-        view.findViewById(R.id.BTDownload).setOnClickListener(v -> withService(DD1InstallService::download));
-        view.findViewById(R.id.BTRetryDownload).setOnClickListener(v -> withService(DD1InstallService::download));
+        view.findViewById(R.id.BTDownload).setOnClickListener(v -> startDownload());
+        view.findViewById(R.id.BTRetryDownload).setOnClickListener(v -> startDownload());
         view.findViewById(R.id.BTCancelDownload).setOnClickListener(v -> withService(DD1InstallService::cancel));
         view.findViewById(R.id.BTSteamSignOut).setOnClickListener(v -> withService(DD1InstallService::signOut));
         DD1Update.checkOnce(requireContext(), this::offerUpdate);
@@ -229,6 +301,9 @@ public class DD1HomeFragment extends Fragment {
         setInstallPanelVisible(false);
         rootView.findViewById(R.id.FLChecking).setVisibility(View.GONE);
         rootView.findViewById(R.id.SVInstallLog).setVisibility(View.VISIBLE);
+        // Cancel sits outside the install panel, so hiding the panel leaves it
+        // behind after a repair or DLC download, offering to stop nothing.
+        rootView.findViewById(R.id.BTCancelDownload).setVisibility(View.GONE);
         applySignInControls(installSnapshot == null
             ? DD1InstallPhase.SIGNED_OUT : installSnapshot.phase);
         applyDeleteVisibility();
@@ -387,12 +462,41 @@ public class DD1HomeFragment extends Fragment {
             ? View.VISIBLE : View.GONE);
     }
 
-    // The game folder used to be reachable only from inside the running game,
-    // through the runtime's menu and its task manager. A DLL that stopped the
-    // game from starting therefore also took away the only way to remove it.
-    // This starts the runtime with nothing but its file manager: the game is G:,
-    // the phone's Download folder is D: and its whole storage is E:.
+    // In phone storage the game is a folder like any other, so it opens in the
+    // phone's own file manager. Inside the app no file manager can reach it: the
+    // offer is to move it out, or the runtime's Windows file manager.
     private void openGameFiles() {
+        Context context = requireContext();
+        if (DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(context))) {
+            withStorageWhereNeeded(() -> DD1FileManager.open(context, DD1GameLocation.gameDir(context)));
+            return;
+        }
+        new AlertDialog.Builder(context, R.style.DD1Dialog)
+            .setTitle(R.string.dd1_game_files_in_app_title)
+            .setMessage(R.string.dd1_game_files_in_app_message)
+            .setPositiveButton(R.string.dd1_game_files_move, (dialog, which) -> moveToStorage())
+            .setNeutralButton(R.string.dd1_game_files_windows, (dialog, which) -> openWindowsFiles())
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
+    }
+
+    private void moveToStorage() {
+        withStorage(granted -> {
+            if (!granted) {
+                Toast.makeText(requireContext(), R.string.dd1_storage_needed,
+                    Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (installService == null || !installService.moveGame(DD1GameLocation.STORAGE))
+                Toast.makeText(requireContext(), R.string.dd1_game_location_busy,
+                    Toast.LENGTH_LONG).show();
+        });
+    }
+
+    // A DLL that stops the game from starting must still be removable while the
+    // game is inside the app. This starts the runtime with nothing but its file
+    // manager: the game is G: and the phone's Download folder is D:.
+    private void openWindowsFiles() {
         Activity activity = getActivity();
         if (activity == null) return;
         Container container = DD1Profiles.first(activity);
@@ -404,11 +508,11 @@ public class DD1HomeFragment extends Fragment {
     }
 
     private void confirmRepair() {
-        new android.app.AlertDialog.Builder(requireContext())
+        new AlertDialog.Builder(requireContext(), R.style.DD1Dialog)
             .setTitle(R.string.dd1_repair_game)
             .setMessage(R.string.dd1_repair_game_message)
             .setPositiveButton(R.string.dd1_repair_game_start,
-                (dialog, which) -> withService(DD1InstallService::repair))
+                (dialog, which) -> withStorageWhereNeeded(() -> startJob(DD1InstallService::repair)))
             .setNegativeButton(android.R.string.cancel, null)
             .show();
     }

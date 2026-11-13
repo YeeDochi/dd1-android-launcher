@@ -5,7 +5,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import android.view.View;
-import android.widget.CheckBox;
+import android.view.ViewGroup;
+import android.widget.CompoundButton;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -40,11 +41,16 @@ public class DD1SettingsFragmentTest {
                     .findFragmentById(R.id.FLDD1Container);
                 assertTrue(fragment instanceof DD1SettingsFragment);
 
-                CheckBox toggle = activity.findViewById(R.id.CBBox64Performance);
+                CompoundButton toggle = activity.findViewById(R.id.CBBox64Performance);
                 assertNotNull(toggle);
                 String warning = ((TextView)activity.findViewById(
                     R.id.TVBox64Hint)).getText().toString();
                 assertTrue(warning, warning.length() > 20);
+                // It lives on the performance page; the screen opens on display.
+                assertEquals(View.GONE, ((View)toggle.getParent().getParent()).getVisibility());
+                ViewGroup tabs = activity.findViewById(R.id.LLSettingsTabs);
+                tabs.getChildAt(2).performClick();
+                assertEquals(View.VISIBLE, ((View)toggle.getParent().getParent()).getVisibility());
                 assertEquals(View.VISIBLE, toggle.getVisibility());
 
                 // Without a runtime profile there is nothing to write to, and an

@@ -5,9 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ActivityNotFoundException;
 import android.Manifest;
-import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -22,8 +20,10 @@ import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,6 +37,7 @@ import androidx.fragment.app.Fragment;
 
 import com.winlator.R;
 
+import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.text.DateFormat;
@@ -44,7 +45,6 @@ import java.util.Date;
 
 public final class DD1WorkshopFragment extends Fragment {
     private static final int[] SORTS = {0, 1, 3, 12, 21};
-    private static final String PREF_COLUMNS = "workshop_columns";
 
     private DD1InstallService service;
     private boolean bound;
@@ -138,14 +138,7 @@ public final class DD1WorkshopFragment extends Fragment {
                 getString(R.string.dd1_workshop_sort_updated),
                 getString(R.string.dd1_workshop_sort_rated)
             }));
-        setColumnCount(view, columnCount());
-        view.findViewById(R.id.BTWorkshopColumns).setOnClickListener(v ->
-            setColumnCount(view, columnCount() == 4 ? 2 : columnCount() + 1));
-        view.findViewById(R.id.BTWorkshopRotate).setOnClickListener(v ->
-            requireActivity().setRequestedOrientation(
-                getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
-                    ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
-                    : ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE));
+        ((GridLayout)view.findViewById(R.id.GLWorkshopCards)).setColumnCount(columnCount());
         EditText search = view.findViewById(R.id.TIWorkshopSearch);
         search.setOnEditorActionListener((v, action, event) -> {
             if (action != EditorInfo.IME_ACTION_SEARCH) return false;
@@ -176,16 +169,23 @@ public final class DD1WorkshopFragment extends Fragment {
                 service.refreshWorkshop();
             }
         });
-        ((TextView)view.findViewById(R.id.TVWorkshopDropFolder)).setText(
-            getString(R.string.dd1_workshop_drop_folder,
-                DD1InstallService.defaultDropFolder()));
-        view.findViewById(R.id.BTWorkshopDropFolder).setOnClickListener(v ->
+        // With the game in phone storage its mods folder is the place to put mods,
+        // so the row opens it. Otherwise the row is about the folder that is
+        // copied in, and changing which one that is.
+        view.findViewById(R.id.BTWorkshopDropFolder).setOnClickListener(v -> {
+            if (service != null && service.modsInGame()) {
+                File mods = service.modsFolder();
+                mods.mkdirs();
+                DD1FileManager.open(requireContext(), mods);
+                return;
+            }
             new AlertDialog.Builder(requireContext(), R.style.DD1Dialog)
                 .setTitle(R.string.dd1_workshop_folder_change_title)
                 .setMessage(R.string.dd1_workshop_folder_change_message)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.dd1_workshop_folder_change,
-                    (dialog, which) -> chooseFolder.launch(null)).show());
+                    (dialog, which) -> chooseFolder.launch(null)).show();
+        });
         if (ContextCompat.checkSelfPermission(requireContext(),
                 Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
             storage.launch(new String[] {Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -213,20 +213,6 @@ public final class DD1WorkshopFragment extends Fragment {
         super.onStop();
     }
 
-    // The rotate button is this screen's, but the orientation it sets belongs to
-    // the activity and outlives it. Left as it was, every other screen stayed
-    // sideways with nothing anywhere to turn it back.
-    //
-    // The view, not the fragment, is what goes away here: navigation replaces
-    // the screen onto the back stack, so onDestroy never runs until the activity
-    // does. The activity handles rotation itself, so this does not fire on one.
-    @Override
-    public void onDestroyView() {
-        requireActivity().setRequestedOrientation(
-            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-        super.onDestroyView();
-    }
-
     @Override
     public void onDestroy() {
         if (detailDialog != null) detailDialog.dismiss();
@@ -248,10 +234,58 @@ public final class DD1WorkshopFragment extends Fragment {
         if (view == null) return;
         view.findViewById(R.id.LLWorkshopStore).setVisibility(store ? View.VISIBLE : View.GONE);
         view.findViewById(R.id.LLWorkshopInstalled).setVisibility(store ? View.GONE : View.VISIBLE);
-        view.findViewById(R.id.BTWorkshopTabStore).setSelected(store);
-        view.findViewById(R.id.BTWorkshopTabInstalled).setSelected(!store);
-        view.findViewById(R.id.BTWorkshopTabStore).setAlpha(store ? 1f : .5f);
-        view.findViewById(R.id.BTWorkshopTabInstalled).setAlpha(store ? .5f : 1f);
+        TextView storeTabView = view.findViewById(R.id.BTWorkshopTabStore);
+        TextView installedTabView = view.findViewById(R.id.BTWorkshopTabInstalled);
+        storeTabView.setSelected(store);
+        installedTabView.setSelected(!store);
+        storeTabView.setTextColor(themeColor(store
+            ? R.attr.colorPrimaryText : R.attr.colorSecondaryText));
+        installedTabView.setTextColor(themeColor(store
+            ? R.attr.colorSecondaryText : R.attr.colorPrimaryText));
+    }
+
+    private int themeColor(int attr) {
+        android.util.TypedValue value = new android.util.TypedValue();
+        requireContext().getTheme().resolveAttribute(attr, value, true);
+        return value.resourceId != 0 ? ContextCompat.getColor(requireContext(), value.resourceId)
+            : value.data;
+    }
+
+    // A small outlined label: what a mod is, or how it stands. The colour says
+    // whether it wants attention.
+    private TextView chip(String text, int color) {
+        TextView chip = new TextView(requireContext());
+        float density = getResources().getDisplayMetrics().density;
+        android.graphics.drawable.GradientDrawable outline =
+            new android.graphics.drawable.GradientDrawable();
+        outline.setCornerRadius(10 * density);
+        outline.setStroke(Math.max(1, Math.round(density)), color);
+        chip.setBackground(outline);
+        chip.setText(text);
+        chip.setTextColor(color);
+        chip.setTextSize(11);
+        int horizontal = Math.round(8 * density);
+        int vertical = Math.round(2 * density);
+        chip.setPadding(horizontal, vertical, horizontal, vertical);
+        return chip;
+    }
+
+    private void addChip(LinearLayout chips, String text, int color) {
+        TextView chip = chip(text, color);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.setMarginEnd(Math.round(6 * getResources().getDisplayMetrics().density));
+        chips.addView(chip, params);
+    }
+
+    private int stateColor(DD1WorkshopSnapshot.State state) {
+        switch (state) {
+            case INSTALL:
+            case UPDATE: return themeColor(R.attr.colorAccent);
+            case ORPHAN:
+            case SKIPPED: return ContextCompat.getColor(requireContext(), R.color.dd1_warning);
+            default: return themeColor(R.attr.colorSecondaryText);
+        }
     }
 
     void renderSnapshot(DD1WorkshopSnapshot snapshot) {
@@ -301,7 +335,19 @@ public final class DD1WorkshopFragment extends Fragment {
             ((TextView)card.findViewById(R.id.TVWorkshopCardMeta)).setText(getString(
                 R.string.dd1_workshop_subscribers, item.item.subscriptions,
                 formatSize(item.item.fileSize)));
-            ((TextView)card.findViewById(R.id.TVWorkshopCardState)).setText(cardState(item));
+            TextView state = card.findViewById(R.id.TVWorkshopCardState);
+            String stateLabel = cardState(item);
+            state.setVisibility(stateLabel.isEmpty() ? View.GONE : View.VISIBLE);
+            if (!stateLabel.isEmpty()) {
+                TextView styled = chip(stateLabel, item.updateAvailable
+                    ? themeColor(R.attr.colorAccent) : themeColor(R.attr.colorSecondaryText));
+                state.setText(stateLabel);
+                state.setTextColor(styled.getTextColors());
+                state.setTextSize(11);
+                state.setBackground(styled.getBackground());
+                state.setPadding(styled.getPaddingLeft(), styled.getPaddingTop(),
+                    styled.getPaddingRight(), styled.getPaddingBottom());
+            }
 
             // Subscribe or unsubscribe, and nothing else. What a download is doing
             // belongs on the installed tab: reporting it here meant this list
@@ -335,9 +381,29 @@ public final class DD1WorkshopFragment extends Fragment {
         view.findViewById(R.id.BTWorkshopImport).setEnabled(!syncing);
         view.findViewById(R.id.BTWorkshopInstalledRefresh).setEnabled(!syncing);
 
-        if (service != null) ((TextView)view.findViewById(R.id.TVWorkshopDropFolder)).setText(
-            getString(R.string.dd1_workshop_drop_folder, service.dropFolder()));
-        view.findViewById(R.id.BTWorkshopDropFolder).setEnabled(!syncing);
+        int updates = 0;
+        for (DD1WorkshopSnapshot.Row row : snapshot.rows)
+            if (row.state == DD1WorkshopSnapshot.State.UPDATE
+                    || row.state == DD1WorkshopSnapshot.State.INSTALL) updates++;
+        ((TextView)view.findViewById(R.id.TVWorkshopSummary)).setText(updates > 0
+            ? getString(R.string.dd1_workshop_summary_updates, snapshot.rows.size(), updates)
+            : getString(R.string.dd1_workshop_summary, snapshot.rows.size()));
+        ((TextView)view.findViewById(R.id.BTWorkshopTabInstalled)).setText(snapshot.rows.isEmpty()
+            ? getString(R.string.dd1_workshop_tab_installed)
+            : getString(R.string.dd1_workshop_tab_installed_count,
+                getString(R.string.dd1_workshop_tab_installed), snapshot.rows.size()));
+
+        TextView folder = view.findViewById(R.id.TVWorkshopDropFolder);
+        Button folderAction = view.findViewById(R.id.BTWorkshopDropFolder);
+        if (service != null && service.modsInGame()) {
+            folder.setText(getString(R.string.dd1_workshop_mods_in_game, service.modsFolder()));
+            folderAction.setText(R.string.dd1_workshop_folder_open);
+        }
+        else if (service != null) {
+            folder.setText(getString(R.string.dd1_workshop_drop_folder, service.dropFolder()));
+            folderAction.setText(R.string.dd1_workshop_folder_change);
+        }
+        folderAction.setEnabled(!syncing);
         TextView message = view.findViewById(R.id.TVWorkshopMessage);
         String text = snapshot.message;
         if (snapshot.phase == DD1WorkshopSnapshot.Phase.READY && snapshot.rows.isEmpty())
@@ -347,7 +413,9 @@ public final class DD1WorkshopFragment extends Fragment {
 
         LinearLayout list = view.findViewById(R.id.LLWorkshopList);
         LinearLayout local = view.findViewById(R.id.LLWorkshopLocalList);
-        String shape = installedShape(snapshot);
+        // Syncing hides and disables the rows' controls, so it is part of what the
+        // rows were built from.
+        String shape = syncing + installedShape(snapshot);
         if (shape.equals(builtInstalled)
                 && list.getChildCount() + local.getChildCount() == snapshot.rows.size()) return;
         builtInstalled = shape;
@@ -357,34 +425,55 @@ public final class DD1WorkshopFragment extends Fragment {
             View row = LayoutInflater.from(requireContext()).inflate(
                 R.layout.dd1_workshop_row, list, false);
             ((TextView)row.findViewById(R.id.TVWorkshopTitle)).setText(item.title);
-            String source = item.publishedFileId == 0
-                ? getString(R.string.dd1_workshop_source_local)
-                : getString(R.string.dd1_workshop_source_steam) + " #" + item.publishedFileId;
-            ((TextView)row.findViewById(R.id.TVWorkshopMeta)).setText(getString(
-                R.string.dd1_workshop_source, source, getString(stateText(item.state))));
-            Button enable = row.findViewById(R.id.BTWorkshopEnable);
-            enable.setVisibility(item.installed && item.disabled && !syncing
-                ? View.VISIBLE : View.GONE);
-            enable.setOnClickListener(v -> { if (service != null) service.enableMod(item.directoryName); });
-            Button disable = row.findViewById(R.id.BTWorkshopDisable);
-            disable.setVisibility(item.installed && !item.disabled && !syncing
-                ? View.VISIBLE : View.GONE);
-            disable.setOnClickListener(v -> { if (service != null) service.disableMod(item.directoryName); });
+            LinearLayout chips = row.findViewById(R.id.LLWorkshopChips);
+            if (item.publishedFileId != 0)
+                addChip(chips, getString(R.string.dd1_workshop_source_steam),
+                    themeColor(R.attr.colorSecondaryText));
+            // A local mod is local whatever else is true of it; saying so twice
+            // is noise.
+            if (item.state != DD1WorkshopSnapshot.State.LOCAL || item.publishedFileId != 0)
+                addChip(chips, getString(stateText(item.state)), stateColor(item.state));
+            else addChip(chips, getString(R.string.dd1_workshop_source_local),
+                themeColor(R.attr.colorSecondaryText));
+            if (item.installed && item.disabled)
+                addChip(chips, getString(R.string.dd1_workshop_state_disabled),
+                    themeColor(R.attr.colorSecondaryText));
+
+            Switch enabled = row.findViewById(R.id.SWWorkshopEnabled);
+            enabled.setVisibility(item.installed ? View.VISIBLE : View.GONE);
+            enabled.setChecked(!item.disabled);
+            enabled.setEnabled(!syncing);
+            enabled.setOnCheckedChangeListener((button, on) -> {
+                if (service == null) return;
+                if (on) service.enableMod(item.directoryName);
+                else service.disableMod(item.directoryName);
+            });
+
             Button update = row.findViewById(R.id.BTWorkshopUpdate);
+            update.setText(item.state == DD1WorkshopSnapshot.State.INSTALL
+                ? R.string.dd1_workshop_install : R.string.dd1_workshop_update);
             update.setVisibility((item.state == DD1WorkshopSnapshot.State.INSTALL
                 || item.state == DD1WorkshopSnapshot.State.UPDATE) && !syncing
                 ? View.VISIBLE : View.GONE);
             update.setOnClickListener(v -> { if (service != null) service.syncWorkshop(); });
-            Button unsubscribe = row.findViewById(R.id.BTWorkshopUnsubscribe);
+
             boolean subscribed = item.publishedFileId != 0
                 && item.state != DD1WorkshopSnapshot.State.ORPHAN;
-            unsubscribe.setVisibility(subscribed && !syncing ? View.VISIBLE : View.GONE);
-            unsubscribe.setOnClickListener(v -> confirmUnsubscribe(new DD1WorkshopItem(
-                item.publishedFileId, item.title, "", "", 0, 0, 0, 0, true)));
-            Button delete = row.findViewById(R.id.BTWorkshopDelete);
-            delete.setVisibility(item.installed && !subscribed && !syncing
-                ? View.VISIBLE : View.GONE);
-            delete.setOnClickListener(v -> confirmDelete(item));
+            boolean deletable = item.installed && !subscribed;
+            View menu = row.findViewById(R.id.BTWorkshopMenu);
+            menu.setVisibility((subscribed || deletable) && !syncing ? View.VISIBLE : View.GONE);
+            menu.setOnClickListener(v -> {
+                PopupMenu popup = new PopupMenu(requireContext(), v);
+                if (subscribed) popup.getMenu().add(0, 1, 0, R.string.dd1_workshop_unsubscribe);
+                if (deletable) popup.getMenu().add(0, 2, 0, R.string.dd1_workshop_delete);
+                popup.setOnMenuItemClickListener(choice -> {
+                    if (choice.getItemId() == 1) confirmUnsubscribe(new DD1WorkshopItem(
+                        item.publishedFileId, item.title, "", "", 0, 0, 0, 0, true));
+                    else confirmDelete(item);
+                    return true;
+                });
+                popup.show();
+            });
 
             // A mod imported from a ZIP has no Workshop page to show.
             if (item.publishedFileId != 0) row.setOnClickListener(v -> showDetail(item));
@@ -548,7 +637,7 @@ public final class DD1WorkshopFragment extends Fragment {
 
     private String cardState(DD1WorkshopSnapshot.Card card) {
         if (card.updateAvailable) return getString(R.string.dd1_workshop_state_update);
-        if (card.disabled) return getString(R.string.dd1_workshop_disable);
+        if (card.disabled) return getString(R.string.dd1_workshop_state_disabled);
         if (card.installed) return getString(R.string.dd1_workshop_state_current);
         if (card.subscribed) return getString(R.string.dd1_workshop_state_install);
         return "";
@@ -586,30 +675,14 @@ public final class DD1WorkshopFragment extends Fragment {
         return bytes + " B";
     }
 
-    private int columnCount() {
-        int count = requireContext().getSharedPreferences("dd1", Context.MODE_PRIVATE)
-            .getInt(PREF_COLUMNS, 2);
-        return Math.max(2, Math.min(4, count));
+    // A card needs about 300dp to keep its picture and two lines of title side by
+    // side, so the width decides: two on a landscape phone, more on a tablet.
+    int columnCount() {
+        return columnsFor(getResources().getConfiguration().screenWidthDp);
     }
 
-    private void setColumnCount(View root, int count) {
-        requireContext().getSharedPreferences("dd1", Context.MODE_PRIVATE).edit()
-            .putInt(PREF_COLUMNS, count).apply();
-        GridLayout grid = root.findViewById(R.id.GLWorkshopCards);
-        View[] children = new View[grid.getChildCount()];
-        for (int i = 0; i < children.length; i++) children[i] = grid.getChildAt(i);
-        grid.removeAllViews();
-        grid.setColumnCount(count);
-        for (View child : children) {
-            GridLayout.LayoutParams params =
-                (GridLayout.LayoutParams)child.getLayoutParams();
-            params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED);
-            params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-            grid.addView(child, params);
-        }
-        grid.requestLayout();
-        root.findViewById(R.id.BTWorkshopColumns).setContentDescription(
-            getString(R.string.dd1_workshop_columns_action, count));
+    static int columnsFor(int widthDp) {
+        return Math.max(1, Math.min(4, widthDp / 300));
     }
 
     private static int stateText(DD1WorkshopSnapshot.State state) {
