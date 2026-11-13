@@ -179,6 +179,9 @@
     <string name="dd1_game_location_move_message">게임을 %1$s(으)로 복사한 다음 원래 자리에서 지웁니다. 몇 분 걸립니다. 세이브는 영향받지 않습니다.</string>
     <string name="dd1_game_location_move">옮기기</string>
     <string name="dd1_game_location_busy">진행 중인 다운로드가 끝난 뒤에 옮길 수 있습니다.</string>
+    <string name="dd1_launch_starting">런타임을 시작하는 중</string>
+    <string name="dd1_launch_loading_game">게임을 불러오는 중</string>
+    <string name="dd1_launch_hint">보통 15~30초 걸립니다.</string>
     <string name="dd1_busy">다른 다운로드나 창작마당 동기화가 진행 중입니다. 끝난 뒤에 다시 눌러 주세요.</string>
     <string name="dd1_storage_found_game">내부 저장공간(DD1/game)에 게임이 이미 있어서 받지 않아도 됩니다.</string>
     <string name="dd1_storage_needed">게임이 내부 저장공간에 있어서 저장소 권한이 필요합니다.</string>

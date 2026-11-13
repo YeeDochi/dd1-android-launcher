@@ -461,6 +461,21 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         invalidate();
     }
 
+    // The loading cover goes over everything, this overlay's buttons included,
+    // and only for a launch the launcher asked it for.
+    private boolean coverPlaced;
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (coverPlaced || !(getContext() instanceof android.app.Activity)) return;
+        coverPlaced = true;
+        if (!DD1LaunchCover.coversStartup((android.app.Activity)getContext())) return;
+        android.view.ViewParent parent = getParent();
+        if (parent instanceof android.view.ViewGroup)
+            ((android.view.ViewGroup)parent).addView(new DD1LaunchCover(getContext(), xServer));
+    }
+
     // Leaving the game while the keys are held would leave them held for whatever
     // runs next, and nothing else would ever let them go.
     @Override

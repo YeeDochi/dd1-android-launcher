@@ -25,6 +25,19 @@ overlay, immediately after `rootView.addView(touchpadView)`:
 rootView.addView(new com.winlator.dd1.DD1TouchOverlay(this, xServer, touchpadView));
 ```
 
+The same file also skips the runtime's "Starting up" box for a launch the
+launcher asked to cover, where `preloaderDialog.show(R.string.starting_up)` was:
+
+```java
+// dd1: a launch the launcher started has its own cover until the game draws.
+if (!com.winlator.dd1.DD1LaunchCover.coversStartup(this)) preloaderDialog.show(R.string.starting_up);
+```
+
+The box is a dialog, a window of its own, so nothing in the activity's views can
+sit above it. The cover itself (`DD1LaunchCover`) is placed by the overlay and
+needs nothing else from this file. The "Updating system files" box and launches
+without the launcher's extra - the runtime's file manager - keep the box.
+
 Nothing else in that file changes. The overlay needs a view to attach to and the
 `XServer` to inject into, and the runtime offers no hook for either, so this is
 the smallest place to say it. Keep it to these lines; everything the touch
@@ -65,7 +78,7 @@ library still carries the other path, delete `app/.cxx` and build again.
 2. Replace every path listed as upstream above with the release's version.
 3. Restore `app/AndroidManifest.xml` and `app/build.gradle` from this repository
    and re-apply upstream's own changes to them by hand; both files are small.
-4. Re-apply the touch overlay lines to `XServerDisplayActivity`, and the
+4. Re-apply the touch overlay and launch cover lines to `XServerDisplayActivity`, and the
    side-by-side edits; see above. Search the new release for
    `/data/data/com.winlator` and `"com.winlator` - a new hard-coded path is
    one more place the side-by-side build has to be told about.

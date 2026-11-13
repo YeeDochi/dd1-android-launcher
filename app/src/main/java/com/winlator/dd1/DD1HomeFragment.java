@@ -653,6 +653,7 @@ public class DD1HomeFragment extends Fragment {
         Intent intent = new Intent(activity, XServerDisplayActivity.class);
         intent.putExtra("container_id", container.id);
         intent.putExtra("exec_path", redist != null ? redist.getPath() : executable.getPath());
+        intent.putExtra(DD1LaunchCover.EXTRA, true);
         // The game reads its data relative to the install root, not the folder
         // holding Darkest.exe, so it exits at once when started from win64.
         activity.startActivity(intent);

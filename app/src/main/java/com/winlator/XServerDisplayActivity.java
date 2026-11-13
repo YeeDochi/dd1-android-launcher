@@ -228,7 +228,8 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             this.dxwrapperConfig = DXWrappers.parseConfigs(dxwrapper, dxwrapperConfig);
         }
 
-        preloaderDialog.show(R.string.starting_up);
+        // dd1: a launch the launcher started has its own cover until the game draws.
+        if (!com.winlator.dd1.DD1LaunchCover.coversStartup(this)) preloaderDialog.show(R.string.starting_up);
 
         inputControlsManager = new InputControlsManager(this);
         xServer = new XServer(this, screenInfo);

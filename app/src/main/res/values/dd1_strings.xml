@@ -180,6 +180,9 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_game_location_move_message">The game is copied to %1$s and then removed from where it was. This takes several minutes. Saves are not affected.</string>
     <string name="dd1_game_location_move">Move</string>
     <string name="dd1_game_location_busy">Wait for the current download to finish first.</string>
+    <string name="dd1_launch_starting">Starting the runtime</string>
+    <string name="dd1_launch_loading_game">Loading the game</string>
+    <string name="dd1_launch_hint">This usually takes 15 to 30 seconds.</string>
     <string name="dd1_busy">Another download or a Workshop sync is running. Try again when it has finished.</string>
     <string name="dd1_storage_found_game">The game is already in phone storage (DD1/game), so nothing needs downloading.</string>
     <string name="dd1_storage_needed">The game is in phone storage, so this needs storage access.</string>

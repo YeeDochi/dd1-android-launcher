@@ -41,8 +41,9 @@ edits**, except:
 - `app/src/*/java/com/winlator/dd1/**` - the launcher
 - `app/src/main/res/**/dd1_*.xml` - the launcher's resources
 - `app/AndroidManifest.xml`, `app/build.gradle` - project files
-- `XServerDisplayActivity` - two lines that attach the touch overlay, and
-  nothing else; `docs/RUNTIME_UPDATE.md` carries them verbatim
+- `XServerDisplayActivity` - the lines that attach the touch overlay, and one
+  that skips the "Starting up" box under the launcher's own loading cover;
+  nothing else. `docs/RUNTIME_UPDATE.md` carries them verbatim
 - the side-by-side build's hooks, each marked `dd1`: `TarCompressorUtils`
   (unpacked files go through `DD1Relocation`), `AppUtils.INTERNAL_STORAGE`,
   the FileProvider authority in `FileUtils`, and the path defines in
