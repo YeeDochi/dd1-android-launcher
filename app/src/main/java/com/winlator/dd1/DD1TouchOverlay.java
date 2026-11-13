@@ -46,6 +46,13 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     // opposite bar so the hand that clicks is not the hand that holds.
     private final RectF sticky = new RectF();
     private final DD1HeldKeys heldKeys = new DD1HeldKeys();
+    // Walking a corridor by dragging is a stream of pointer moves, and the game
+    // redraws its hover state for every one of them: a dragging finger dropped
+    // frames where a held key does not. The game walks the party on A and D, so
+    // these hold those for as long as the finger stays on them.
+    private final RectF back = new RectF();
+    private final RectF forward = new RectF();
+    private XKeycode walking;
     private final Path border = new Path();
     private final Path light = new Path();
     private final PathMeasure measure = new PathMeasure();
@@ -170,6 +177,13 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         float right = getWidth() - (letterbox >= wide + margin * 2
             ? (letterbox - wide) * 0.5f + wide : wide + margin);
         sticky.set(right, escape.top, right + wide, escape.bottom);
+        // Above the held keys, as a pair, and taller than they are wide so the
+        // pair still fits a narrow bar.
+        float gap = margin * 0.5f;
+        float half = (wide - gap) * 0.5f;
+        float top = sticky.top - gap - size * 1.25f;
+        back.set(right, top, right + half, sticky.top - gap);
+        forward.set(right + half + gap, top, right + wide, sticky.top - gap);
     }
 
     // Every path that moves the buttons goes through here, and it reads the state
@@ -212,6 +226,7 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         if (!isEnabled()) return false;
         if (event.getPointerCount() > 1) {
             removeCallbacks(hold);
+            if (walking != null) stopWalking();
             return manyFingers != null && manyFingers.onTouchEvent(event);
         }
 
@@ -235,16 +250,28 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
                     invalidate();
                     return true;
                 }
+                if (back.contains(lastX, lastY)) {
+                    startWalking(XKeycode.KEY_A);
+                    return true;
+                }
+                if (forward.contains(lastX, lastY)) {
+                    startWalking(XKeycode.KEY_D);
+                    return true;
+                }
                 if (!insidePicture(lastX, lastY)) return true;
                 gesture.down(lastX, lastY, now);
                 postDelayed(hold, TouchGesture.HOLD_MILLIS);
                 return true;
             case MotionEvent.ACTION_MOVE:
-                if (escaping || sticking) return true;
+                if (escaping || sticking || walking != null) return true;
                 gesture.move(lastX, lastY, now);
                 return true;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+                if (walking != null) {
+                    stopWalking();
+                    return true;
+                }
                 if (escaping) {
                     escaping = false;
                     invalidate();
@@ -421,10 +448,24 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         xServer.injectKeyRelease(XKeycode.KEY_SHIFT_L);
     }
 
+    private void startWalking(XKeycode key) {
+        walking = key;
+        xServer.injectKeyPress(key);
+        invalidate();
+    }
+
+    private void stopWalking() {
+        XKeycode key = walking;
+        walking = null;
+        if (key != null) xServer.injectKeyRelease(key);
+        invalidate();
+    }
+
     // Leaving the game while the keys are held would leave them held for whatever
     // runs next, and nothing else would ever let them go.
     @Override
     protected void onDetachedFromWindow() {
+        if (walking != null) stopWalking();
         if (heldKeys.releaseAll()) letKeysGo();
         super.onDetachedFromWindow();
     }
@@ -484,6 +525,8 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         key(canvas, escape, "ESC", escaping);
         key(canvas, sticky, getContext().getString(R.string.dd1_sticky_keys),
             sticking, heldKeys.held());
+        key(canvas, back, "◀", walking == XKeycode.KEY_A);
+        key(canvas, forward, "▶", walking == XKeycode.KEY_D);
     }
 
     private void key(Canvas canvas, RectF where, String label, boolean pressed) {
