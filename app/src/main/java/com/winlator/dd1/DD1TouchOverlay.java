@@ -53,6 +53,19 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     private final RectF back = new RectF();
     private final RectF forward = new RectF();
     private XKeycode walking;
+    // The magnifier (DD1Zoom), and the map under the game that says which part
+    // of the picture is on screen and moves it when dragged.
+    private final RectF magnify = new RectF();
+    private final RectF minimap = new RectF();
+    private final DD1Zoom zoom = new DD1Zoom();
+    private final RectF seen = new RectF();
+    private final Runnable refreshThumbnail = this::copyThumbnail;
+    private android.graphics.Bitmap thumbnail;
+    private android.graphics.Bitmap thumbnailSpare;
+    private boolean magnifying;
+    private boolean panning;
+    private float focusX = Float.NaN;
+    private float focusY = Float.NaN;
     private final Path border = new Path();
     private final Path light = new Path();
     private final PathMeasure measure = new PathMeasure();
@@ -171,6 +184,8 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         // the game does not use.
         keyboard.set(left, escape.top - size - margin * 0.5f, left + size,
             escape.top - margin * 0.5f);
+        magnify.set(left, keyboard.top - size - margin * 0.5f, left + size,
+            keyboard.top - margin * 0.5f);
         // The other bar, so the hand holding the keys is not the hand clicking.
         // Wider than the others because it says what it does rather than a word.
         float wide = size * 1.6f;
@@ -194,7 +209,114 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     private void refreshButtons() {
         placeEscape(transformation().viewOffsetX,
             keyboardMode.active() ? visibleBottom() : getHeight());
+        placeZoom();
         invalidate();
+    }
+
+    // The part of this view the game is drawn in, unscaled.
+    private RectF picture() {
+        if (xServer.getRenderer().isFullscreen()) return new RectF(0, 0, getWidth(), getHeight());
+        ViewTransformation t = transformation();
+        return new RectF(t.viewOffsetX, t.viewOffsetY, t.viewOffsetX + t.viewWidth,
+            t.viewOffsetY + t.viewHeight);
+    }
+
+    // The map goes at the top of the right-hand bar, which nothing else uses, so
+    // it covers none of the game. At the bottom of the picture it sat on the hero
+    // panel. A screen with no bar wide enough - a 16:10 tablet - gets it small in
+    // the picture's top right corner instead.
+    private void placeZoom() {
+        RectF picture = picture();
+        if (picture.width() <= 0 || picture.height() <= 0) return;
+        zoom.setPicture(picture.left, picture.top, picture.width(), picture.height());
+        float density = getResources().getDisplayMetrics().density;
+        float margin = 6f * density;
+        float aspect = picture.height() / picture.width();
+        float bar = getWidth() - picture.right;
+        float width;
+        float left;
+        // 40 dp is a Galaxy S22's bar less its margins: small, but a map only has
+        // to show where the frame is.
+        if (bar - margin * 2 >= 40f * density) {
+            width = bar - margin * 2;
+            left = picture.right + margin;
+        }
+        else {
+            width = Math.min(120f * density, picture.width() * 0.18f);
+            left = picture.right - margin - width;
+        }
+        float top = picture.top + margin;
+        minimap.set(left, top, left + width, top + width * aspect);
+        applyZoom();
+    }
+
+    private void toggleZoom() {
+        // The overlay is laid out before the renderer has its surface, so the
+        // picture it knew then may have been empty. Ask again now.
+        placeZoom();
+        RectF picture = picture();
+        if (Float.isNaN(focusX)) {
+            focusX = picture.centerX();
+            focusY = picture.centerY();
+        }
+        zoom.toggle(focusX, focusY);
+        applyZoom();
+        removeCallbacks(refreshThumbnail);
+        if (zoom.on()) copyThumbnail();
+        else thumbnail = null;
+    }
+
+    private void applyZoom() {
+        View view = xServer.getRenderer().xServerView;
+        view.setPivotX(0);
+        view.setPivotY(0);
+        view.setScaleX(zoom.scale());
+        view.setScaleY(zoom.scale());
+        view.setTranslationX(zoom.translationX());
+        view.setTranslationY(zoom.translationY());
+        invalidate();
+    }
+
+    private void panFromMinimap(float x, float y) {
+        zoom.panToFraction((x - minimap.left) / minimap.width(),
+            (y - minimap.top) / minimap.height());
+        applyZoom();
+    }
+
+    // The map shows the game itself, copied small out of its surface. The copy
+    // is of the surface's buffer, which the view's scale does not touch, so it is
+    // always the whole picture. Twice a second is enough to recognise a room.
+    private static final long THUMBNAIL_MILLIS = 500L;
+
+    private void copyThumbnail() {
+        if (!zoom.on() || minimap.isEmpty()) return;
+        View view = xServer.getRenderer().xServerView;
+        if (!(view instanceof android.view.SurfaceView) || getHandler() == null) return;
+        int width = Math.max(1, Math.round(minimap.width()));
+        int height = Math.max(1, Math.round(minimap.height()));
+        android.graphics.Bitmap target = thumbnailSpare;
+        if (target == null || target.getWidth() != width || target.getHeight() != height)
+            target = android.graphics.Bitmap.createBitmap(width, height,
+                android.graphics.Bitmap.Config.ARGB_8888);
+        RectF picture = picture();
+        Rect source = new Rect(Math.round(picture.left), Math.round(picture.top),
+            Math.round(picture.right), Math.round(picture.bottom));
+        final android.graphics.Bitmap into = target;
+        try {
+            android.view.PixelCopy.request((android.view.SurfaceView)view, source, into, result -> {
+                if (result == android.view.PixelCopy.SUCCESS && zoom.on()) {
+                    thumbnailSpare = thumbnail;
+                    thumbnail = into;
+                    invalidate();
+                }
+                else thumbnailSpare = into;
+                if (zoom.on()) postDelayed(refreshThumbnail, THUMBNAIL_MILLIS);
+            }, getHandler());
+        }
+        catch (IllegalArgumentException e) {
+            // The surface is not there yet; try again later.
+            postDelayed(refreshThumbnail, THUMBNAIL_MILLIS);
+        }
     }
 
     // Winlator normally pans its desktop towards the pointer when an IME opens.
@@ -258,18 +380,44 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
                     startWalking(XKeycode.KEY_D);
                     return true;
                 }
-                if (!insidePicture(lastX, lastY)) return true;
+                if (magnify.contains(lastX, lastY)) {
+                    magnifying = true;
+                    invalidate();
+                    return true;
+                }
+                if (zoom.on() && minimap.contains(lastX, lastY)) {
+                    panning = true;
+                    panFromMinimap(lastX, lastY);
+                    return true;
+                }
+                float[] local = zoom.toLocal(lastX, lastY);
+                if (!insidePicture(local[0], local[1])) return true;
                 gesture.down(lastX, lastY, now);
                 postDelayed(hold, TouchGesture.HOLD_MILLIS);
                 return true;
             case MotionEvent.ACTION_MOVE:
-                if (escaping || sticking || walking != null) return true;
+                if (panning) {
+                    panFromMinimap(lastX, lastY);
+                    return true;
+                }
+                if (escaping || sticking || magnifying || walking != null) return true;
                 gesture.move(lastX, lastY, now);
                 return true;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 if (walking != null) {
                     stopWalking();
+                    return true;
+                }
+                if (panning) {
+                    panning = false;
+                    return true;
+                }
+                if (magnifying) {
+                    magnifying = false;
+                    if (event.getActionMasked() == MotionEvent.ACTION_UP
+                            && magnify.contains(lastX, lastY)) toggleZoom();
+                    invalidate();
                     return true;
                 }
                 if (escaping) {
@@ -396,6 +544,9 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
             leaveKeyboardMode();
             return;
         }
+        // The picture moves and shrinks for the keyboard; a magnified one would
+        // put the field being typed into somewhere off screen.
+        if (zoom.on()) toggleZoom();
         activity.getWindow().setSoftInputMode(
             WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -480,6 +631,7 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     // runs next, and nothing else would ever let them go.
     @Override
     protected void onDetachedFromWindow() {
+        removeCallbacks(refreshThumbnail);
         if (walking != null) stopWalking();
         if (heldKeys.releaseAll()) letKeysGo();
         super.onDetachedFromWindow();
@@ -542,6 +694,58 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
             sticking, heldKeys.held());
         key(canvas, back, "◀", walking == XKeycode.KEY_A);
         key(canvas, forward, "▶", walking == XKeycode.KEY_D);
+        key(canvas, magnify, "", magnifying || zoom.on());
+        magnifierIcon(canvas, magnify, zoom.on());
+        if (zoom.on()) drawMinimap(canvas);
+    }
+
+    // A lens and its handle, lit like the torch's light while it is on.
+    private void magnifierIcon(Canvas canvas, RectF where, boolean on) {
+        float h = where.height();
+        float r = h * 0.19f;
+        float cx = where.centerX() - h * 0.05f;
+        float cy = where.centerY() - h * 0.05f;
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        paint.setStrokeWidth(Math.max(2f, h * 0.07f));
+        paint.setColor(on ? Color.argb(255, 240, 196, 164) : Color.argb(220, 198, 168, 156));
+        canvas.drawCircle(cx, cy, r, paint);
+        float d = r * 0.7071f;
+        canvas.drawLine(cx + d, cy + d, cx + d + h * 0.15f, cy + d + h * 0.15f, paint);
+        paint.setStrokeCap(Paint.Cap.BUTT);
+        if (on) {
+            float radius = h * 0.25f;
+            paint.setStrokeWidth(Math.max(2f, h * 0.06f));
+            paint.setColor(Color.argb(255, 219, 82, 48));
+            canvas.drawRoundRect(where, radius, radius, paint);
+        }
+    }
+
+    private void drawMinimap(Canvas canvas) {
+        float density = getResources().getDisplayMetrics().density;
+        float radius = 4f * density;
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.argb(190, 20, 12, 10));
+        canvas.drawRoundRect(minimap, radius, radius, paint);
+        if (thumbnail != null) {
+            paint.setAlpha(210);
+            canvas.drawBitmap(thumbnail, null, minimap, paint);
+            paint.setAlpha(255);
+        }
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(1f, density));
+        paint.setColor(Color.argb(160, 158, 118, 106));
+        canvas.drawRoundRect(minimap, radius, radius, paint);
+        float[] f = zoom.visibleFraction();
+        seen.set(minimap.left + f[0] * minimap.width(), minimap.top + f[1] * minimap.height(),
+            minimap.left + f[2] * minimap.width(), minimap.top + f[3] * minimap.height());
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.argb(40, 240, 196, 164));
+        canvas.drawRect(seen, paint);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(2f, 2f * density));
+        paint.setColor(Color.argb(255, 219, 82, 48));
+        canvas.drawRect(seen, paint);
     }
 
     private void key(Canvas canvas, RectF where, String label, boolean pressed) {
@@ -630,7 +834,12 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         // ponytail: if this ever needs to hold against more of the runtime, listen
         // for window modifications instead of leaning on touches.
         xServer.getRenderer().setCursorVisible(false);
-        float[] point = XForm.transformPoint(xform(), x, y);
+        // Where the finger is in the unscaled view; DD1Zoom is the identity when
+        // the magnifier is off.
+        float[] local = zoom.toLocal(x, y);
+        focusX = local[0];
+        focusY = local[1];
+        float[] point = XForm.transformPoint(xform(), local[0], local[1]);
         xServer.injectPointerMove((int)point[0], (int)point[1]);
     }
 
