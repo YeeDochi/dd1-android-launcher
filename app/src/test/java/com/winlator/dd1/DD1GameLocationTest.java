@@ -32,17 +32,30 @@ public class DD1GameLocationTest {
     }
 
     @Test
-    public void aNewInstallGoesToStorageAndAnExistingOneStays() throws IOException {
+    public void aNewInstallGoesIntoTheApp() throws IOException {
+        File storage = new File(folder.getRoot(), "storage/DD1");
         File fresh = folder.newFolder("fresh");
-        assertEquals(DD1GameLocation.STORAGE, DD1GameLocation.defaultFor(fresh));
+        assertEquals(DD1GameLocation.APP, DD1GameLocation.defaultFor(fresh, storage));
 
         File installed = folder.newFolder("installed");
         game(new File(installed, "game"));
-        assertEquals(DD1GameLocation.APP, DD1GameLocation.defaultFor(installed));
+        assertEquals(DD1GameLocation.APP, DD1GameLocation.defaultFor(installed, storage));
 
         File partial = folder.newFolder("partial");
         new File(partial, "staging/game").mkdirs();
-        assertEquals(DD1GameLocation.APP, DD1GameLocation.defaultFor(partial));
+        assertEquals(DD1GameLocation.APP, DD1GameLocation.defaultFor(partial, storage));
+    }
+
+    @Test
+    public void aWholeGameInStorageIsUsedWhereItIs() throws IOException {
+        File storage = new File(folder.getRoot(), "storage/DD1");
+        File fresh = folder.newFolder("fresh");
+        new File(storage, "game/audio").mkdirs();
+        assertEquals("a partial game is not adopted",
+            DD1GameLocation.APP, DD1GameLocation.defaultFor(fresh, storage));
+
+        game(new File(storage, "game"));
+        assertEquals(DD1GameLocation.STORAGE, DD1GameLocation.defaultFor(fresh, storage));
     }
 
     @Test
@@ -65,7 +78,7 @@ public class DD1GameLocationTest {
         assertTrue(new File(storage, DD1DlcVersions.FILE).isFile());
         assertTrue("the old copy waits for the caller", new File(app, "game").exists());
 
-        DD1GameLocation.clearSource(app);
+        DD1GameLocation.clearSource(app, (done, total) -> {});
         assertFalse("the old copy is gone", new File(app, "game").exists());
         assertFalse("partial downloads do not follow", new File(app, "staging").exists());
         assertFalse(new File(storage, "game-moving").exists());
@@ -84,7 +97,7 @@ public class DD1GameLocationTest {
         DD1GameLocation.move(app, storage, (done, total) -> {
             throw new AssertionError("nothing should be copied");
         }, () -> false);
-        DD1GameLocation.clearSource(app);
+        DD1GameLocation.clearSource(app, (done, total) -> {});
 
         assertTrue(new File(storage, "game/theirs").isFile());
         assertFalse(new File(app, "game").exists());

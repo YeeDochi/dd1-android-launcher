@@ -20,6 +20,9 @@ public final class DD1Workshop {
     // folder that lost a mod could take a hand-imported ZIP with it, and choosing
     // the wrong folder once would delete every local mod on the device.
     private static final String SOURCE = ".dd1-local";
+    // What a folder mod looked like when it was copied in, so one edited in
+    // DD1/mods is copied again instead of being taken as already there.
+    private static final String STAMP = ".dd1-local-stamp";
     // A mod may be as large as the phone has room for. A fixed 512 MB stood here,
     // and an all-in-one pack - the only way some mods ship - expands past it from
     // a 400 MB ZIP. What is kept back is room for the game to go on writing its
@@ -185,6 +188,66 @@ public final class DD1Workshop {
         String name = importName(sourceName);
         return new File(filesDir, "game/mods/" + name).exists()
             || new File(filesDir, "game/mods-disabled/" + name).exists();
+    }
+
+    // Files, bytes and the newest change in a dropped mod - a folder or a ZIP.
+    // Reading metadata only, so asking costs a listing, not a copy.
+    public static String stamp(File source) {
+        long[] seen = {0, 0, 0};
+        stampWalk(source, seen);
+        return seen[0] + ":" + seen[1] + ":" + seen[2];
+    }
+
+    private static void stampWalk(File file, long[] seen) {
+        if (Files.isSymbolicLink(file.toPath())) return;
+        File[] children = file.listFiles();
+        if (children != null) {
+            for (File child : children) stampWalk(child, seen);
+            return;
+        }
+        if (!file.isFile()) return;
+        seen[0]++;
+        seen[1] += file.length();
+        seen[2] = Math.max(seen[2], file.lastModified());
+    }
+
+    // Whether a mod the folder put in has changed in the folder since. One copied
+    // in before stamps existed takes the current stamp as its own rather than
+    // being copied again on the first launch after the update.
+    public static boolean changedSince(File filesDir, String sourceName, String stamp) {
+        File installed = installedFromFolder(filesDir, importName(sourceName));
+        if (installed == null) return false;
+        File recorded = new File(installed, STAMP);
+        try {
+            if (!recorded.isFile()) {
+                Files.write(recorded.toPath(), stamp.getBytes(StandardCharsets.UTF_8));
+                return false;
+            }
+            return !stamp.equals(new String(Files.readAllBytes(recorded.toPath()),
+                StandardCharsets.UTF_8));
+        }
+        catch (IOException unreadable) {
+            return false;
+        }
+    }
+
+    public static void writeStamp(File filesDir, String directoryName, String stamp)
+            throws IOException {
+        File installed = installedFromFolder(filesDir, directoryName);
+        if (installed != null)
+            Files.write(new File(installed, STAMP).toPath(), stamp.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static boolean isDisabled(File filesDir, String directoryName) {
+        return new File(filesDir, "game/mods-disabled/" + directoryName).isDirectory();
+    }
+
+    private static File installedFromFolder(File filesDir, String directoryName) {
+        for (String root : new String[] {"game/mods/", "game/mods-disabled/"}) {
+            File directory = new File(filesDir, root + directoryName);
+            if (directory.isDirectory() && new File(directory, SOURCE).isFile()) return directory;
+        }
+        return null;
     }
 
     // The directory a folder entry would land in, so a synchronisation can tell

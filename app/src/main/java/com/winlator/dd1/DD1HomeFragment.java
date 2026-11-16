@@ -59,6 +59,7 @@ public class DD1HomeFragment extends Fragment {
     private boolean creatingProfile;
     private boolean profileCreationFailed;
     private boolean driverChecked;
+    private boolean moveInsideTried;
     private DD1InstallService installService;
     private boolean serviceBound;
     private DD1InstallSnapshot installSnapshot = DD1InstallSnapshot.restoring();
@@ -69,6 +70,7 @@ public class DD1HomeFragment extends Fragment {
             installService = ((DD1InstallService.LocalBinder)binder).getService();
             serviceBound = true;
             installService.observe(installListener);
+            moveInsideIfLeftOutside();
         }
 
         @Override
@@ -119,30 +121,41 @@ public class DD1HomeFragment extends Fragment {
             android.Manifest.permission.WRITE_EXTERNAL_STORAGE});
     }
 
-    // The game goes to phone storage by default, which takes the storage
-    // permission. Refused, it goes inside the app rather than nowhere.
-    //
-    // Without the permission DD1/game cannot be seen, so a reinstall, or the
-    // build beside Winlator, offers a download over a game already there. Once
-    // access is granted it is looked for again and used if it is whole.
+    // The game goes inside the app. Storage access is still asked for first:
+    // mods and replacement files are dropped in DD1/mods and DD1/overrides, and
+    // without it DD1/game cannot be seen either, so a reinstall - or an install
+    // from 0.1.13 or 0.1.14 - would download 4 GB over a game already there.
+    // Found whole, that game is used where it is, and the home screen offers to
+    // bring it inside. Refused, the download goes ahead all the same.
     private void startDownload() {
         Context context = requireContext();
-        if (!DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(context))) {
-            startJob(DD1InstallService::download);
+        if (DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(context)) || !hasStorage()) {
+            withStorage(granted -> {
+                if (!granted && DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(context))) {
+                    DD1GameLocation.choose(context, DD1GameLocation.APP);
+                    Toast.makeText(context, R.string.dd1_storage_denied, Toast.LENGTH_LONG).show();
+                }
+                else if (granted && useGameAlreadyThere(context)) return;
+                startJob(DD1InstallService::download);
+            });
             return;
         }
-        withStorage(granted -> {
-            if (!granted) {
-                DD1GameLocation.choose(context, DD1GameLocation.APP);
-                Toast.makeText(context, R.string.dd1_storage_denied, Toast.LENGTH_LONG).show();
-            }
-            else if (DD1Game.findExecutable(DD1GameLocation.root(context)) != null) {
-                Toast.makeText(context, R.string.dd1_storage_found_game, Toast.LENGTH_LONG).show();
-                refresh();
-                return;
-            }
-            startJob(DD1InstallService::download);
-        });
+        if (useGameAlreadyThere(context)) return;
+        startJob(DD1InstallService::download);
+    }
+
+    // A whole game where the launcher looks, or in DD1/game when it looks inside
+    // the app and finds nothing, is used rather than fetched again: a retry after
+    // a move that ran out of room must not put 4 GB over the game it was moving.
+    private boolean useGameAlreadyThere(Context context) {
+        if (DD1Game.findExecutable(DD1GameLocation.root(context)) == null) {
+            if (DD1Game.findExecutable(DD1GameLocation.storageRoot()) == null) return false;
+            DD1GameLocation.choose(context, DD1GameLocation.STORAGE);
+        }
+        if (DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(context)))
+            Toast.makeText(context, R.string.dd1_storage_found_game, Toast.LENGTH_LONG).show();
+        refresh();
+        return true;
     }
 
     private void startJob(java.util.function.Predicate<DD1InstallService> job) {
@@ -313,7 +326,17 @@ public class DD1HomeFragment extends Fragment {
 
         switch (state) {
             case READY:
-                status.setText(R.string.dd1_status_ready);
+                // A game left in DD1/game by 0.1.13 or 0.1.14 takes minutes to
+                // change scenes (issue #4); the way out is offered where Play is.
+                if (DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(activity))) {
+                    status.setText(R.string.dd1_status_ready_storage);
+                    status.setOnClickListener(v -> confirmMoveIntoApp());
+                }
+                else {
+                    status.setText(R.string.dd1_status_ready);
+                    status.setOnClickListener(null);
+                    status.setClickable(false);
+                }
                 primary.setText(R.string.dd1_play);
                 primary.setOnClickListener(v -> launch(activity, container, executable));
                 break;
@@ -365,7 +388,11 @@ public class DD1HomeFragment extends Fragment {
         setInstallPanelFills(snapshot.phase != DD1InstallPhase.DOWNLOADING
             && snapshot.phase != DD1InstallPhase.VERIFYING);
         rootView.findViewById(R.id.BTPrimaryAction).setVisibility(View.GONE);
-        ((TextView)rootView.findViewById(R.id.TVStatus)).setText(snapshot.message);
+        TextView status = rootView.findViewById(R.id.TVStatus);
+        status.setText(snapshot.message);
+        // Only the ready screen's storage warning answers a tap.
+        status.setOnClickListener(null);
+        status.setClickable(false);
 
         int[] controls = {R.id.IVSteamQr, R.id.BTSteamLogin, R.id.ETSteamAccount,
             R.id.ETSteamPassword, R.id.BTSteamCredentials, R.id.BTDownload,
@@ -465,8 +492,9 @@ public class DD1HomeFragment extends Fragment {
     }
 
     // In phone storage the game is a folder like any other, so it opens in the
-    // phone's own file manager. Inside the app no file manager can reach it: the
-    // offer is to move it out, or the runtime's Windows file manager.
+    // phone's own file manager. Inside the app no file manager can reach it, so
+    // what opens is DD1/overrides, whose files are laid over the game at Play,
+    // or the runtime's Windows file manager, which sees the game itself.
     private void openGameFiles() {
         Context context = requireContext();
         if (DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(context))) {
@@ -476,23 +504,54 @@ public class DD1HomeFragment extends Fragment {
         new AlertDialog.Builder(context, R.style.DD1Dialog)
             .setTitle(R.string.dd1_game_files_in_app_title)
             .setMessage(R.string.dd1_game_files_in_app_message)
-            .setPositiveButton(R.string.dd1_game_files_move, (dialog, which) -> moveToStorage())
+            .setPositiveButton(R.string.dd1_game_files_overrides, (dialog, which) -> openOverrides())
             .setNeutralButton(R.string.dd1_game_files_windows, (dialog, which) -> openWindowsFiles())
             .setNegativeButton(android.R.string.cancel, null)
             .show();
     }
 
-    private void moveToStorage() {
+    private void openOverrides() {
+        Context context = requireContext();
         withStorage(granted -> {
             if (!granted) {
-                Toast.makeText(requireContext(), R.string.dd1_storage_needed,
+                Toast.makeText(context, R.string.dd1_storage_needed_overrides,
                     Toast.LENGTH_LONG).show();
                 return;
             }
-            if (installService == null || !installService.moveGame(DD1GameLocation.STORAGE))
-                Toast.makeText(requireContext(), R.string.dd1_game_location_busy,
-                    Toast.LENGTH_LONG).show();
+            DD1Overrides.open(context);
         });
+    }
+
+    // A game left in DD1/game by 0.1.13 or 0.1.14 is brought inside on the first
+    // start after the update, so updating is all anyone has to do. Tried once per
+    // screen: refused storage access, too little room or a busy service leave
+    // the warning on the home screen, which offers the same move by hand, and the
+    // next start tries again. Too little room is judged from free space alone,
+    // so a phone that cannot take the copy is not walked through it every start.
+    private void moveInsideIfLeftOutside() {
+        Context context = getContext();
+        if (moveInsideTried || context == null || installService == null) return;
+        if (!DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(context))) return;
+        moveInsideTried = true;
+        withStorage(granted -> {
+            if (!granted || installService == null) return;
+            if (DD1Game.findExecutable(DD1GameLocation.root(context)) == null) return;
+            if (context.getFilesDir().getUsableSpace() < DD1GameLocation.ROOM_FOR_A_MOVE) return;
+            installService.moveGame(DD1GameLocation.APP);
+        });
+    }
+
+    private void confirmMoveIntoApp() {
+        new AlertDialog.Builder(requireContext(), R.style.DD1Dialog)
+            .setTitle(R.string.dd1_storage_slow_title)
+            .setMessage(R.string.dd1_storage_slow_message)
+            .setPositiveButton(R.string.dd1_game_location_to_app, (dialog, which) -> {
+                if (installService == null || !installService.moveGame(DD1GameLocation.APP))
+                    Toast.makeText(requireContext(), R.string.dd1_game_location_busy,
+                        Toast.LENGTH_LONG).show();
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
     }
 
     // A DLL that stops the game from starting must still be removable while the
@@ -640,7 +699,23 @@ public class DD1HomeFragment extends Fragment {
         password.getText().clear();
     }
 
+    // Mods dropped in DD1/mods and files in DD1/overrides are brought in first;
+    // Play stays off meanwhile so a second press cannot start the game twice.
     private void launch(Activity activity, Container container, File executable) {
+        if (installService == null) {
+            start(activity, container, executable);
+            return;
+        }
+        Button primary = rootView == null ? null : rootView.findViewById(R.id.BTPrimaryAction);
+        if (primary != null) primary.setEnabled(false);
+        installService.prepareForPlay(hasStorage(), () -> {
+            if (primary != null) primary.setEnabled(true);
+            if (getActivity() == activity && !activity.isFinishing())
+                start(activity, container, executable);
+        });
+    }
+
+    private void start(Activity activity, Container container, File executable) {
         // Before the game gets a chance to write, and only when the saves have
         // moved since the last one, because three slots are all there are.
         if (DD1SavePolicy.worthTaking(activity.getFilesDir()))

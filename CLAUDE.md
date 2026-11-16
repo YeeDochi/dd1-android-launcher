@@ -118,12 +118,19 @@ adb -s <serial> shell run-as com.winlator ls files    # game, staging, rootfs
 The unit tests run on Windows as well; the symlink test skips itself where the
 host will not make one.
 
-The game can live in shared storage (`DD1/game`, the default for new installs) or
-in the app (`files/game`, where installs from before stay, and where a download
-goes if storage access is refused). The choice is made once and remembered
-(`DD1GameLocation.chosen`); settings and "open game files" move it. With the game
-in storage and no custom mods folder, `DD1/game/mods` is the mods folder and the
-`DD1/mods` copy step is skipped (`DD1InstallService.modsInGame`).
+The game lives in the app (`files/game`, the default again from 0.1.15) or in
+shared storage (`DD1/game`, the default in 0.1.13 and 0.1.14). **Shared storage is
+unplayably slow**: every file the game opens goes through Android's storage layer,
+and a dungeon or the hamlet opens thousands - minutes per scene change on an S22
+and an S25+ (issue #4), seconds inside the app. A title-screen timing (27s against
+40s) hid it. So what a person must reach goes outside on its own: mods in
+`DD1/mods`, copied in when Play is pressed and when the mod screen opens, and
+replacement files and DLLs in `DD1/overrides`, laid over the game at Play with the
+originals kept and put back (`DD1Overrides`). The choice is made once and
+remembered (`DD1GameLocation.chosen`); a whole game already in `DD1/game` is used
+where it is until the next start moves it inside (`DD1HomeFragment.moveInsideIfLeftOutside`); the settings no longer offer a move out. With the game in storage
+and no custom mods folder, `DD1/game/mods` is the mods folder and the `DD1/mods`
+copy step is skipped (`DD1InstallService.modsInGame`).
 `DD1GameLocation.root` is the directory that
 holds `game/`, `staging/`, the Workshop and import staging and the DLC version
 record, and every one of those is reached through it - never through

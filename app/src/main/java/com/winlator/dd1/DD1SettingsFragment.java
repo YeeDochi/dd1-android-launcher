@@ -55,9 +55,12 @@ public class DD1SettingsFragment extends Fragment {
             new androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions(),
             granted -> {
                 if (Boolean.TRUE.equals(granted.get(
-                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE))
-                        && pendingLocation != null) confirmMove(pendingLocation);
-                else android.widget.Toast.makeText(requireContext(), R.string.dd1_storage_needed,
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE))) {
+                    if (pendingLocation == null) DD1Overrides.open(requireContext());
+                    else confirmMove(pendingLocation);
+                }
+                else android.widget.Toast.makeText(requireContext(), pendingLocation == null
+                    ? R.string.dd1_storage_needed_overrides : R.string.dd1_storage_needed,
                     android.widget.Toast.LENGTH_LONG).show();
             });
     private int section;
@@ -147,9 +150,10 @@ public class DD1SettingsFragment extends Fragment {
             : value.data;
     }
 
-    // Where the game is, and the one thing to do about it. A radio button here
-    // dressed a 4 GB copy up as a preference, and had to undo itself whenever the
-    // copy was refused or cancelled.
+    // Where the game is, and the one thing to do about it. There is one
+    // direction only: in phone storage the game took minutes per scene change
+    // (issue #4), and what people kept it there for - mods and DLLs - now goes in
+    // DD1/mods and DD1/overrides. Inside the app the button opens DD1/overrides.
     private void buildGameLocation(View view) {
         boolean inStorage = DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(requireContext()));
         ((TextView)view.findViewById(R.id.TVGameLocation)).setText(inStorage
@@ -157,15 +161,22 @@ public class DD1SettingsFragment extends Fragment {
                 DD1GameLocation.gameDir(requireContext()).getPath())
             : getString(R.string.dd1_game_location_here_app));
         Button move = view.findViewById(R.id.BTGameLocationMove);
-        move.setText(inStorage ? R.string.dd1_game_location_to_app
-            : R.string.dd1_game_location_to_storage);
-        move.setOnClickListener(v -> requestMove(inStorage
-            ? DD1GameLocation.APP : DD1GameLocation.STORAGE));
-        View open = view.findViewById(R.id.BTGameLocationOpen);
-        open.setVisibility(inStorage ? View.VISIBLE : View.GONE);
-        open.setOnClickListener(v -> DD1FileManager.open(requireContext(),
-            DD1GameLocation.gameDir(requireContext())));
+        move.setVisibility(inStorage ? View.VISIBLE : View.GONE);
+        move.setText(R.string.dd1_game_location_to_app);
+        move.setOnClickListener(v -> requestMove(DD1GameLocation.APP));
+        Button open = view.findViewById(R.id.BTGameLocationOpen);
+        open.setVisibility(View.VISIBLE);
+        if (inStorage) {
+            open.setText(R.string.dd1_workshop_folder_open);
+            open.setOnClickListener(v -> DD1FileManager.open(requireContext(),
+                DD1GameLocation.gameDir(requireContext())));
+        }
+        else {
+            open.setText(R.string.dd1_game_files_overrides);
+            open.setOnClickListener(v -> requestMove(null));
+        }
     }
+
 
     // Either way the move reads or writes phone storage, so the permission comes
     // first; the move carries on once it is granted.
@@ -178,7 +189,8 @@ public class DD1SettingsFragment extends Fragment {
                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE});
             return;
         }
-        confirmMove(location);
+        if (location == null) DD1Overrides.open(requireContext());
+        else confirmMove(location);
     }
 
     private void confirmMove(String location) {

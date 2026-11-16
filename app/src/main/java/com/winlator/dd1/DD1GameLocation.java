@@ -11,11 +11,14 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 // Where the game lives. Inside the app it is safe and fast, and nothing but the
-// app can reach it - which is the complaint: Darkest Dungeon is modded by
-// editing its files, and a DLL or a patched script has to go where the game
-// is. In the phone's storage it sits at DD1/game, where any file manager can
-// open it, it outlives the app being removed, and the build that installs
-// beside Winlator can use the same copy instead of downloading 4 GB again.
+// app can reach it. In the phone's storage it sits at DD1/game, where any file
+// manager can open it - but every file the game opens there goes through
+// Android's shared-storage layer, and a dungeon or the hamlet opens thousands.
+// On an S22 and an S25+ a scene change took minutes, up to twenty (issue #4),
+// against seconds inside the app. So the game stays inside the app, and what a
+// person has to reach goes outside on its own: mods in DD1/mods, copied in, and
+// replacement files and DLLs in DD1/overrides, laid over the game at Play
+// (DD1Overrides).
 //
 // What moves is everything that describes the install: the game tree, the
 // download and import staging beside it (a rename cannot cross between the two
@@ -28,21 +31,24 @@ public final class DD1GameLocation {
 
     private DD1GameLocation() {}
 
-    // Phone storage unless an install already sits inside the app: moving it
-    // would copy 4 GB nobody asked to move. Decided once and remembered, so a
-    // game deleted later does not quietly change where the next one goes.
+    // Inside the app, unless the app holds nothing and a whole game already sits
+    // in DD1/game - a reinstall, or an install from 0.1.13 or 0.1.14 - which is
+    // used where it is rather than downloaded again; the home screen then offers
+    // to bring it in. Decided once and remembered, so a game deleted later does
+    // not quietly change where the next one goes.
     public static String chosen(Context context) {
         String chosen = context.getSharedPreferences("dd1", Context.MODE_PRIVATE)
             .getString(KEY, null);
         if (chosen != null) return chosen;
-        String decided = defaultFor(context.getFilesDir());
+        String decided = defaultFor(context.getFilesDir(), storageRoot());
         choose(context, decided);
         return decided;
     }
 
-    static String defaultFor(File appFiles) {
-        return new File(appFiles, "game").exists() || new File(appFiles, "staging").exists()
-            ? APP : STORAGE;
+    static String defaultFor(File appFiles, File storage) {
+        if (new File(appFiles, "game").exists() || new File(appFiles, "staging").exists())
+            return APP;
+        return DD1Game.validate(new File(storage, "game")).valid ? STORAGE : APP;
     }
 
     static void choose(Context context, String location) {
@@ -67,6 +73,20 @@ public final class DD1GameLocation {
 
     public static File gameDir(Context context) {
         return new File(root(context), "game");
+    }
+
+    // A whole game with every DLC is about 3.7 GB. Below this much free space
+    // the move is not tried on its own: sizing the old copy first means walking
+    // thousands of files through Android's storage layer, only to say no.
+    public static final long ROOM_FOR_A_MOVE = 4L * 1024 * 1024 * 1024 + DD1Workshop.KEEP_FREE_BYTES;
+
+    public static final class NoRoom extends IOException {
+        public final long needed;
+
+        NoRoom(long needed) {
+            super("Not enough free space: moving the game needs " + (needed / (1024 * 1024)) + " MB");
+            this.needed = needed;
+        }
     }
 
     public interface Progress {
@@ -102,8 +122,7 @@ public final class DD1GameLocation {
             long total = size(source);
             long room = to.getUsableSpace();
             if (room < total + DD1Workshop.KEEP_FREE_BYTES)
-                throw new IOException("Not enough free space: moving the game needs "
-                    + (total / (1024 * 1024)) + " MB");
+                throw new NoRoom(total + DD1Workshop.KEEP_FREE_BYTES);
             long[] done = {0};
             try {
                 copy(source, side, done, total, progress, stop);
@@ -123,11 +142,16 @@ public final class DD1GameLocation {
     }
 
     // What the move left behind at the old place: the game and the partial
-    // downloads and imports that cannot follow it.
-    static void clearSource(File from) throws IOException {
-        delete(new File(from, "game"));
-        for (String name : new String[] {"staging", "workshop-staging", "local-import-staging"})
-            delete(new File(from, name));
+    // downloads and imports that cannot follow it. In phone storage every file
+    // removed is a round trip through Android's storage layer, and a game is
+    // thousands of files: on an S22 this ran for minutes after the copy had
+    // reached 100%, with nothing on screen to say the move was still going. So
+    // each file removed is reported. The count runs up without a total: finding
+    // the total would walk the same slow tree once more before removing a thing.
+    static void clearSource(File from, Progress progress) throws IOException {
+        long[] done = {0};
+        for (String name : new String[] {"game", "staging", "workshop-staging", "local-import-staging"})
+            delete(new File(from, name), done, progress);
         new File(from, DD1DlcVersions.FILE).delete();
     }
 
@@ -187,12 +211,17 @@ public final class DD1GameLocation {
     }
 
     static void delete(File file) throws IOException {
+        delete(file, new long[] {0}, (done, total) -> {});
+    }
+
+    private static void delete(File file, long[] done, Progress progress) throws IOException {
         if (!file.exists() && !java.nio.file.Files.isSymbolicLink(file.toPath())) return;
         if (file.isDirectory() && !java.nio.file.Files.isSymbolicLink(file.toPath())) {
             File[] children = file.listFiles();
             if (children == null) throw new IOException("Cannot read " + file);
-            for (File child : children) delete(child);
+            for (File child : children) delete(child, done, progress);
         }
         if (!file.delete()) throw new IOException("Cannot delete " + file);
+        if (++done[0] % 50 == 0) progress.copied(done[0], 0);
     }
 }

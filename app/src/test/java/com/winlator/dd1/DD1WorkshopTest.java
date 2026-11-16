@@ -244,6 +244,34 @@ public class DD1WorkshopTest {
         assertTrue(new File(files, "game/mods/42").isDirectory());
     }
 
+    @Test
+    public void aFolderModEditedSinceItWasCopiedReadsAsChanged() throws Exception {
+        File files = folder.newFolder();
+        File dropped = folder.newFolder("My Mod");
+        File project = new File(dropped, "project.xml");
+        Files.write(project.toPath(), "<Project/>".getBytes(StandardCharsets.UTF_8));
+        staged(files, "My Mod");
+
+        // Copied in before stamps existed: adopted as it is, not copied again.
+        String before = DD1Workshop.stamp(dropped);
+        assertFalse(DD1Workshop.changedSince(files, "My Mod", before));
+        assertFalse(DD1Workshop.changedSince(files, "My Mod", before));
+
+        Files.write(project.toPath(), "<Project>edited</Project>".getBytes(StandardCharsets.UTF_8));
+        assertTrue(DD1Workshop.changedSince(files, "My Mod", DD1Workshop.stamp(dropped)));
+
+        DD1Workshop.writeStamp(files, "My Mod", DD1Workshop.stamp(dropped));
+        assertFalse(DD1Workshop.changedSince(files, "My Mod", DD1Workshop.stamp(dropped)));
+    }
+
+    @Test
+    public void aModNotFromTheFolderIsNeverReadAsChanged() throws Exception {
+        File files = folder.newFolder();
+        DD1Workshop.importZip(files, new ByteArrayInputStream(zip("project.xml", "<Project/>")),
+            "By hand.zip", false);
+        assertFalse(DD1Workshop.changedSince(files, "By hand.zip", "1:2:3"));
+    }
+
     private static void staged(File files, String name) throws Exception {
         File staging = DD1Workshop.importStaging(files);
         touch(new File(staging, "project.xml"));

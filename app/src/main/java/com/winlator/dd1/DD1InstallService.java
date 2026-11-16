@@ -442,45 +442,102 @@ public final class DD1InstallService extends Service {
 
     private void importModFolder(DocumentFile root, boolean announce) {
         if (root == null || (announce ? refuseWhileBusy() : busy())) return;
-        worker.execute(() -> {
-            try {
-                if (!root.isDirectory()) throw new IOException("Cannot read " + dropFolder());
-                int taken = 0;
-                String lastFailure = null;
-                HashSet<String> present = new HashSet<>();
-                for (DocumentFile child : root.listFiles()) {
-                    String name = child.getName();
-                    if (name == null || name.startsWith(".")
-                            || !(child.isDirectory() || isZip(name))) continue;
-                    present.add(DD1Workshop.installedName(name));
-                    // Already installed is not a failure: there is nothing to do,
-                    // which is the same thing as having done it.
-                    if (DD1Workshop.alreadyInstalled(gameRoot(), name)) continue;
-                    try {
-                        importDocument(child, name);
-                        workshopLog.append("Imported " + name);
-                        taken++;
-                    }
-                    catch (Exception one) {
-                        lastFailure = name + ": " + reason(one);
-                        workshopLog.append(lastFailure);
-                    }
+        worker.execute(() -> syncModFolder(root, announce));
+    }
+
+    // On the worker, or on the thread preparing a launch while the worker is idle.
+    private void syncModFolder(DocumentFile root, boolean announce) {
+        try {
+            if (!root.isDirectory()) throw new IOException("Cannot read " + dropFolder());
+            int taken = 0;
+            String lastFailure = null;
+            HashSet<String> present = new HashSet<>();
+            for (DocumentFile child : root.listFiles()) {
+                String name = child.getName();
+                if (name == null || name.startsWith(".")
+                        || !(child.isDirectory() || isZip(name))) continue;
+                String directoryName = DD1Workshop.installedName(name);
+                present.add(directoryName);
+                File source = fileOf(child);
+                String stamp = source == null ? null : DD1Workshop.stamp(source);
+                boolean installed = DD1Workshop.alreadyInstalled(gameRoot(), name);
+                // Already installed and unchanged is not a failure: there is
+                // nothing to do, which is the same thing as having done it.
+                if (installed && (stamp == null
+                        || !DD1Workshop.changedSince(gameRoot(), name, stamp))) continue;
+                try {
+                    // Edited in the folder since it was copied in: the copy is
+                    // replaced, and stays switched off if it was.
+                    boolean disabled = installed
+                        && DD1Workshop.isDisabled(gameRoot(), directoryName);
+                    if (installed) DD1Workshop.delete(gameRoot(), directoryName, disabled);
+                    importDocument(child, name);
+                    if (disabled) DD1Workshop.disable(gameRoot(), directoryName);
+                    if (stamp != null) DD1Workshop.writeStamp(gameRoot(), directoryName, stamp);
+                    workshopLog.append((installed ? "Updated " : "Imported ") + name);
+                    taken++;
                 }
-                int gone = 0;
-                for (String removed : DD1Workshop.removeMissingFromFolder(gameRoot(), present)) {
-                    workshopLog.append("Removed " + removed);
-                    gone++;
+                catch (Exception one) {
+                    lastFailure = name + ": " + reason(one);
+                    workshopLog.append(lastFailure);
                 }
-                if (taken > 0 || gone > 0) publishWorkshop(joinedWorkshop());
-                else if (lastFailure != null) publishWorkshop(joinedWorkshop().failed(lastFailure));
-                else if (announce) publishWorkshop(joinedWorkshop()
-                    .failed(getString(R.string.dd1_workshop_import_none)));
             }
-            catch (Exception error) {
-                if (announce) publishWorkshop(joinedWorkshop().failed(reason(error)));
-                else workshopLog.append(reason(error));
+            int gone = 0;
+            for (String removed : DD1Workshop.removeMissingFromFolder(gameRoot(), present)) {
+                workshopLog.append("Removed " + removed);
+                gone++;
             }
-        });
+            if (taken > 0 || gone > 0) publishWorkshop(joinedWorkshop());
+            else if (lastFailure != null) publishWorkshop(joinedWorkshop().failed(lastFailure));
+            else if (announce) publishWorkshop(joinedWorkshop()
+                .failed(getString(R.string.dd1_workshop_import_none)));
+        }
+        catch (Exception error) {
+            if (announce) publishWorkshop(joinedWorkshop().failed(reason(error)));
+            else workshopLog.append(reason(error));
+        }
+    }
+
+    // The folder is read as plain files (DocumentFile.fromFile), so its entries
+    // have paths; anything else has none to take a stamp from.
+    private static File fileOf(DocumentFile document) {
+        android.net.Uri uri = document.getUri();
+        return "file".equals(uri.getScheme()) && uri.getPath() != null ? new File(uri.getPath()) : null;
+    }
+
+    // Before Play: what was dropped in DD1/mods since the mods screen was last
+    // open is brought in, and DD1/overrides is laid over the game, so a mod or a
+    // DLL put in place with a file manager applies on this launch rather than
+    // after a visit to a screen. Both need storage access; without it the game
+    // starts as it is. The worker runs it when it is free, so the copy cannot
+    // cross a Workshop sync; while a download holds the worker, only the
+    // overrides are laid down, on a thread of their own.
+    public void prepareForPlay(boolean storage, Runnable then) {
+        Handler main = new Handler(android.os.Looper.getMainLooper());
+        Runnable work = () -> {
+            if (storage) {
+                if (!modsInGame() && !busy()) {
+                    File folder = dropFolder();
+                    if (folder.isDirectory()) syncModFolder(DocumentFile.fromFile(folder), false);
+                }
+                try {
+                    DD1Overrides.Result result = DD1Overrides.apply(DD1Overrides.folder(),
+                        DD1GameLocation.gameDir(this));
+                    for (String path : result.applied) log.append("Override laid down: " + path);
+                    for (String path : result.restored) log.append("Override removed: " + path);
+                    for (String path : result.skipped) log.append("Override skipped: " + path);
+                    for (String path : result.lost)
+                        log.append("Override removed, but the game's own copy was missing: " + path
+                            + " - check the game files to bring it back");
+                }
+                catch (Exception error) {
+                    log.append("Overrides not applied: " + reason(error));
+                }
+            }
+            main.post(then);
+        };
+        if (busy()) new Thread(work, "dd1-prepare-play").start();
+        else worker.execute(work);
     }
 
     private void importDocument(DocumentFile document, String name) throws IOException {
@@ -599,8 +656,16 @@ public final class DD1InstallService extends Service {
             File from = gameRoot();
             DD1GameLocation.choose(this, location);
             if (DD1GameLocation.STORAGE.equals(location)) DD1GameLocation.hideFromMedia(to);
+            // The game is already where it is going and is recorded there; what
+            // is left is removing the old copy, which is said in so many words
+            // rather than leaving the bar sitting at 100%. Shown as the stage
+            // that cannot be cancelled: the move is done, and stopping here
+            // would only leave the old files taking up the space.
             try {
-                DD1GameLocation.clearSource(from);
+                DD1GameLocation.clearSource(from, (removed, total) -> publish(
+                    new DD1InstallSnapshot(DD1InstallPhase.VERIFYING, 0, 0, 0,
+                        getString(R.string.dd1_state_clearing_old, removed), null, null,
+                        log.visibleLines())));
             }
             catch (IOException leftover) {
                 log.append("Could not remove the old copy: " + reason(leftover));
@@ -608,6 +673,10 @@ public final class DD1InstallService extends Service {
             log.append(getString(R.string.dd1_state_moved) + ": " + new File(to, "game"));
             publish(new DD1InstallSnapshot(DD1InstallPhase.READY, 0, 0, 0,
                 getString(R.string.dd1_state_moved), null, null, log.visibleLines()));
+        }
+        catch (DD1GameLocation.NoRoom noRoom) {
+            if (!stopped.getAsBoolean()) publish(errorSnapshot(getString(R.string.dd1_move_no_room,
+                noRoom.needed / (1024 * 1024 * 1024.0))));
         }
         catch (Throwable error) {
             if (!stopped.getAsBoolean()) publish(errorSnapshot(reason(error)));
