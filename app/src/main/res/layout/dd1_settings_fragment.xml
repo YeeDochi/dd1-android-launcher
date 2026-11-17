@@ -159,6 +159,13 @@
                     <TextView style="@style/DD1Meta" android:text="@string/dd1_runtime_menu_hint" />
                 </LinearLayout>
                 <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <Switch android:id="@+id/CBDiagnosticLogs" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:minHeight="44dp"
+                        android:text="@string/dd1_diagnostic_logs"
+                        android:textColor="?attr/colorPrimaryText" android:textSize="15sp" />
+                    <TextView style="@style/DD1Meta" android:text="@string/dd1_diagnostic_logs_hint" />
+                </LinearLayout>
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
                     <TextView style="@style/DD1SectionTitle" android:layout_marginTop="0dp"
                         android:text="@string/dd1_open_source" />
                     <TextView android:id="@+id/TVOpenSource" style="@style/DD1Meta"

@@ -537,7 +537,9 @@ public class DD1HomeFragment extends Fragment {
             if (!granted || installService == null) return;
             if (DD1Game.findExecutable(DD1GameLocation.root(context)) == null) return;
             if (context.getFilesDir().getUsableSpace() < DD1GameLocation.ROOM_FOR_A_MOVE) return;
-            installService.moveGame(DD1GameLocation.APP);
+            // Refused while a download or a check is running: try again the next
+            // time the service connects, rather than never in this session.
+            if (!installService.moveGame(DD1GameLocation.APP)) moveInsideTried = false;
         });
     }
 
@@ -723,6 +725,7 @@ public class DD1HomeFragment extends Fragment {
 
         File gameDir = DD1GameLocation.gameDir(activity);
         mapGameDrive(activity, container);
+        DD1Diagnostics.beforePlay(activity, container);
 
         File system32 = new File(container.getRootDir(), ".wine/drive_c/windows/system32");
         File redist = DD1Game.pendingRedistributable(gameDir, system32);

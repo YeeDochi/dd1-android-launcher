@@ -107,6 +107,7 @@ public class DD1SettingsFragment extends Fragment {
             view.findViewById(R.id.TVResolutionHint));
         buildBox64Preset(view.findViewById(R.id.CBBox64Performance));
         buildRuntimeMenu(view.findViewById(R.id.CBRuntimeMenu));
+        buildDiagnosticLogs(view.findViewById(R.id.CBDiagnosticLogs));
         buildCpuBudget(view.findViewById(R.id.RGCpuBudget));
         buildRefreshRate(view.findViewById(R.id.RGRefreshRate));
         buildGraphicsDriver(view.findViewById(R.id.RGGraphicsDriver));
@@ -287,6 +288,7 @@ public class DD1SettingsFragment extends Fragment {
         if (pair.equals(DD1GraphicsChoice.AUTOMATIC)) return R.string.dd1_graphics_auto;
         if (pair.equals("turnip,gladio")) return R.string.dd1_graphics_turnip_gladio;
         if (pair.equals("turnip,zink")) return R.string.dd1_graphics_turnip_zink;
+        if (pair.equals("vortek,zink")) return R.string.dd1_graphics_vortek_zink;
         if (pair.equals("vortek,virgl")) return R.string.dd1_graphics_vortek_virgl;
         return R.string.dd1_graphics_vortek_gladio;
     }
@@ -298,6 +300,8 @@ public class DD1SettingsFragment extends Fragment {
             return getString(R.string.dd1_graphics_turnip_gladio_hint);
         if (pair.equals("turnip,zink"))
             return getString(R.string.dd1_graphics_turnip_zink_hint);
+        if (pair.equals("vortek,zink"))
+            return getString(R.string.dd1_graphics_vortek_zink_hint);
         if (pair.equals("vortek,virgl"))
             return getString(R.string.dd1_graphics_vortek_virgl_hint);
         return getString(R.string.dd1_graphics_vortek_gladio_hint);
@@ -364,6 +368,33 @@ public class DD1SettingsFragment extends Fragment {
         toggle.setChecked(DD1RuntimeMenu.enabled(requireContext()));
         toggle.setOnCheckedChangeListener((ignored, checked) ->
             DD1RuntimeMenu.setEnabled(requireContext(), checked));
+    }
+
+    // The log is written to DD1/logs, so it needs the storage permission; asked
+    // for here, where the switch is turned on, rather than at Play, where a
+    // refusal would be silent.
+    private android.widget.CompoundButton diagnosticToggle;
+    private final androidx.activity.result.ActivityResultLauncher<String> storageForLogs =
+        registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+            granted -> {
+                if (getContext() == null) return;
+                DD1Diagnostics.setEnabled(requireContext(), granted);
+                if (diagnosticToggle != null) diagnosticToggle.setChecked(granted);
+            });
+
+    private void buildDiagnosticLogs(android.widget.CompoundButton toggle) {
+        diagnosticToggle = toggle;
+        toggle.setChecked(DD1Diagnostics.enabled(requireContext()));
+        toggle.setOnCheckedChangeListener((ignored, checked) -> {
+            if (checked && androidx.core.content.ContextCompat.checkSelfPermission(requireContext(),
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                storageForLogs.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                return;
+            }
+            DD1Diagnostics.setEnabled(requireContext(), checked);
+        });
     }
 
     private void buildCpuBudget(RadioGroup group) {

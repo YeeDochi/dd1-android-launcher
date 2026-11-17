@@ -25,6 +25,9 @@ public abstract class DD1GraphicsChoice {
     public static final List<String> PAIRS = Collections.unmodifiableList(Arrays.asList(
         GraphicsDrivers.TURNIP + "," + GraphicsDrivers.GLADIO,
         GraphicsDrivers.TURNIP + "," + GraphicsDrivers.ZINK,
+        // For an Adreno that Turnip serves badly: Qualcomm's own driver under Zink
+        // was the best of every pair on a Galaxy S26 Ultra (issue #5).
+        GraphicsDrivers.VORTEK + "," + GraphicsDrivers.ZINK,
         GraphicsDrivers.VORTEK + "," + GraphicsDrivers.VIRGL,
         GraphicsDrivers.VORTEK + "," + GraphicsDrivers.GLADIO));
 

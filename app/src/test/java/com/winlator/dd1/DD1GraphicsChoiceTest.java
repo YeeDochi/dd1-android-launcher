@@ -43,4 +43,15 @@ public class DD1GraphicsChoiceTest {
         assertTrue(DD1GraphicsChoice.PAIRS.contains("turnip,gladio"));
         assertTrue(DD1GraphicsChoice.PAIRS.contains("vortek,virgl"));
     }
+
+    // Offered for an Adreno that Turnip serves badly (issue #5), and only offered:
+    // the automatic answer for an Adreno stays Turnip.
+    @Test
+    public void qualcommsOwnDriverUnderZinkCanBeChosenButIsNotTheDefault() {
+        assertTrue(DD1GraphicsChoice.PAIRS.contains("vortek,zink"));
+        assertEquals("vortek,zink",
+            DD1GraphicsChoice.resolve("vortek,zink", "Adreno (TM) 840"));
+        assertEquals("turnip,gladio",
+            DD1GraphicsChoice.resolve(null, "Adreno (TM) 840"));
+    }
 }
