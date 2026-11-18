@@ -72,6 +72,23 @@ back untouched when the id is `com.winlator`, and the defines fall through to
 upstream's. Switching between the two builds reconfigures CMake; if a native
 library still carries the other path, delete `app/.cxx` and build again.
 
+## Upstream edit 3: how the renderers wait on their ring buffers
+
+`cpp/winlator/include/events.h`, `busyWait`, marked `dd1`. The guest's GL and
+Vulkan calls reach Gladio and Vortek through shared-memory ring buffers, and
+each side waits for the other there hundreds of times a frame. Upstream gives
+the core away with `thrd_yield()` on every turn; under the EEVDF scheduler of
+Linux 6.6 and later (the Galaxy S26 Ultra runs 6.12) a yielding thread waits
+behind anything else runnable on its core, and Darkest Dungeon dropped to
+~22 FPS on screens it draws at ~200 when nothing else was awake (issue #5).
+On arm64 the wait now spins on `isb` for up to 50 microseconds, timed by the
+generic timer, then sleeps 100 microseconds per turn as upstream did after its
+500 yields. Other architectures keep upstream's loop.
+
+Only the renderer side lives in this repository. The guest side of the same
+handshake is Gladio's `libGL` in the rootfs archive, a binary that still
+yields.
+
 ## Procedure
 
 1. Check out the new upstream release next to this repository.

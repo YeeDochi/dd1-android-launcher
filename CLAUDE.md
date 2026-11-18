@@ -48,6 +48,9 @@ edits**, except:
   (unpacked files go through `DD1Relocation`), `AppUtils.INTERNAL_STORAGE`,
   the FileProvider authority in `FileUtils`, and the path defines in
   `gladio.h`, `vortek.h` and `winlator.h`; `docs/RUNTIME_UPDATE.md` lists them
+- `busyWait` in `cpp/winlator/include/events.h`, marked `dd1`: the renderers'
+  ring-buffer wait spins briefly instead of yielding, which the EEVDF
+  scheduler punishes (issue #5); `docs/RUNTIME_UPDATE.md` explains it
 
 `docs/RUNTIME_UPDATE.md` describes how to take a new Winlator release. If the
 launcher needs behaviour the runtime does not offer, add it in
