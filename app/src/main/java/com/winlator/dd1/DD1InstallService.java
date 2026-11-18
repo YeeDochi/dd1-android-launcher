@@ -146,16 +146,16 @@ public final class DD1InstallService extends Service {
         if (!ownsGame) {
             if (snapshot.phase == DD1InstallPhase.RESTORING
                     || snapshot.phase == DD1InstallPhase.AUTHENTICATING) {
-                worker.execute(() -> publishWorkshop(joinedWorkshop().stillLoading()));
+                work(() -> publishWorkshop(joinedWorkshop().stillLoading()));
                 return;
             }
             String signIn = getString(R.string.dd1_workshop_sign_in);
-            worker.execute(() -> publishWorkshop(joinedWorkshop().failed(signIn)));
+            work(() -> publishWorkshop(joinedWorkshop().failed(signIn)));
             return;
         }
         if (workshopSnapshot.phase == DD1WorkshopSnapshot.Phase.SYNCING) return;
-        if (!keepTheList) worker.execute(() -> publishWorkshop(joinedWorkshop().stillLoading()));
-        steam.workshop().whenComplete((subscriptions, error) -> worker.execute(() -> {
+        if (!keepTheList) work(() -> publishWorkshop(joinedWorkshop().stillLoading()));
+        steam.workshop().whenComplete((subscriptions, error) -> work(() -> {
             if (error != null) {
                 publishWorkshop(joinedWorkshop().failed(reason(error)));
                 return;
@@ -189,7 +189,7 @@ public final class DD1InstallService extends Service {
         int generation = ++workshopBrowseGeneration;
         publishWorkshop(workshopSnapshot.browseLoading(query, sort, page));
         steam.browseWorkshop(query, sort, page).whenComplete((result, error) ->
-            worker.execute(() -> {
+            work(() -> {
                 if (generation != workshopBrowseGeneration) return;
                 if (error != null) {
                     publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
@@ -260,7 +260,7 @@ public final class DD1InstallService extends Service {
     public void unsubscribeWorkshop(long publishedFileId) {
         if (!ownsGame || refuseWhileBusy()) return;
         justSubscribed.remove(publishedFileId);
-        steam.unsubscribe(publishedFileId).whenComplete((ignored, error) -> worker.execute(() -> {
+        steam.unsubscribe(publishedFileId).whenComplete((ignored, error) -> work(() -> {
             if (error != null) {
                 publishWorkshop(workshopSnapshot.browseFailed(reason(error)));
                 return;
@@ -300,13 +300,13 @@ public final class DD1InstallService extends Service {
         syncingWorkshop = true;
         notificationTitle = R.string.dd1_notification_title_workshop;
         keepAlive(R.string.dd1_workshop_sync_notification);
-        worker.execute(() -> runWorkshop(items));
+        work(() -> runWorkshop(items));
     }
 
     public void deleteMod(String directoryName) {
         if (refuseWhileBusy()) return;
         DD1WorkshopSnapshot.Row row = workshopSnapshot.findDirectory(directoryName);
-        worker.execute(() -> {
+        work(() -> {
             try {
                 boolean fromFolder = DD1Workshop.cameFromFolder(gameRoot(), directoryName);
                 DD1Workshop.delete(gameRoot(), directoryName, row != null && row.disabled);
@@ -327,7 +327,7 @@ public final class DD1InstallService extends Service {
     public void importMod(Uri uri) {
         if (uri == null || refuseWhileBusy()) return;
         if (modsInGame()) {
-            worker.execute(() -> {
+            work(() -> {
                 try (InputStream input = getContentResolver().openInputStream(uri)) {
                     if (input == null) throw new IllegalStateException("Cannot open selected ZIP");
                     workshopLog.append("Imported "
@@ -340,7 +340,7 @@ public final class DD1InstallService extends Service {
             });
             return;
         }
-        worker.execute(() -> {
+        work(() -> {
             File folder = dropFolder();
             try (InputStream input = getContentResolver().openInputStream(uri)) {
                 if (input == null) throw new IllegalStateException("Cannot open selected ZIP");
@@ -389,7 +389,7 @@ public final class DD1InstallService extends Service {
             return;
         }
         if (refuseWhileBusy()) return;
-        worker.execute(() -> {
+        work(() -> {
             // The new folder is the whole answer to what is installed locally. What
             // the old one brought goes with it - the folder is the user's to manage,
             // and two folders' leftovers in one list is not a state anyone asked for.
@@ -443,7 +443,7 @@ public final class DD1InstallService extends Service {
 
     private void importModFolder(DocumentFile root, boolean announce) {
         if (root == null || (announce ? refuseWhileBusy() : busy())) return;
-        worker.execute(() -> syncModFolder(root, announce));
+        work(() -> syncModFolder(root, announce));
     }
 
     // On the worker, or on the thread preparing a launch while the worker is idle.
@@ -538,7 +538,7 @@ public final class DD1InstallService extends Service {
             main.post(then);
         };
         if (busy()) new Thread(work, "dd1-prepare-play").start();
-        else worker.execute(work);
+        else work(work);
     }
 
     private void importDocument(DocumentFile document, String name) throws IOException {
@@ -631,7 +631,7 @@ public final class DD1InstallService extends Service {
         // Steam sends every depot it has and the unwanted ones are deleted at
         // the end of the install - 530 MB fetched and thrown away on 2026-08-20.
         java.util.List<Integer> depots = steam.catalog().depotsFor(dlcSelection().selected());
-        worker.execute(() -> runDownload(depots, null, false, job));
+        work(() -> runDownload(depots, null, false, job));
         return true;
     }
 
@@ -642,7 +642,7 @@ public final class DD1InstallService extends Service {
         if (downloader != null || busy()) return false;
         if (location.equals(DD1GameLocation.chosen(this))) return true;
         int job = begin();
-        worker.execute(() -> runMove(location, job));
+        work(() -> runMove(location, job));
         return true;
     }
 
@@ -704,7 +704,7 @@ public final class DD1InstallService extends Service {
         if (downloader != null || busy()) return false;
         int job = begin();
         java.util.List<Integer> depots = steam.catalog().depotsFor(dlcSelection().selected());
-        worker.execute(() -> runDownload(depots, null, true, job));
+        work(() -> runDownload(depots, null, true, job));
         return true;
     }
 
@@ -728,7 +728,7 @@ public final class DD1InstallService extends Service {
             return true;
         }
         int job = begin();
-        worker.execute(() -> runDownload(depots, versions, false, job));
+        work(() -> runDownload(depots, versions, false, job));
         return true;
     }
 
@@ -770,7 +770,7 @@ public final class DD1InstallService extends Service {
     // Closing the Steam connection blocks, so it never runs on the caller's thread.
     public void signOut() {
         cancel();
-        worker.execute(steam::signOut);
+        work(steam::signOut);
     }
 
     public DD1DepotCatalog depotCatalog() {
@@ -778,7 +778,8 @@ public final class DD1InstallService extends Service {
     }
 
     public DD1CloudSaves cloudSaves() {
-        return new DD1CloudSaves(steam.cloud(), steam.cloudService());
+        return new DD1CloudSaves(steam.cloud(), steam.cloudService(),
+            new java.io.File(getFilesDir(), "dd1-cloud-open-batch"));
     }
 
     // Read once as soon as the account is in, so the saves screen opens on an
@@ -803,6 +804,7 @@ public final class DD1InstallService extends Service {
     private void prefetchCloud() {
         new Thread(() -> {
             for (int i = 0; i < 4; i++) {
+                if (i == 0) cloudSaves().closeAbandonedBatch();
                 DD1CloudListing listing = cloudSaves().list();
                 if (listing.known() && !listing.files().isEmpty()) {
                     cloudListing = listing;
@@ -972,7 +974,7 @@ public final class DD1InstallService extends Service {
 
     private void moveMod(String directoryName, boolean enable) {
         if (refuseWhileBusy()) return;
-        worker.execute(() -> {
+        work(() -> {
             try {
                 if (enable) DD1Workshop.enable(gameRoot(), directoryName);
                 else DD1Workshop.disable(gameRoot(), directoryName);
@@ -1038,6 +1040,19 @@ public final class DD1InstallService extends Service {
 
     public boolean canDownload() {
         return ownsGame;
+    }
+
+    // Steam answers on its own threads, and an answer can arrive after the
+    // service has been destroyed and its worker shut down - a sign-in finishing
+    // as the launcher closes. Handed to a closed executor it threw on the main
+    // thread and took the app down. There is nothing left to do with it.
+    private void work(Runnable task) {
+        try {
+            worker.execute(task);
+        }
+        catch (java.util.concurrent.RejectedExecutionException closed) {
+            android.util.Log.i("DD1Install", "Dropped work after the service closed");
+        }
     }
 
     @Override

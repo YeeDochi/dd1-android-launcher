@@ -71,6 +71,10 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_saves_busy">Wait for the save transfer that is running to finish</string>
     <string name="dd1_saves_status_up">%1$s → Steam Cloud  %2$d/%3$d</string>
     <string name="dd1_saves_status_down">Steam Cloud → %1$s  %2$d/%3$d</string>
+    <string name="dd1_saves_status_running">A transfer started earlier is still running…</string>
+    <string name="dd1_saves_status_finished">The earlier transfer has finished</string>
+    <string name="dd1_saves_skipped_empty">skipped: listed in the cloud with no content (an unfinished upload)</string>
+    <string name="dd1_saves_too_many_pending">Steam is still holding uploads that were cut off earlier and is not taking new ones yet. Nothing was changed; try again later.</string>
     <string name="dd1_saves_status_backup">Copying the saves to storage</string>
     <string name="dd1_saves_tab_manage">Saves</string>
     <string name="dd1_saves_refresh">Refresh</string>

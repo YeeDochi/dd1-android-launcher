@@ -1,6 +1,7 @@
 package com.winlator.dd1;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -96,6 +97,15 @@ public class DD1SaveSlotsTest {
     public void anUnknownCloudHasNothingStale() {
         assertTrue(DD1SaveSlots.staleInCloud(DD1CloudListing.unknown(), "profile_0",
             Collections.<String>emptySet(), Collections.<String>emptyList()).isEmpty());
+    }
+
+    // Only the game's backup copies may be skipped when Steam lists them with
+    // no content; a live file never is.
+    @Test
+    public void onlyTheBackupFolderCountsAsTheGamesBackup() {
+        assertTrue(DD1SaveSlots.isGameBackup("profile_0/backup/persist.roster.json"));
+        assertFalse(DD1SaveSlots.isGameBackup("profile_0/persist.roster.json"));
+        assertFalse(DD1SaveSlots.isGameBackup("persist.options.json"));
     }
 
     private static DD1SaveSummary.Entry entry(String path) {

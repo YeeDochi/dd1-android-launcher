@@ -84,6 +84,26 @@ public class DD1SaveSnapshotsTest {
         assertEquals(2, DD1SaveSnapshots.kept(files).size());
     }
 
+    // With the ring full, restoring the oldest snapshot takes a fourth first,
+    // and the prune that follows deleted the very snapshot being restored.
+    @Test
+    public void theOldestSnapshotOfAFullRingCanBeRestored() throws IOException {
+        File files = folder.newFolder();
+        save(files, "the save that was deleted");
+        File oldest = DD1SaveSnapshots.take(files, 1000L);
+        save(files, "second");
+        DD1SaveSnapshots.take(files, 2000L);
+        save(files, "third");
+        DD1SaveSnapshots.take(files, 3000L);
+        save(files, "what is there now");
+
+        assertTrue(DD1SaveSnapshots.restore(files, oldest));
+
+        assertEquals("the save that was deleted".length(),
+            new File(DD1Saves.root(files), "profile_0/persist.game.json").length());
+        assertEquals(DD1SaveSnapshots.KEPT, DD1SaveSnapshots.kept(files).size());
+    }
+
     @Test
     public void restoringSomethingThatIsNotASnapshotIsRefused() throws IOException {
         File files = folder.newFolder();

@@ -70,6 +70,10 @@
     <string name="dd1_saves_busy">진행 중인 세이브 작업이 끝날 때까지 기다려 주세요</string>
     <string name="dd1_saves_status_up">%1$s → Steam 클라우드  %2$d/%3$d</string>
     <string name="dd1_saves_status_down">Steam 클라우드 → %1$s  %2$d/%3$d</string>
+    <string name="dd1_saves_status_running">앞서 시작한 전송이 아직 진행 중입니다…</string>
+    <string name="dd1_saves_status_finished">앞서 시작한 전송이 끝났습니다</string>
+    <string name="dd1_saves_skipped_empty">건너뜀: 클라우드 목록에만 있고 내용이 없음 (끝나지 않은 업로드)</string>
+    <string name="dd1_saves_too_many_pending">앞서 중간에 끊긴 업로드를 Steam이 아직 붙잡고 있어서 새 업로드를 받지 않습니다. 바뀐 것은 없습니다. 잠시 뒤 다시 시도해 주세요.</string>
     <string name="dd1_saves_status_backup">세이브를 저장공간으로 복사하는 중</string>
     <string name="dd1_saves_tab_manage">세이브 관리</string>
     <string name="dd1_saves_refresh">새로고침</string>

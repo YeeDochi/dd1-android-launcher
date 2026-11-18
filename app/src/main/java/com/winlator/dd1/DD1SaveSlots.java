@@ -68,6 +68,13 @@ public final class DD1SaveSlots {
 
     // What the tree's own root holds, by name. The caller reads it once and hands
     // it in, because deciding this per file would stat the directory per file.
+    // The game keeps a copy of a slot's files in its backup folder and rewrites
+    // it on every save, so a copy missing from it costs nothing the next save
+    // does not put back.
+    public static boolean isGameBackup(String path) {
+        return path != null && path.replace('\\', '/').contains("/backup/");
+    }
+
     public static Set<String> namesAtRoot(File filesDir) {
         Set<String> names = new LinkedHashSet<>();
         File[] entries = DD1Saves.root(filesDir).listFiles();

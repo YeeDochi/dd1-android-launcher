@@ -28,6 +28,8 @@ import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclien
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient.CCloud_ClientBeginFileUpload_Request;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient.CCloud_ClientBeginFileUpload_Response;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient.CCloud_ClientCommitFileUpload_Request;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient.CCloud_CompleteAppUploadBatch_Request;
+import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient.CCloud_CompleteAppUploadBatch_Response;
 import in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient.CCloud_ClientCommitFileUpload_Response;
 
 // Steam Cloud: what it holds, a file out of it, and a batch of saves into it.
@@ -41,9 +43,72 @@ public final class DD1CloudSaves {
     private final SteamCloud cloud;
     private final in.dragonbra.javasteam.rpc.service.Cloud cloudService;
 
+    // Where the batch being sent is written down until Steam has been told it
+    // is over. A launcher killed mid-upload never told it, Steam kept every such
+    // batch open, and after enough of them refused all uploads with
+    // TooManyPending - with nothing on the phone that still knew which batches
+    // they were. Null where nothing is kept (tests).
+    private final File openBatch;
+
     public DD1CloudSaves(SteamCloud cloud, in.dragonbra.javasteam.rpc.service.Cloud cloudService) {
+        this(cloud, cloudService, null);
+    }
+
+    public DD1CloudSaves(SteamCloud cloud, in.dragonbra.javasteam.rpc.service.Cloud cloudService,
+            File openBatch) {
         this.cloud = cloud;
         this.cloudService = cloudService;
+        this.openBatch = openBatch;
+    }
+
+    // At sign-in: a batch a previous run opened and never closed is closed now,
+    // as failed, so it stops counting against the account.
+    public void closeAbandonedBatch() {
+        if (openBatch == null || !openBatch.isFile()) return;
+        long batch;
+        try {
+            batch = Long.parseLong(new String(FileUtils.read(openBatch), "UTF-8").trim());
+        }
+        catch (Exception unreadable) {
+            openBatch.delete();
+            return;
+        }
+        EResult result = completeBatch(batch, false);
+        Log.i("DD1Cloud", "Closed batch " + batch + " left open by an earlier run: " + result);
+        if (result != null) openBatch.delete();
+    }
+
+    private void rememberBatch(long batch) {
+        if (openBatch == null) return;
+        try {
+            File parent = openBatch.getParentFile();
+            if (parent != null) parent.mkdirs();
+            FileUtils.writeString(openBatch, Long.toString(batch));
+        }
+        catch (Exception ignored) {
+            Log.e("DD1Cloud", "Could not note batch " + batch, ignored);
+        }
+    }
+
+    // Called on the service directly: SteamCloud's own completeAppUploadBatch
+    // throws Steam's answer away, which is how a refused completion went unseen.
+    private EResult completeBatch(long batch, boolean succeeded) {
+        try {
+            ServiceMethodResponse<CCloud_CompleteAppUploadBatch_Response.Builder> done =
+                cloudService.completeAppUploadBatchBlocking(
+                    CCloud_CompleteAppUploadBatch_Request.newBuilder()
+                        .setAppid(DD1SteamEvents.APP_ID)
+                        .setBatchId(batch)
+                        .setBatchEresult((succeeded ? EResult.OK : EResult.Fail).code())
+                        .build()).runBlock();
+            if (done.getResult() != EResult.OK)
+                Log.e("DD1Cloud", "Completing batch " + batch + ": " + done.getResult());
+            return done.getResult();
+        }
+        catch (Exception failed) {
+            Log.e("DD1Cloud", "Completing batch " + batch + " failed", failed);
+            return null;
+        }
     }
 
     public DD1CloudListing list() {
@@ -85,10 +150,23 @@ public final class DD1CloudSaves {
     // A name the listing got wrong costs one failed request, and the digest check
     // means a wrong file can never be mistaken for a right one.
     public byte[] fetch(String path) {
+        noContent = false;
         byte[] content = fetchExactly(path);
         if (content != null) return content;
+        boolean listedEmpty = noContent;
         int slash = path.lastIndexOf('/');
-        return slash < 0 ? null : fetchExactly(path.substring(slash + 1));
+        content = slash < 0 ? null : fetchExactly(path.substring(slash + 1));
+        noContent = content == null && listedEmpty;
+        return content;
+    }
+
+    // Steam lists a file whose upload was begun and never committed - the
+    // launcher killed mid-batch - and answers a download of it with no address
+    // at all. That is not a failed transfer to retry: there is nothing there.
+    private volatile boolean noContent;
+
+    public boolean lastHadNoContent() {
+        return noContent;
     }
 
     private byte[] fetchExactly(String path) {
@@ -102,6 +180,11 @@ public final class DD1CloudSaves {
                 return null;
             }
 
+            if (info.getUrlHost() == null || info.getUrlHost().isEmpty()) {
+                Log.e("DD1Cloud", "Fetch " + path + ": listed, but Steam holds no content");
+                noContent = true;
+                return null;
+            }
             byte[] body = get(DD1CloudTransfer.url(info.getUrlHost(), info.getUrlPath(),
                 info.getUseHttps()), info.getRequestHeaders());
             if (body == null) {
@@ -158,9 +241,18 @@ public final class DD1CloudSaves {
     }
 
     // sent: told the count of files that have gone up, after each one.
+    private volatile boolean tooManyPending;
+
+    // Steam is holding uploads that were never finished and takes no more until
+    // it lets them go - not something sending again will fix.
+    public boolean refusedForPending() {
+        return tooManyPending;
+    }
+
     public boolean upload(File root, List<DD1SaveSummary.Entry> files, List<String> stale,
             java.util.function.IntConsumer sent) {
         lastFailure = null;
+        tooManyPending = false;
         if (!uploadable(files)) {
             lastFailure = "nothing safe to send";
             return false;
@@ -181,9 +273,11 @@ public final class DD1CloudSaves {
             if (begun.getResult() != EResult.OK) {
                 Log.e("DD1Cloud", "Upload batch refused: " + begun.getResult());
                 lastFailure = "Steam refused the upload: " + begun.getResult();
+                if (begun.getResult() == EResult.TooManyPending) tooManyPending = true;
                 return false;
             }
             batch = begun.getBody().getBatchId();
+            rememberBatch(batch);
             Log.i("DD1Cloud", "Batch " + batch + " for " + names.size() + " files, change="
                 + begun.getBody().getAppChangeNumber());
         }
@@ -212,16 +306,12 @@ public final class DD1CloudSaves {
                 }
             }
         }
-        try {
-            // Telling Steam the batch failed is what stops a half-sent save from
-            // becoming the version it hands back.
-            cloud.completeAppUploadBatch(DD1SteamEvents.APP_ID, batch,
-                allDone ? in.dragonbra.javasteam.enums.EResult.OK
-                    : in.dragonbra.javasteam.enums.EResult.Fail,
-                kotlinx.coroutines.GlobalScope.INSTANCE).get();
-        }
-        catch (Exception ignored) {
-            Log.e("DD1Cloud", "Upload batch completion failed", ignored);
+        // Telling Steam the batch failed is what stops a half-sent save from
+        // becoming the version it hands back.
+        EResult closed = completeBatch(batch, allDone);
+        if (closed != null && openBatch != null) openBatch.delete();
+        if (closed != EResult.OK) {
+            if (lastFailure == null) lastFailure = "Steam did not close the upload: " + closed;
             return false;
         }
         return allDone;
@@ -360,12 +450,19 @@ public final class DD1CloudSaves {
         return response.getResult();
     }
 
+    // Without them a stalled connection held a cloud batch open for as long as
+    // the app lived. A save file is a few hundred kilobytes at most.
+    private static final int CONNECT_MILLIS = 20_000;
+    private static final int READ_MILLIS = 60_000;
+
     private static boolean put(FileUploadBlockDetails block, byte[] content) {
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection)new URL(DD1CloudTransfer.url(
                 block.getUrlHost(), block.getUrlPath(), block.getUseHttps())).openConnection();
             connection.setRequestMethod("PUT");
+            connection.setConnectTimeout(CONNECT_MILLIS);
+            connection.setReadTimeout(READ_MILLIS);
             connection.setDoOutput(true);
             for (HttpHeaders header : block.getRequestHeaders())
                 connection.setRequestProperty(header.getName(), header.getValue());
@@ -392,6 +489,8 @@ public final class DD1CloudSaves {
         try {
             connection = (HttpURLConnection)new URL(url).openConnection();
             connection.setRequestMethod("GET");
+            connection.setConnectTimeout(CONNECT_MILLIS);
+            connection.setReadTimeout(READ_MILLIS);
             for (HttpHeaders header : headers)
                 connection.setRequestProperty(header.getName(), header.getValue());
             int status = connection.getResponseCode();

@@ -49,19 +49,23 @@ public final class DD1SaveSnapshots {
     // itself reversible.
     public static boolean restore(File filesDir, File snapshot) {
         if (!DD1Saves.isSaveTree(snapshot)) return false;
-        // Only when the tree has moved since the last snapshot. Three is all the
-        // ring holds, so going back twice must not spend two of them on states
-        // that were already kept.
-        if (DD1SavePolicy.worthTaking(filesDir)
-                && take(filesDir, System.currentTimeMillis()) == null)
-            return false;
 
         File root = DD1Saves.root(filesDir);
         File spare = new File(dir(filesDir), "restoring");
         FileUtils.delete(spare);
-        // Copied aside first: a copy that fails part way must not have eaten the
-        // tree it was replacing.
+        // Copied aside first, before anything else is taken: a copy that fails
+        // part way must not have eaten the tree it was replacing, and the
+        // snapshot below prunes the ring - when the one chosen was the oldest of
+        // three, taking a fourth deleted it before it could be read.
         if (!spare.mkdirs() || !copy(snapshot, spare)) {
+            FileUtils.delete(spare);
+            return false;
+        }
+        // Only when the tree has moved since the last snapshot. Three is all the
+        // ring holds, so going back twice must not spend two of them on states
+        // that were already kept.
+        if (DD1SavePolicy.worthTaking(filesDir)
+                && take(filesDir, System.currentTimeMillis()) == null) {
             FileUtils.delete(spare);
             return false;
         }

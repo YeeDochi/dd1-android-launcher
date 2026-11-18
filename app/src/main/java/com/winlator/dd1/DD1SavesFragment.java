@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.Message;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,7 +40,56 @@ import java.util.Locale;
 // anything: it shows the estate, the time played and when it was saved, and the
 // player chooses. Both directions are deliberate, and neither happens at Play.
 public class DD1SavesFragment extends Fragment {
-    private final Handler main = new Handler(Looper.getMainLooper());
+    // Every answer from a worker thread comes back through here. A transfer
+    // outlives the screen that started it - leaving the saves screen mid-upload
+    // is ordinary - and an answer drawn into a screen that has gone threw, which
+    // killed the app halfway through a cloud batch. That left the batch open on
+    // Steam's side; enough of them and Steam refused every upload with
+    // TooManyPending, and the file that was moving stayed listed with no content,
+    // so the slot could not be downloaded either. The work carries on; only the
+    // drawing is dropped.
+    private final Handler main = new Handler(Looper.getMainLooper()) {
+        @Override
+        public void dispatchMessage(@NonNull Message message) {
+            if (!isAdded() || getView() == null) return;
+            super.dispatchMessage(message);
+        }
+    };
+
+    // The transfer itself, which belongs to no one screen: a screen opened while
+    // it is still running has to know, or a second press would race it over the
+    // same files and the same cloud batch.
+    private static volatile Thread transfer;
+
+    private static boolean transferRunning() {
+        Thread running = transfer;
+        return running != null && running.isAlive();
+    }
+
+    private static void startTransfer(Runnable work) {
+        Thread thread = new Thread(work, "dd1-saves-transfer");
+        transfer = thread;
+        thread.start();
+    }
+
+    // A screen that opens on a transfer it did not start waits it out, then
+    // reads what it left.
+    private void followTransfer() {
+        if (!transferRunning()) return;
+        setBusy(true);
+        status(getString(R.string.dd1_saves_status_running), 0, 0);
+        main.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (transferRunning()) {
+                    main.postDelayed(this, 500);
+                    return;
+                }
+                finish(getString(R.string.dd1_saves_status_finished));
+                loadCloud();
+            }
+        }, 500);
+    }
     private DD1InstallService installService;
     private boolean serviceBound;
     private DD1CloudListing cloud = DD1CloudListing.unknown();
@@ -151,7 +201,7 @@ public class DD1SavesFragment extends Fragment {
         File destination = backupFolder(System.currentTimeMillis());
         setBusy(true);
         status(getString(R.string.dd1_saves_status_backup), 0, 0);
-        new Thread(() -> {
+        startTransfer(() -> {
             boolean done = DD1SaveSnapshots.export(filesDir, destination);
             main.post(() -> {
                 String outcome = done
@@ -161,11 +211,11 @@ public class DD1SavesFragment extends Fragment {
                 finish(outcome);
                 DD1Notices.show(outcome, done ? DD1Notices.Kind.SUCCESS : DD1Notices.Kind.WARNING);
             });
-        }).start();
+        });
     }
 
     private boolean refuseWhileBusy() {
-        if (!busy) return false;
+        if (!busy && !transferRunning()) return false;
         DD1Notices.show(requireContext(), R.string.dd1_saves_busy, DD1Notices.Kind.WARNING);
         return true;
     }
@@ -263,6 +313,7 @@ public class DD1SavesFragment extends Fragment {
         super.onStart();
         requireContext().bindService(new Intent(requireContext(), DD1InstallService.class),
             serviceConnection, Context.BIND_AUTO_CREATE);
+        followTransfer();
     }
 
     @Override
@@ -532,7 +583,7 @@ public class DD1SavesFragment extends Fragment {
         File filesDir = requireContext().getFilesDir();
         setBusy(true);
         status(getString(R.string.dd1_saves_status_delete), 0, 0);
-        new Thread(() -> {
+        startTransfer(() -> {
             boolean kept = DD1SaveSnapshots.take(filesDir, System.currentTimeMillis()) != null;
             boolean gone = kept && deleteTree(new File(DD1Saves.root(filesDir), name));
             main.post(() -> {
@@ -542,7 +593,7 @@ public class DD1SavesFragment extends Fragment {
                 log(outcome);
                 finish(outcome);
             });
-        }).start();
+        });
     }
 
     private static boolean deleteTree(File file) {
@@ -700,7 +751,7 @@ public class DD1SavesFragment extends Fragment {
             + " (" + named.size() + ")");
         status(getString(R.string.dd1_saves_status_up, display(slot.name), 0, named.size()), 0, named.size());
 
-        new Thread(() -> {
+        startTransfer(() -> {
             if (DD1SaveSnapshots.take(filesDir, System.currentTimeMillis()) == null) {
                 main.post(() -> {
                     log(getString(R.string.dd1_saves_no_snapshot));
@@ -722,15 +773,17 @@ public class DD1SavesFragment extends Fragment {
                 main.post(() -> status(getString(R.string.dd1_saves_status_up, display(slot.name),
                     done, named.size()), done, named.size())));
             String why = saves == null ? null : saves.lastFailure();
+            boolean pending = saves != null && saves.refusedForPending();
             main.post(() -> {
                 String outcome = sent ? getString(R.string.dd1_saves_sent, display(slot.name), named.size())
+                    : pending ? getString(R.string.dd1_saves_too_many_pending)
                     : getString(R.string.dd1_saves_send_failed)
                         + (why == null ? "" : " - " + why);
                 log(outcome);
                 finish(outcome);
                 loadCloud();
             });
-        }).start();
+        });
     }
 
     private void download(String slot) {
@@ -743,12 +796,26 @@ public class DD1SavesFragment extends Fragment {
             + " (" + files.size() + ")");
         status(getString(R.string.dd1_saves_status_down, display(slot), 0, files.size()), 0, files.size());
 
-        new Thread(() -> {
+        // Taken once, here: the screen lets go of the service when it is left,
+        // and the download carries on without it.
+        DD1CloudSaves saves = installService == null ? null : installService.cloudSaves();
+        startTransfer(() -> {
             DD1SaveStaging.clear(filesDir, slot);
             int done = 0;
             for (DD1SaveSummary.Entry file : files) {
-                byte[] content = installService == null ? null
-                    : installService.cloudSaves().fetch(file.path);
+                byte[] content = saves == null ? null : saves.fetch(file.path);
+                // The game's own backup copy of a file, listed by Steam with no
+                // content behind it: an upload that never finished. The slot is
+                // whole without it - the game rewrites its backup on the next
+                // save - and refusing the whole slot over it locked the player
+                // out of their own save.
+                if (content == null && saves != null && saves.lastHadNoContent()
+                        && DD1SaveSlots.isGameBackup(file.path)) {
+                    main.post(() -> log("  " + file.path + "  "
+                        + getString(R.string.dd1_saves_skipped_empty)));
+                    done++;
+                    continue;
+                }
                 boolean kept = content != null
                     && DD1SaveStaging.put(filesDir, slot, file.path, content);
                 final String line = "  " + file.path + "  "
@@ -769,7 +836,7 @@ public class DD1SavesFragment extends Fragment {
                     finish(getString(R.string.dd1_saves_get_failed));
                 }
             });
-        }).start();
+        });
     }
 
     private void confirmRestore(File snapshot, String taken) {
