@@ -23,15 +23,19 @@ the game.
 |---|---|
 | **Install** | Steam sign-in by QR, or account and password with a phone approval or a Steam Guard code. Ownership checked across every package, the DLC list read from Steam's own table, per-DLC selection, resumable-free atomic install into `files/game` |
 | **Play** | One button. Touch input maps taps, drags and holds onto the game's mouse; the Android IME handles estate naming |
-| **Saves** | Steam Cloud listing per profile slot, download and upload, automatic snapshots before anything is overwritten |
-| **Mods** | Workshop search and browse, subscribe, queued download, update detection, enable/disable, local ZIP import |
-| **Battery** | Resolution, processor cores and screen refresh rate, each measured against the others rather than guessed at |
+| **Saves** | Every save on the phone and in Steam Cloud in one list, a coloured light for whether the two match, upload, download and delete, automatic snapshots before anything is overwritten |
+| **Mods** | Workshop search and browse, subscribe, queued download, update detection, enable/disable, local ZIP import, synchronised at sign-in. DLL mods dropped into `DD1/dll` |
+| **Battery** | A frame limit (30, 60 or none), resolution, processor cores and screen refresh rate, each measured against the others rather than guessed at |
 
 ### Battery
 
-The game has no frame limit and nothing in the stack can give it one, so it
-renders as fast as the phone allows and spends the battery doing it. Measured on
-a Galaxy S25, off charge:
+The game has no frame limit of its own, so it renders as fast as the phone
+allows - hundreds of frames a second on a menu - and spends the battery doing it.
+From 0.1.17 the launcher caps it: **60 FPS by default**, 30 or none in Settings →
+Display. It is a turn-based game; 30 runs cooler still.
+
+The measurements below were taken on a Galaxy S25, off charge, before the cap
+existed:
 
 | Settings | Battery | Hottest core |
 |---|---|---|
@@ -49,14 +53,17 @@ frames nobody sees.
 ### Mod manager
 
 Workshop browsing with preview images, sorting, and a column count that follows
-the screen. Subscriptions made anywhere — including on a PC — are pulled down
-automatically, and items unsubscribed there are removed here.
+the screen. Subscriptions made anywhere — including on a PC — are pulled down as
+soon as the launcher signs in, without opening the mod screen, and items
+unsubscribed there are removed here. DLL mods such as `winmm.dll` go into
+`DD1/dll` and sit beside `Darkest.exe` when you press Play.
 
 ### Saves and settings
 
-Each profile slot shows what is on the device beside what is in Steam Cloud, so
-a transfer is a deliberate act in a named direction. A slot that will not come
-down says so rather than half-restoring.
+One list holds every save, on the phone and in Steam Cloud, each with a light
+that says whether the two copies match. A transfer is a deliberate act in a
+named direction, and a slot that will not come down says so rather than
+half-restoring.
 
 ## Getting it running
 
@@ -152,17 +159,32 @@ already have one, bring it down before you play — see below.
 ### 5. Bring saves down from Steam Cloud
 
 <p align="center">
-  <img src="docs/screenshots/06-saves.png" width="70%" alt="Device saves beside cloud saves">
+  <img src="docs/screenshots/06-saves.png" width="70%" alt="One save in detail, the phone's copy beside the cloud's, and the list of saves on the right">
 </p>
 
-Drawer → **Saves**. Each profile slot shows what is on the phone beside what is
-in Steam Cloud, so a transfer is always a deliberate act in a named direction.
+Drawer → **Saves**. The list on the right names every save by its estate and the
+time it was saved; the light in front of it says where it stands:
+
+| Light | Meaning |
+|---|---|
+| 🟢 Green | The phone and the cloud hold the same save |
+| 🟠 Orange | They differ - the detail says which is newer |
+| 🟡 Yellow | Only in the cloud |
+| 🔴 Red | Only on the phone |
+
+Tap one and the left side shows the phone's copy beside the cloud's, outlined in
+green when they match.
 
 | | |
 |---|---|
-| ↓ beside a cloud slot | Download it onto the phone |
-| ↑ beside a device slot | Upload the phone's copy |
-| **Snapshots** | Automatic copies taken before anything is overwritten |
+| **↑ Upload to cloud** | Send the phone's copy. Files the phone no longer has are removed from the cloud as well, so a PC does not pull back an old expedition |
+| **↓ Download to this device** | Bring the cloud's copy onto the phone |
+| **Delete** | Remove the phone's copy, after taking a snapshot. The cloud copy stays |
+| **Snapshots** tab | Automatic copies taken before anything is overwritten |
+| **Transfer log** | The last result; **Details** lists every file |
+
+One transfer runs at a time. The cloud listing is read when the launcher signs
+in, so the screen opens on an answer.
 
 A slot that cannot be downloaded whole says so and changes nothing — half a save
 is a save nobody can load. Steam sometimes lists a file it has no content for,
@@ -179,13 +201,29 @@ rest are unaffected.
 </p>
 
 Drawer → **Mod manager**. Subscriptions made anywhere — including on a PC — are
-pulled down when the screen opens, and anything unsubscribed there is removed
-here.
+pulled down as soon as the launcher signs in, and anything unsubscribed there is
+removed here. A card at the bottom right says how many were synchronised or
+removed, and the notification shade shows the download.
 
 | Tab | What it holds |
 |---|---|
 | **Workshop** | Search by name, or paste a Workshop URL or ID. Sort by popularity, date or rating; the grid button cycles 2, 3 and 4 columns. Tap a card for the full description and screenshots |
 | **My mods** | What is installed, what has an update waiting, and what is switched off. **Import ZIP** adds a mod by hand |
+| **DLL mods** | What is in `DD1/dll`, and whether each file is in use or waits for the next Play |
+
+<p align="center">
+  <img src="docs/screenshots/10-dll-mods.png" width="70%" alt="The DLL mods tab and how files in DD1/dll are placed">
+</p>
+
+**DLL mods.** Put the DLL in `DD1/dll` and press Play: it goes beside
+`Darkest.exe`, the executable the launcher runs. A PC guide's
+`_windows/win64/winmm.dll` works too, folder and all. Wine is told to use your
+DLL before its own build of the same name - without that, Wine quietly keeps
+its own. Any other file in `DD1/dll` is laid over the game at the same path,
+and taking a file out puts the game's original back at the next Play.
+
+**The DD1 folder.** *Change folder* picks one folder, the DD1 folder, and the
+launcher makes `mods` and `dll` inside it.
 
 Downloads run one at a time and the notification says which: `3/12 · Plague
 Doctor skins mod · 42%`. Nothing is swapped into the game until a mod has
@@ -197,13 +235,14 @@ part of the save, and the launcher does not edit saves.
 ### 7. Make it last
 
 <p align="center">
-  <img src="docs/screenshots/07-settings.png" width="70%" alt="Settings: cores, refresh rate and translation">
+  <img src="docs/screenshots/07-settings.png" width="70%" alt="Settings, Display: resolution, refresh rate and frame limit">
 </p>
 
 Drawer → **Settings**. The defaults are safe; these are worth changing:
 
 | Setting | Why |
 |---|---|
+| **Frame limit → 30 FPS** | 60 is the default. A turn-based game loses nothing at 30, and the phone runs cooler |
 | **Resolution → 1280x720** | The game renders 720p anyway. Fewer pixels, 24 °C off the hottest core, no visible difference |
 | **Processor cores → Efficiency cores only** | The largest single win. See [Battery](#battery) |
 | **Screen refresh rate → 60 Hz while playing** | The panel runs at 120 Hz whatever the game does |
@@ -232,7 +271,7 @@ screen - the same place the first download reported.
 The version of each DLC on the device is recorded outside the game folder, so
 rebuilding the install does not lose track of what is current.
 
-**Workshop mods** are re-read every time the mod manager opens. Whether you
+**Workshop mods** are re-read when the launcher signs in and every time the mod manager opens. Whether you
 subscribed on a PC or the author patched a mod, it surfaces here and starts
 fetching what is missing. Three places show how far it has got.
 
@@ -291,21 +330,27 @@ go through that path - which is why one shows and the other does not.
 > The figure above is a drawing of the symptom, not a capture of the game. No
 > game imagery is kept in this repository.
 
-**Drawer, Settings, `Graphics driver` at the bottom.** The *Automatic* row names
-this device's GPU and the drivers it chose from it.
+**Drawer, Settings, the `Graphics` tab.** The top of it names this device's GPU
+and the driver in use.
 
 <p align="center">
-  <img src="docs/screenshots/08-graphics.png" width="70%" alt="The graphics driver section: the GPU detected, the drivers applied, and the list to choose from">
+  <img src="docs/screenshots/08-graphics.png" width="70%" alt="The graphics tab: the GPU detected, the driver in use, the dropdown and Advanced">
 </p>
 
-Quote those two lines from *Automatic* in the issue - the GPU and the drivers.
-Most of the time they are enough to narrow it down.
+Quote those two lines in the issue - the GPU and the driver. Most of the time
+they are enough to narrow it down.
 
-**You can also change it here.** Each entry says which devices it is for, so if
-the automatic answer did not suit yours, pick the one matching the GPU name - on
-Exynos and Mali parts with a black picture that is *Exynos and other devices
-(VirGL)*. It takes effect the next time you press Play, and Automatic puts it
-back.
+**You can also change it here.** Open the dropdown: each entry says which
+devices it is for, so if the automatic answer did not suit yours, pick the one
+matching the GPU name - on Exynos and Mali parts with a black picture that is
+*Exynos and other devices (Vortek + VirGL)*. It takes effect the next time you
+press Play, and Automatic puts it back.
+
+**Advanced** picks the Vulkan driver (Turnip or Vortek) and the OpenGL path
+(Gladio, Zink or VirGL) separately, the way Winlator does, and takes a Vulkan
+driver you supply as an AdrenoTools zip. **FPS display** in the same tab draws
+frame rate, memory and CPU clock over the game - worth a screenshot when
+reporting stutter.
 
 Also worth having in the issue:
 
@@ -331,9 +376,13 @@ and saves are not lost, so do not uninstall - that costs you the 4GB again.
 
 ### A save will not upload
 
-The log on the save screen says what was sent and
-what was refused, and `adb logcat -d | grep DD1Cloud` carries the reason Steam
-gave, verbatim. Paste that line.
+A failed upload says why on the save screen, in Steam's own
+words; **Transfer log → Details** lists what was sent and what was refused. Paste
+that in the issue. `adb logcat -d | grep DD1Cloud` carries the same reason.
+
+If an upload succeeded but a PC then loads an old expedition, update to 0.1.17
+and upload again: earlier versions left files the phone no longer had in the
+cloud.
 
 ### The game says a DLC is missing
 
