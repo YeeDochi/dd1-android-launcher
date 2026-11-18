@@ -103,6 +103,7 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
         // runtime answers Back by opening its drawer over the game.
         if (context instanceof android.app.Activity)
             DD1RuntimeMenu.apply((android.app.Activity)context);
+        buttonsHidden = hidesButtons(context);
         placeEscape(0, AppUtils.getScreenHeight());
         applyRefreshRate(context);
     }
@@ -112,6 +113,22 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     // activity owns the window, so the rate is asked for from here rather than by
     // editing it: this view is already attached to that window.
     private static final String HALF_REFRESH_RATE = "half_refresh_rate";
+
+    // Someone playing with a controller has Esc and the rest on the pad, and the
+    // keys drawn in the bars are only in the way. Hidden, they are neither drawn
+    // nor touchable; touch on the picture still clicks.
+    private static final String HIDE_BUTTONS = "hide_screen_buttons";
+    private boolean buttonsHidden;
+
+    public static boolean hidesButtons(Context context) {
+        return context.getSharedPreferences("dd1", Context.MODE_PRIVATE)
+            .getBoolean(HIDE_BUTTONS, false);
+    }
+
+    public static void chooseHiddenButtons(Context context, boolean hidden) {
+        context.getSharedPreferences("dd1", Context.MODE_PRIVATE).edit()
+            .putBoolean(HIDE_BUTTONS, hidden).apply();
+    }
 
     public static boolean prefersHalfRefreshRate(Context context) {
         return context.getSharedPreferences("dd1", Context.MODE_PRIVATE)
@@ -174,6 +191,16 @@ public class DD1TouchOverlay extends View implements TouchGesture.Listener {
     // are the only part of the screen that costs nothing to cover. The menu is
     // otherwise a hunt for a small target in the corner of the game itself.
     private void placeEscape(int letterbox, int outerHeight) {
+        if (buttonsHidden) {
+            // An empty rectangle is drawn as nothing and contains no touch.
+            escape.setEmpty();
+            keyboard.setEmpty();
+            magnify.setEmpty();
+            sticky.setEmpty();
+            back.setEmpty();
+            forward.setEmpty();
+            return;
+        }
         float density = getResources().getDisplayMetrics().density;
         float size = 44f * density;
         float margin = 12f * density;

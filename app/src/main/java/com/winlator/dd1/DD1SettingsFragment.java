@@ -109,6 +109,10 @@ public class DD1SettingsFragment extends Fragment {
             view.findViewById(R.id.TVResolutionHint));
         buildBox64Preset(view.findViewById(R.id.CBBox64Performance));
         buildRuntimeMenu(view.findViewById(R.id.CBRuntimeMenu));
+        android.widget.CompoundButton hideButtons = view.findViewById(R.id.CBHideScreenButtons);
+        hideButtons.setChecked(DD1TouchOverlay.hidesButtons(requireContext()));
+        hideButtons.setOnCheckedChangeListener((button, checked) ->
+            DD1TouchOverlay.chooseHiddenButtons(requireContext(), checked));
         buildDiagnosticLogs(view.findViewById(R.id.CBDiagnosticLogs));
         buildCpuBudget(view.findViewById(R.id.RGCpuBudget));
         buildRefreshRate(view.findViewById(R.id.RGRefreshRate));

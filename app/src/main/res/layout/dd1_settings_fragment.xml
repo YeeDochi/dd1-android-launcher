@@ -230,6 +230,13 @@
                         android:orientation="horizontal" />
                 </LinearLayout>
                 <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <Switch android:id="@+id/CBHideScreenButtons" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:minHeight="44dp"
+                        android:text="@string/dd1_hide_screen_buttons"
+                        android:textColor="?attr/colorPrimaryText" android:textSize="15sp" />
+                    <TextView style="@style/DD1Meta" android:text="@string/dd1_hide_screen_buttons_hint" />
+                </LinearLayout>
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
                     <Switch android:id="@+id/CBRuntimeMenu" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:minHeight="44dp"
                         android:text="@string/dd1_runtime_menu_enable"

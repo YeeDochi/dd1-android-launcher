@@ -328,6 +328,8 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_update_get">Open the release page</string>
     <string name="dd1_update_hide_today">Not today</string>
     <string name="dd1_runtime_menu">Winlator menu</string>
+    <string name="dd1_hide_screen_buttons">Hide the on-screen buttons (for controllers)</string>
+    <string name="dd1_hide_screen_buttons_hint">Hides ESC, ABC, SHIFT+CTRL, the walk arrows and the magnifier in the bars beside the game. Tapping the game still clicks. The keyboard button goes too, so turn this off for a moment when naming an estate. Takes effect the next time you press Play.</string>
     <string name="dd1_runtime_menu_enable">Let the runtime menu open during the game</string>
     <string name="dd1_runtime_menu_hint">Off by default. It is the panel that slides in from the left, and a controller opens it by accident: a button the game does not use arrives as Back, and the runtime answers Back by opening the menu. Turn it on if you want the runtime\'s own keyboard, task manager or exit. Takes effect the next time you press Play.</string>
 </resources>
