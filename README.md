@@ -313,6 +313,11 @@ the runtime answers Back by opening the drawer, and the first thing in the drawe
 is Keyboard. Turn it on under **Settings, Winlator menu** if you want the
 runtime's own keyboard, task manager or exit.
 
+**Playing with a controller?** **Settings, General, Hide the on-screen buttons**
+takes ESC, ABC, SHIFT+CTRL, the walk arrows and the magnifier out of the bars
+beside the game. Tapping the game still clicks. Turn it off for a moment when
+naming an estate, since the keyboard button goes with them.
+
 ## If something goes wrong
 
 ### If it looks like this
