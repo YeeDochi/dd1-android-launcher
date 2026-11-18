@@ -90,6 +90,31 @@
                     <RadioGroup android:id="@+id/RGGraphicsDriver" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:layout_marginTop="8dp" />
                 </LinearLayout>
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <TextView style="@style/DD1SectionTitle" android:layout_marginTop="0dp"
+                        android:text="@string/dd1_vulkan_driver" />
+                    <TextView android:id="@+id/TVVulkanDriver" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:layout_marginTop="6dp"
+                        android:textColor="?attr/colorPrimaryText" android:textSize="14sp" />
+                    <TextView style="@style/DD1Meta" android:layout_marginTop="4dp"
+                        android:text="@string/dd1_vulkan_driver_hint" />
+                    <LinearLayout android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
+                        <Button android:id="@+id/BTVulkanDriverPick" style="@style/DD1Action" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:text="@string/dd1_vulkan_driver_pick" />
+                        <Button android:id="@+id/BTVulkanDriverReset" style="@style/DD1Action" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:layout_marginStart="8dp"
+                            android:text="@string/dd1_vulkan_driver_reset" />
+                    </LinearLayout>
+                </LinearLayout>
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <Switch android:id="@+id/CBShowFps" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:minHeight="44dp"
+                        android:text="@string/dd1_show_fps"
+                        android:textColor="?attr/colorPrimaryText" android:textSize="15sp" />
+                    <TextView style="@style/DD1Meta" android:text="@string/dd1_show_fps_hint" />
+                </LinearLayout>
             </LinearLayout>
 
             <!-- Performance -->

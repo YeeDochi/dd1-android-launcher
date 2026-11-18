@@ -50,7 +50,7 @@ public class DD1DiagnosticsTest {
         File dir = folder.newFolder();
         write(new File(dir, DD1Diagnostics.PREVIOUS), "older");
         write(new File(dir, DD1Diagnostics.LOG), "the stall");
-        DD1Diagnostics.keepPrevious(dir);
+        DD1Diagnostics.keepPrevious(dir, DD1Diagnostics.LOG, DD1Diagnostics.PREVIOUS);
         assertFalse(new File(dir, DD1Diagnostics.LOG).exists());
         assertEquals("the stall", read(new File(dir, DD1Diagnostics.PREVIOUS)));
     }
@@ -62,7 +62,7 @@ public class DD1DiagnosticsTest {
         File dir = folder.newFolder();
         write(new File(dir, DD1Diagnostics.PREVIOUS), "older");
         write(new File(dir, DD1Diagnostics.LOG), "");
-        DD1Diagnostics.keepPrevious(dir);
+        DD1Diagnostics.keepPrevious(dir, DD1Diagnostics.LOG, DD1Diagnostics.PREVIOUS);
         assertEquals("older", read(new File(dir, DD1Diagnostics.PREVIOUS)));
     }
 

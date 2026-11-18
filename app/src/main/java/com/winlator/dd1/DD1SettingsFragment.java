@@ -111,6 +111,8 @@ public class DD1SettingsFragment extends Fragment {
         buildCpuBudget(view.findViewById(R.id.RGCpuBudget));
         buildRefreshRate(view.findViewById(R.id.RGRefreshRate));
         buildGraphicsDriver(view.findViewById(R.id.RGGraphicsDriver));
+        buildVulkanDriver(view);
+        buildShowFps(view.findViewById(R.id.CBShowFps));
         buildGameLocation(view);
         if (savedInstanceState != null) section = savedInstanceState.getInt("section", 0);
         LinearLayout tabs = view.findViewById(R.id.LLSettingsTabs);
@@ -264,6 +266,7 @@ public class DD1SettingsFragment extends Fragment {
             }
             // The list redraws so the automatic row can say what it now resolves to.
             buildGraphicsDriver(group);
+            if (getView() != null) buildVulkanDriver(getView());
         });
     }
 
@@ -368,6 +371,82 @@ public class DD1SettingsFragment extends Fragment {
         toggle.setChecked(DD1RuntimeMenu.enabled(requireContext()));
         toggle.setOnCheckedChangeListener((ignored, checked) ->
             DD1RuntimeMenu.setEnabled(requireContext(), checked));
+    }
+
+    // A driver file the player brings, which Vortek loads in place of the device's
+    // own (DD1VulkanDriver). The line above the buttons says which one the
+    // profile names and whether the chosen pair uses it at all.
+    private final androidx.activity.result.ActivityResultLauncher<String[]> pickVulkanDriver =
+        registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
+            uri -> {
+                if (uri == null || getContext() == null) return;
+                Container container = firstContainer();
+                if (container == null) return;
+                android.content.Context context = requireContext().getApplicationContext();
+                new Thread(() -> {
+                    String installed = null;
+                    String error = null;
+                    try {
+                        installed = DD1VulkanDriver.install(context, uri);
+                    }
+                    catch (java.io.IOException e) {
+                        error = e.getMessage();
+                    }
+                    String name = installed;
+                    String why = error;
+                    android.app.Activity activity = getActivity();
+                    if (activity == null) return;
+                    activity.runOnUiThread(() -> {
+                        if (getView() == null) return;
+                        if (name != null) DD1VulkanDriver.choose(container, name);
+                        else android.widget.Toast.makeText(context,
+                            getString(R.string.dd1_vulkan_driver_failed, why),
+                            android.widget.Toast.LENGTH_LONG).show();
+                        buildVulkanDriver(getView());
+                    });
+                }).start();
+            });
+
+    private void buildVulkanDriver(View view) {
+        TextView current = view.findViewById(R.id.TVVulkanDriver);
+        Button pick = view.findViewById(R.id.BTVulkanDriverPick);
+        Button reset = view.findViewById(R.id.BTVulkanDriverReset);
+        Container container = firstContainer();
+        if (container == null) {
+            pick.setEnabled(false);
+            reset.setEnabled(false);
+            return;
+        }
+        String name = DD1VulkanDriver.chosen(container);
+        boolean system = DD1VulkanDriver.SYSTEM.equals(name);
+        String shown = system ? getString(R.string.dd1_vulkan_driver_system) : name;
+        current.setText(DD1VulkanDriver.appliesTo(container.getGraphicsDriver())
+            ? getString(R.string.dd1_vulkan_driver_in_use, shown)
+            : getString(R.string.dd1_vulkan_driver_not_used, shown));
+        reset.setEnabled(!system);
+        pick.setOnClickListener(v -> pickVulkanDriver.launch(new String[]{"*/*"}));
+        reset.setOnClickListener(v -> {
+            DD1VulkanDriver.choose(container, DD1VulkanDriver.SYSTEM);
+            buildVulkanDriver(view);
+        });
+    }
+
+    // The runtime's own counter: frames per second, with GPU, CPU and memory
+    // beside it - a number to put next to "it stutters".
+    private void buildShowFps(android.widget.CompoundButton toggle) {
+        Container container = firstContainer();
+        if (container == null) {
+            toggle.setEnabled(false);
+            return;
+        }
+        toggle.setChecked(container.getHUDMode() != com.winlator.widget.FrameRating.Mode.DISABLED.ordinal());
+        toggle.setOnCheckedChangeListener((ignored, checked) -> {
+            container.setHUDMode((byte)(checked
+                ? com.winlator.widget.FrameRating.Mode.FULL.ordinal()
+                : com.winlator.widget.FrameRating.Mode.DISABLED.ordinal()));
+            container.saveData();
+        });
     }
 
     // The log is written to DD1/logs, so it needs the storage permission; asked

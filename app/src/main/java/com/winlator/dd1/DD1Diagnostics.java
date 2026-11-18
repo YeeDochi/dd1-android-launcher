@@ -34,6 +34,9 @@ public final class DD1Diagnostics {
     static final String LOG = "wine-log.txt";
     static final String PREVIOUS = "wine-log-previous.txt";
     static final String DEVICE = "device.txt";
+    static final String LOGCAT = "logcat.txt";
+    static final String LOGCAT_PREVIOUS = "logcat-previous.txt";
+    private static final String LOGCAT_PID = "diagnostic_logcat_pid";
 
     private DD1Diagnostics() {}
 
@@ -47,6 +50,7 @@ public final class DD1Diagnostics {
             .edit().putBoolean(KEY, on).apply();
         apply(PreferenceManager.getDefaultSharedPreferences(context),
             runtimePreferences(on, new File(dir(), LOG)));
+        if (!on) stopLogcat(context);
     }
 
     public static File dir() {
@@ -85,7 +89,8 @@ public final class DD1Diagnostics {
         if (!enabled(context)) return;
         File dir = dir();
         if (!dir.isDirectory() && !dir.mkdirs()) return;
-        keepPrevious(dir);
+        keepPrevious(dir, LOG, PREVIOUS);
+        startLogcat(context, dir);
         try (Writer out = new OutputStreamWriter(
                 new FileOutputStream(new File(dir, DEVICE)), StandardCharsets.UTF_8)) {
             out.write(describe(facts(context, container)));
@@ -93,12 +98,68 @@ public final class DD1Diagnostics {
         catch (IOException ignored) {}
     }
 
-    static void keepPrevious(File dir) {
-        File log = new File(dir, LOG);
+    static void keepPrevious(File dir, String name, String previousName) {
+        File log = new File(dir, name);
         if (!log.isFile() || log.length() == 0) return;
-        File previous = new File(dir, PREVIOUS);
+        File previous = new File(dir, previousName);
         previous.delete();
         log.renameTo(previous);
+    }
+
+    // What Wine prints is only the top of the stack. Vortek, the Vulkan driver it
+    // loads, the X server's renderer and Android itself write to logcat, in this
+    // app's own process - and on the S26 Ultra the Wine log stayed silent through
+    // eight minutes of stalls, which says the answer is down there. An app reads
+    // its own log lines without any permission, so a logcat writing to a file is
+    // started at Play and runs until the next Play or until the switch goes off.
+    // Its pid is remembered so a launcher restarted in between can still stop it,
+    // or two of them would write into the same file.
+    private static void startLogcat(Context context, File dir) {
+        stopLogcat(context);
+        keepPrevious(dir, LOGCAT, LOGCAT_PREVIOUS);
+        try {
+            Process process = new ProcessBuilder("logcat", "-v", "threadtime",
+                "-f", new File(dir, LOGCAT).getPath(), "-r", "16384", "-n", "1")
+                .redirectErrorStream(true).start();
+            int pid = pidOf(process);
+            if (pid > 0) preferences(context).edit().putInt(LOGCAT_PID, pid).apply();
+        }
+        catch (IOException ignored) {}
+    }
+
+    private static void stopLogcat(Context context) {
+        int pid = preferences(context).getInt(LOGCAT_PID, -1);
+        if (pid <= 0) return;
+        // Only if that pid is still a logcat: after a reboot the number may
+        // belong to something else of this app's.
+        if (isLogcat(pid)) android.os.Process.killProcess(pid);
+        preferences(context).edit().remove(LOGCAT_PID).apply();
+    }
+
+    private static boolean isLogcat(int pid) {
+        try {
+            byte[] cmdline = java.nio.file.Files.readAllBytes(
+                new File("/proc/" + pid + "/cmdline").toPath());
+            return new String(cmdline, StandardCharsets.UTF_8).startsWith("logcat");
+        }
+        catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static int pidOf(Process process) {
+        try {
+            java.lang.reflect.Field field = process.getClass().getDeclaredField("pid");
+            field.setAccessible(true);
+            return field.getInt(process);
+        }
+        catch (Exception e) {
+            return -1;
+        }
+    }
+
+    private static SharedPreferences preferences(Context context) {
+        return context.getApplicationContext().getSharedPreferences("dd1", Context.MODE_PRIVATE);
     }
 
     private static Map<String, String> facts(Context context, Container container) {
@@ -116,6 +177,8 @@ public final class DD1Diagnostics {
         facts.put("cpu list", String.valueOf(container.getCPUList()));
         facts.put("box64 preset", container.getBox64Preset());
         facts.put("env", container.getEnvVars());
+        facts.put("vulkan driver file", DD1VulkanDriver.chosen(container));
+        facts.put("fps display", container.getHUDMode() != 0 ? "on" : "off");
         facts.put("game location", DD1GameLocation.chosen(context));
         return facts;
     }
