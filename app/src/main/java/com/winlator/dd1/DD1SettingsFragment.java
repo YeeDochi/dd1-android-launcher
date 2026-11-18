@@ -12,6 +12,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -21,6 +22,7 @@ import androidx.fragment.app.Fragment;
 import com.winlator.R;
 import com.winlator.box64.Box64Preset;
 import com.winlator.container.Container;
+import com.winlator.container.GraphicsDrivers;
 import com.winlator.core.GPUHelper;
 
 import java.util.ArrayList;
@@ -110,7 +112,8 @@ public class DD1SettingsFragment extends Fragment {
         buildDiagnosticLogs(view.findViewById(R.id.CBDiagnosticLogs));
         buildCpuBudget(view.findViewById(R.id.RGCpuBudget));
         buildRefreshRate(view.findViewById(R.id.RGRefreshRate));
-        buildGraphicsDriver(view.findViewById(R.id.RGGraphicsDriver));
+        buildFrameLimit(view.findViewById(R.id.RGFrameLimit));
+        buildGraphicsDriver(view.findViewById(R.id.SPGraphicsDriver));
         buildVulkanDriver(view);
         buildShowFps(view.findViewById(R.id.CBShowFps));
         buildGameLocation(view);
@@ -156,7 +159,7 @@ public class DD1SettingsFragment extends Fragment {
     // Where the game is, and the one thing to do about it. There is one
     // direction only: in phone storage the game took minutes per scene change
     // (issue #4), and what people kept it there for - mods and DLLs - now goes in
-    // DD1/mods and DD1/overrides. Inside the app the button opens DD1/overrides.
+    // DD1/mods and DD1/dll. Inside the app the button opens DD1/dll.
     private void buildGameLocation(View view) {
         boolean inStorage = DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(requireContext()));
         ((TextView)view.findViewById(R.id.TVGameLocation)).setText(inStorage
@@ -216,57 +219,188 @@ public class DD1SettingsFragment extends Fragment {
             .show();
     }
 
-    // Automatic first, then the pairs, each with a line saying who it is for. A
-    // person here is here because the game will not draw, and a list of driver
-    // names without that line is a guessing game.
-    private void buildGraphicsDriver(RadioGroup group) {
-        group.setOnCheckedChangeListener(null);
-        group.removeAllViews();
+    // Automatic first, then the pairs. Each one has a line saying who it is
+    // for: a person here is here because the game will not draw, and a list of
+    // driver names without that line is a guessing game. As radio buttons the
+    // six of them filled the tab; a dropdown shows the choice and its line,
+    // and the open list shows every line.
+    private void buildGraphicsDriver(Spinner spinner) {
+        View card = (View)spinner.getParent();
         List<String> options = new ArrayList<>();
         options.add(DD1GraphicsChoice.AUTOMATIC);
         options.addAll(DD1GraphicsChoice.PAIRS);
         String stored = DD1GraphicsChoice.stored(requireContext());
-        if (!options.contains(stored)) stored = DD1GraphicsChoice.AUTOMATIC;
+        if (!DD1GraphicsChoice.accepted(stored)) stored = DD1GraphicsChoice.AUTOMATIC;
+        // A pair made in Advanced that no preset names: shown as Custom.
+        if (!options.contains(stored)) options.add(stored);
         String renderer = GPUHelper.glGetRenderer(requireContext());
         String detected = DD1GraphicsDriver.forRenderer(renderer);
         // The answer first: which GPU, and what it is drawing with now. It is the
         // line to quote in a bug report, and usually all anyone needs to see.
-        TextView status = ((View)group.getParent()).findViewById(R.id.TVGraphicsStatus);
+        TextView status = card.findViewById(R.id.TVGraphicsStatus);
         String inUse = DD1GraphicsChoice.resolve(requireContext());
         status.setText(getString(R.string.dd1_graphics_status,
             renderer == null || renderer.isEmpty() ? "?" : renderer,
-            options.contains(inUse) ? getString(labelOf(inUse)) : inUse));
-        for (String option : options) {
-            RadioButton button = choice(label(option, detected), option.equals(stored));
-            group.addView(button);
-            TextView hint = new TextView(requireContext());
-            hint.setText(hintOf(option));
-            hint.setTextColor(themeColor(R.attr.colorSecondaryText));
-            hint.setTextSize(12);
-            // Closer to the button it belongs to than to the next one, or it reads
-            // as the beginning of the option below.
-            int gap = Math.round(8 * getResources().getDisplayMetrics().density);
-            RadioGroup.LayoutParams params = new RadioGroup.LayoutParams(
-                RadioGroup.LayoutParams.MATCH_PARENT, RadioGroup.LayoutParams.WRAP_CONTENT);
-            params.bottomMargin = gap;
-            params.leftMargin = Math.round(34 * getResources().getDisplayMetrics().density);
-            hint.setLayoutParams(params);
-            group.addView(hint);
-        }
-        group.setOnCheckedChangeListener((ignored, checkedId) -> {
-            // Two views per option: the button, then its line.
-            int index = indexOf(group, checkedId) / 2;
-            String chosen = index >= 0 && index < options.size()
-                ? options.get(index) : DD1GraphicsChoice.AUTOMATIC;
-            DD1GraphicsChoice.store(requireContext(), chosen);
-            Container container = firstContainer();
-            if (container != null) {
-                container.setGraphicsDriver(DD1GraphicsChoice.resolve(requireContext()));
-                container.saveData();
+            DD1GraphicsChoice.PAIRS.contains(inUse) ? getString(labelOf(inUse))
+                : getString(R.string.dd1_graphics_custom) + " (" + inUse + ")"));
+        TextView hint = card.findViewById(R.id.TVGraphicsDriverChoiceHint);
+
+        float density = getResources().getDisplayMetrics().density;
+        int padH = Math.round(12 * density), padV = Math.round(8 * density);
+        spinner.setPopupBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
+            themeColor(R.attr.colorSecondarySurface)));
+        spinner.setOnItemSelectedListener(null);
+        spinner.setAdapter(new android.widget.BaseAdapter() {
+            @Override public int getCount() { return options.size(); }
+            @Override public Object getItem(int position) { return options.get(position); }
+            @Override public long getItemId(int position) { return position; }
+
+            // Closed: the name alone, the line sits under the dropdown.
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                TextView text = convertView instanceof TextView ? (TextView)convertView
+                    : new TextView(requireContext());
+                text.setText(label(options.get(position), detected));
+                text.setTextColor(themeColor(R.attr.colorPrimaryText));
+                text.setTextSize(15);
+                text.setPadding(0, padV, padH, padV);
+                return text;
             }
-            // The list redraws so the automatic row can say what it now resolves to.
-            buildGraphicsDriver(group);
-            if (getView() != null) buildVulkanDriver(getView());
+
+            // Open: the name and who it is for.
+            @Override
+            public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                String option = options.get(position);
+                SpannableString text = new SpannableString(
+                    label(option, detected) + "\n" + hintOf(option));
+                int split = text.toString().indexOf('\n');
+                text.setSpan(new ForegroundColorSpan(themeColor(R.attr.colorSecondaryText)),
+                    split, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                text.setSpan(new RelativeSizeSpan(0.8f), split, text.length(),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                TextView view = convertView instanceof TextView ? (TextView)convertView
+                    : new TextView(requireContext());
+                view.setText(text);
+                view.setTextColor(themeColor(R.attr.colorPrimaryText));
+                view.setTextSize(15);
+                view.setPadding(padH, padV, padH, padV);
+                return view;
+            }
+        });
+        int selected = options.indexOf(stored);
+        spinner.setSelection(selected, false);
+        hint.setText(hintOf(stored));
+        buildGraphicsAdvanced(card, spinner, inUse, !DD1GraphicsChoice.PAIRS.contains(stored)
+            && !stored.equals(DD1GraphicsChoice.AUTOMATIC));
+        spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                chooseGraphics(options.get(position), spinner);
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        });
+    }
+
+    private void chooseGraphics(String chosen, Spinner presets) {
+        if (chosen.equals(DD1GraphicsChoice.stored(requireContext()))) return;
+        DD1GraphicsChoice.store(requireContext(), chosen);
+        Container container = firstContainer();
+        if (container != null) {
+            container.setGraphicsDriver(DD1GraphicsChoice.resolve(requireContext()));
+            container.saveData();
+        }
+        // Redrawn so the status line, the presets and the advanced pair all say
+        // what the choice now resolves to.
+        buildGraphicsDriver(presets);
+        if (getView() != null) buildVulkanDriver(getView());
+    }
+
+    private boolean graphicsAdvancedOpen;
+
+    // For people who know the runtime from Winlator: the Vulkan driver and the
+    // OpenGL one apart, any of each, and the driver file they brought. Folded
+    // away, since a preset is all most people should touch.
+    private void buildGraphicsAdvanced(View card, Spinner presets, String inUse, boolean custom) {
+        if (custom) graphicsAdvancedOpen = true;
+        TextView toggle = card.findViewById(R.id.TVGraphicsAdvanced);
+        View section = card.findViewById(R.id.LLGraphicsAdvanced);
+        View vulkanCard = getView() != null ? getView().findViewById(R.id.LLVulkanDriverCard) : null;
+        Runnable show = () -> {
+            toggle.setText(graphicsAdvancedOpen ? R.string.dd1_graphics_advanced_hide
+                : R.string.dd1_graphics_advanced_show);
+            section.setVisibility(graphicsAdvancedOpen ? View.VISIBLE : View.GONE);
+            if (vulkanCard != null)
+                vulkanCard.setVisibility(graphicsAdvancedOpen ? View.VISIBLE : View.GONE);
+        };
+        show.run();
+        toggle.setOnClickListener(v -> {
+            graphicsAdvancedOpen = !graphicsAdvancedOpen;
+            show.run();
+        });
+
+        String vulkan = DD1GraphicsChoice.accepted(inUse) ? DD1GraphicsChoice.vulkanOf(inUse)
+            : DD1GraphicsChoice.VULKAN.get(0);
+        String opengl = DD1GraphicsChoice.accepted(inUse) ? DD1GraphicsChoice.openglOf(inUse)
+            : DD1GraphicsChoice.OPENGL.get(0);
+        List<CharSequence> vulkanNames = new ArrayList<>();
+        for (String id : DD1GraphicsChoice.VULKAN)
+            vulkanNames.add(getString(id.equals(GraphicsDrivers.TURNIP)
+                ? R.string.dd1_graphics_vulkan_turnip : R.string.dd1_graphics_vulkan_vortek));
+        List<CharSequence> openglNames = new ArrayList<>();
+        for (String id : DD1GraphicsChoice.OPENGL) openglNames.add(GraphicsDrivers.getName(id));
+
+        Spinner vulkanSpinner = card.findViewById(R.id.SPGraphicsVulkan);
+        Spinner openglSpinner = card.findViewById(R.id.SPGraphicsOpenGL);
+        fill(vulkanSpinner, vulkanNames, DD1GraphicsChoice.VULKAN.indexOf(vulkan), position ->
+            chooseGraphics(DD1GraphicsChoice.pair(DD1GraphicsChoice.VULKAN.get(position), opengl), presets));
+        fill(openglSpinner, openglNames, DD1GraphicsChoice.OPENGL.indexOf(opengl), position ->
+            chooseGraphics(DD1GraphicsChoice.pair(vulkan, DD1GraphicsChoice.OPENGL.get(position)), presets));
+    }
+
+    // A plain dropdown of names in the screen's own colours.
+    private void fill(Spinner spinner, List<CharSequence> names, int selected,
+            java.util.function.IntConsumer onChoose) {
+        float density = getResources().getDisplayMetrics().density;
+        int padH = Math.round(12 * density), padV = Math.round(8 * density);
+        spinner.setPopupBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
+            themeColor(R.attr.colorSecondarySurface)));
+        spinner.setOnItemSelectedListener(null);
+        spinner.setAdapter(new android.widget.BaseAdapter() {
+            @Override public int getCount() { return names.size(); }
+            @Override public Object getItem(int position) { return names.get(position); }
+            @Override public long getItemId(int position) { return position; }
+
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                return row(convertView, position, 0);
+            }
+
+            @Override
+            public View getDropDownView(int position, View convertView, ViewGroup parent) {
+                return row(convertView, position, padH);
+            }
+
+            private View row(View convertView, int position, int start) {
+                TextView text = convertView instanceof TextView ? (TextView)convertView
+                    : new TextView(requireContext());
+                text.setText(names.get(position));
+                text.setTextColor(themeColor(R.attr.colorPrimaryText));
+                text.setTextSize(15);
+                text.setPadding(start, padV, padH, padV);
+                return text;
+            }
+        });
+        spinner.setSelection(Math.max(0, selected), false);
+        spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                if (position != selected) onChoose.accept(position);
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {}
         });
     }
 
@@ -276,6 +410,7 @@ public class DD1SettingsFragment extends Fragment {
     private CharSequence label(String option, String detected) {
         String name = getString(labelOf(option));
         String note = option.equals(DD1GraphicsChoice.AUTOMATIC) ? detected
+            : !DD1GraphicsChoice.PAIRS.contains(option) ? option
             : option.equals(detected) ? getString(R.string.dd1_graphics_same_as_auto) : null;
         if (note == null) return name;
         SpannableString text = new SpannableString(name + "   " + note);
@@ -293,7 +428,8 @@ public class DD1SettingsFragment extends Fragment {
         if (pair.equals("turnip,zink")) return R.string.dd1_graphics_turnip_zink;
         if (pair.equals("vortek,zink")) return R.string.dd1_graphics_vortek_zink;
         if (pair.equals("vortek,virgl")) return R.string.dd1_graphics_vortek_virgl;
-        return R.string.dd1_graphics_vortek_gladio;
+        if (pair.equals("vortek,gladio")) return R.string.dd1_graphics_vortek_gladio;
+        return R.string.dd1_graphics_custom;
     }
 
     private String hintOf(String pair) {
@@ -307,7 +443,9 @@ public class DD1SettingsFragment extends Fragment {
             return getString(R.string.dd1_graphics_vortek_zink_hint);
         if (pair.equals("vortek,virgl"))
             return getString(R.string.dd1_graphics_vortek_virgl_hint);
-        return getString(R.string.dd1_graphics_vortek_gladio_hint);
+        if (pair.equals("vortek,gladio"))
+            return getString(R.string.dd1_graphics_vortek_gladio_hint);
+        return getString(R.string.dd1_graphics_custom_hint);
     }
 
     // Which GPU this is and which drivers the profile ended up on. A screen that
@@ -501,6 +639,18 @@ public class DD1SettingsFragment extends Fragment {
         group.setOnCheckedChangeListener((ignored, checkedId) ->
             DD1TouchOverlay.chooseHalfRefreshRate(requireContext(),
                 indexOf(group, checkedId) == 1));
+    }
+
+    // Applied when Play is pressed (DD1GladioClient), so a change waits for the
+    // next start.
+    private void buildFrameLimit(RadioGroup group) {
+        String[] names = getResources().getStringArray(R.array.dd1_frame_limits);
+        int chosen = DD1GladioClient.frameLimit(requireContext());
+        for (int i = 0; i < names.length && i < DD1GladioClient.FRAME_LIMITS.length; i++)
+            group.addView(choice(names[i], DD1GladioClient.FRAME_LIMITS[i] == chosen));
+        group.setOnCheckedChangeListener((ignored, checkedId) ->
+            DD1GladioClient.chooseFrameLimit(requireContext(),
+                DD1GladioClient.FRAME_LIMITS[indexOf(group, checkedId)]));
     }
 
     private Container firstContainer() {

@@ -65,6 +65,26 @@ public abstract class DD1Game {
         return path.startsWith(root) ? path.substring(root.length() + 1).replace('\\', '/') : path;
     }
 
+    // The folder of the Darkest.exe the launcher runs, relative to the game, and
+    // every folder one of the candidates would sit in. A DLL meant to be beside
+    // the game goes beside the one that runs - instructions written for a PC say
+    // _windows/win64, and the launcher starts _windowsnosteam/win64.
+    static String executableFolder(File gameDir) {
+        File executable = executable(gameDir);
+        if (executable == null) return null;
+        String path = relative(gameDir, executable);
+        int slash = path.lastIndexOf('/');
+        return slash < 0 ? "" : path.substring(0, slash);
+    }
+
+    static boolean isExecutableFolder(String folder) {
+        for (String path : EXECUTABLES) {
+            int slash = path.lastIndexOf('/');
+            if (path.substring(0, Math.max(0, slash)).equalsIgnoreCase(folder)) return true;
+        }
+        return false;
+    }
+
     private static File executable(File gameDir) {
         for (String path : EXECUTABLES) {
             File executable = new File(gameDir, path);

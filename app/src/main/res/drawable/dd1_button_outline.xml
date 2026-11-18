@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A second action beside the main one: the same shape, outlined, so the pair
+     reads as one row with a clear first choice. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/colorSecondarySurface" />
+            <stroke android:width="1dp" android:color="@color/dd1_outline" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <stroke android:width="1dp" android:color="@color/dd1_outline" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+</selector>

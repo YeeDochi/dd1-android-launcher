@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The same shape as the home screen: what you act on down the left, what it is
-     doing down the right. A slot card stretched across the whole width read as
-     one enormous row and left nowhere for progress to go. -->
+<!-- One save at a time, large, on the left; every save on the right by name,
+     with a light for where it stands. Snapshots are their own tab, and the
+     transfer log waits behind a button: a slot-per-row table needed scrolling
+     past four saves and named them profile_N, which nobody playing knows. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -11,134 +12,305 @@
     android:paddingEnd="16dp"
     android:paddingBottom="12dp">
 
-    <!-- The header sits inside the left column, the way the home screen has it,
-         so the log panel starts level with the title instead of under it. -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal">
+
+        <include
+            layout="@layout/dd1_screen_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/BTSavesTabManage"
+            style="@style/DD1Tab"
+            android:layout_marginStart="20dp"
+            android:text="@string/dd1_saves_tab_manage" />
+
+        <TextView
+            android:id="@+id/BTSavesTabSnapshots"
+            style="@style/DD1Tab"
+            android:text="@string/dd1_saves_snapshots" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/BTSavesRefresh"
+            style="@style/DD1Action"
+            android:text="@string/dd1_saves_refresh" />
+
+        <Button
+            android:id="@+id/BTSavesLog"
+            style="@style/DD1Action"
+            android:text="@string/dd1_saves_log" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?attr/colorSecondarySurface" />
+
+    <!-- Manage: the chosen save, and the list. -->
+    <LinearLayout
+        android:id="@+id/LLSavesManage"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <ScrollView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="62"
+            android:background="@drawable/dd1_card_background">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <ProgressBar
+                    android:id="@+id/PBSavesLoading"
+                    style="?android:attr/progressBarStyleLarge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/TVSavesEmpty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/colorSecondaryText"
+                    android:textSize="15sp"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/LLSaveDetail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/TVSaveTitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textColor="?attr/colorPrimaryText"
+                            android:textSize="24sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/TVSaveState"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+
+                    <!-- Its room is kept whether or not anything moves, so the save
+                         below it never jumps: idle it holds the last outcome, busy
+                         the step and the bar. -->
+                    <LinearLayout
+                        android:id="@+id/LLSavesStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center_vertical"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/TVSavesStatus"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:singleLine="true"
+                            android:ellipsize="end"
+                            android:textColor="?attr/colorSecondaryText"
+                            android:textSize="13sp" />
+
+                        <ProgressBar
+                            android:id="@+id/PBSavesTransfer"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:max="100"
+                            android:visibility="invisible" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="@drawable/dd1_box_outline"
+                            android:padding="12dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                style="@style/DD1SectionTitle"
+                                android:layout_marginTop="0dp"
+                                android:text="@string/dd1_saves_local" />
+
+                            <TextView
+                                android:id="@+id/TVSaveLocal"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:lineSpacingExtra="2dp"
+                                android:textColor="?attr/colorPrimaryText"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:background="@drawable/dd1_box_outline"
+                            android:padding="12dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                style="@style/DD1SectionTitle"
+                                android:layout_marginTop="0dp"
+                                android:text="@string/dd1_saves_cloud" />
+
+                            <TextView
+                                android:id="@+id/TVSaveCloud"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:lineSpacingExtra="2dp"
+                                android:textColor="?attr/colorPrimaryText"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <Button
+                            style="@style/DD1Button"
+                            android:id="@+id/BTSaveUpload"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:text="@string/dd1_saves_upload" />
+
+                        <Button
+                            style="@style/DD1Button"
+                            android:id="@+id/BTSaveDownload"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:text="@string/dd1_saves_download" />
+
+                        <Button
+                            android:id="@+id/BTSaveDelete"
+                            style="@style/DD1Action"
+                            android:layout_marginStart="8dp"
+                            android:text="@string/dd1_saves_delete_short"
+                            android:textColor="@color/dd1_danger" />
+                    </LinearLayout>
+
+
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="45"
+            android:layout_weight="38"
+            android:layout_marginStart="12dp"
             android:orientation="vertical">
 
-            <include layout="@layout/dd1_screen_header" />
+            <TextView
+                style="@style/DD1SectionTitle"
+                android:layout_marginTop="0dp"
+                android:text="@string/dd1_saves_list" />
 
-            <ProgressBar
-                android:id="@+id/PBSavesLoading"
-                style="?android:attr/progressBarStyleLarge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="12dp"
-                android:visibility="gone" />
-
-            <!-- Said once above the list rather than in every card: with ten
-                 slots the labels would be the loudest thing on the screen. -->
-            <LinearLayout
-                android:id="@+id/LLSlotHeader"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <!-- The same width the slot's name takes in a row, so the two
-                     labels sit over the two boxes. -->
-                <View
-                    android:layout_width="72dp"
-                    android:layout_height="1dp" />
-
-                <TextView
-                    style="@style/DD1SectionTitle"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginTop="0dp"
-                    android:paddingStart="10dp"
-                    android:text="@string/dd1_saves_local" />
-
-                <TextView
-                    style="@style/DD1SectionTitle"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginTop="0dp"
-                    android:layout_marginStart="8dp"
-                    android:paddingStart="10dp"
-                    android:text="@string/dd1_saves_cloud" />
-            </LinearLayout>
-
-            <!-- The slots scroll on their own so that ten of them cannot push the
-                 snapshots off the bottom of the screen. The minimum is two rows:
-                 a slot cut in half reads as a rendering fault. -->
             <ScrollView
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_weight="3">
+                android:layout_weight="1">
 
                 <LinearLayout
-                    android:id="@+id/LLSlots"
+                    android:id="@+id/LLSaveList"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical" />
             </ScrollView>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+            <TextView
+                android:id="@+id/TVSaveLegend"
+                style="@style/DD1Meta"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
+    </LinearLayout>
 
-                <TextView
-                    style="@style/DD1SectionTitle"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginTop="0dp"
-                    android:text="@string/dd1_saves_snapshots" />
+    <!-- Snapshots: taken before every transfer, and a copy to storage. -->
+    <LinearLayout
+        android:id="@+id/LLSavesSnapshotsTab"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical"
+        android:visibility="gone">
 
-                <Button
-                    android:id="@+id/BTSaveBackup"
-                    style="@style/DD1Action"
-                    android:text="@string/dd1_saves_backup" />
-            </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <!-- Shared by weight rather than capped: maxHeight is not an attribute
-                 a ScrollView honours, so asking for one silently gave the
-                 snapshots the whole foot of the screen and cut a slot in half. -->
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="2">
+            <TextView
+                style="@style/DD1Meta"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="@string/dd1_saves_snapshots_hint" />
 
-                <LinearLayout
-                    android:id="@+id/LLSnapshots"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </ScrollView>
+            <Button
+                android:id="@+id/BTSaveBackup"
+                style="@style/DD1Action"
+                android:text="@string/dd1_saves_backup" />
         </LinearLayout>
 
         <ScrollView
-            android:id="@+id/SVSavesLog"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="55"
-            android:layout_marginStart="12dp"
-            android:background="?attr/colorSecondarySurface"
-            android:scrollbars="vertical">
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
 
-            <!-- The padding belongs to the text, not the viewport, or the last
-                 line never comes fully into view. -->
-            <TextView
-                android:id="@+id/TVSavesLog"
+            <LinearLayout
+                android:id="@+id/LLSnapshots"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:padding="10dp"
-                android:textColor="?attr/colorSecondaryText"
-                android:textIsSelectable="true"
-                android:textSize="@dimen/dd1_log_size" />
+                android:orientation="vertical" />
         </ScrollView>
     </LinearLayout>
 </LinearLayout>

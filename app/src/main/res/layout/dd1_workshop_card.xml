@@ -3,7 +3,7 @@
      landscape phone shows several rows instead of less than one. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     style="@style/DD1Card" android:layout_marginStart="4dp" android:layout_marginEnd="4dp"
-    android:background="?attr/colorSecondarySurface" android:gravity="center_vertical"
+    android:background="@drawable/dd1_card_background" android:gravity="center_vertical"
     android:orientation="horizontal" android:padding="8dp">
     <ImageView android:id="@+id/IVWorkshopCard" android:layout_width="128dp"
         android:layout_height="72dp" android:background="?attr/colorPrimarySurface"
@@ -12,11 +12,13 @@
         android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
         <TextView android:id="@+id/TVWorkshopCardTitle" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="2"
+            android:minLines="2" android:gravity="top"
             android:textColor="?attr/colorPrimaryText" android:textSize="14sp"
             android:textStyle="bold" />
         <TextView android:id="@+id/TVWorkshopCardMeta" style="@style/DD1Meta"
             android:maxLines="1" android:ellipsize="end" />
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        <!-- Fixed, so a card with a state chip is as tall as one without. -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="40dp"
             android:gravity="center_vertical" android:orientation="horizontal">
             <TextView android:id="@+id/TVWorkshopCardState" android:layout_width="wrap_content"
                 android:layout_height="wrap_content" android:visibility="gone" />

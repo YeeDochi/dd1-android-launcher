@@ -11,6 +11,17 @@ Everything under app/src/main outside com.winlator.dd1 is Winlator's own code,
 distributed under the GNU Lesser General Public License, version 2.1. Its full
 text is in LICENSE at the root of this repository.
 
+Gladio
+------
+
+Repository: https://github.com/brunodev85/gladio
+
+app/src/main/assets/dd1/gladio-client.tzst carries Gladio's OpenGL client
+library, built from commit eaa2a8d with the changes in
+docs/gladio-client/dd1.patch, which also says how to build it. Gladio is
+distributed under the GNU Lesser General Public License, version 2.1; its full
+text is in LICENSE at the root of this repository.
+
 StS2 Launcher Mod Manager
 -------------------------
 

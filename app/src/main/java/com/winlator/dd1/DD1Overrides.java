@@ -1,6 +1,5 @@
 package com.winlator.dd1;
 
-import android.os.Environment;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -21,8 +20,8 @@ import java.util.Set;
 
 // Files a person wants laid over the game: a proxy DLL beside Darkest.exe, an
 // edited script, a replaced sound bank. The game stays inside the app, where it
-// loads in seconds instead of minutes (issue #4), and DD1/overrides mirrors its
-// tree - DD1/overrides/_windows/win64/foo.dll lands at _windows/win64/foo.dll.
+// loads in seconds instead of minutes (issue #4), and DD1/dll mirrors its
+// tree - DD1/dll/_windows/win64/foo.dll lands at _windows/win64/foo.dll.
 //
 // Applied at Play. A file that replaces one of the game's is kept aside first
 // and put back when the override leaves the folder; a file the game never had is
@@ -40,13 +39,13 @@ public final class DD1Overrides {
 
     private DD1Overrides() {}
 
-    public static File folder() {
-        return new File(Environment.getExternalStorageDirectory(), "DD1/overrides");
+    public static File folder(android.content.Context context) {
+        return DD1Folders.dll(context);
     }
 
     // Made on first open, and kept out of the gallery like the game's own art.
     public static void open(android.content.Context context) {
-        File overrides = folder();
+        File overrides = folder(context);
         if (!overrides.isDirectory()) overrides.mkdirs();
         DD1GameLocation.noMedia(overrides);
         DD1FileManager.open(context, overrides);
@@ -96,7 +95,7 @@ public final class DD1Overrides {
         try {
             Set<String> seen = new HashSet<>();
             for (Map.Entry<String, File> each : sources.entrySet()) {
-                String path = resolve(gameDir, each.getKey());
+                String path = resolve(gameDir, place(gameDir, each.getKey()));
                 File source = each.getValue();
                 File target = new File(gameDir, path);
                 if (target.isDirectory() || path.equals(STATE) || path.startsWith(STATE + "/")
@@ -160,7 +159,85 @@ public final class DD1Overrides {
         return result;
     }
 
-    // DD1/overrides/Darkest.exe/x.dll asks for a folder where the game has a
+    // What the mod manager's DLL tab shows: every file in the folder and where it
+    // stands, plus what was laid down and has since left the folder. Read only;
+    // nothing moves until Play.
+    public enum State { APPLIED, PENDING, SKIPPED, LEAVING }
+
+    public static final class Item {
+        public final String path;
+        public final State state;
+        // It takes the place of one of the game's own files, kept aside.
+        public final boolean replacesGameFile;
+
+        Item(String path, State state, boolean replacesGameFile) {
+            this.path = path;
+            this.state = state;
+            this.replacesGameFile = replacesGameFile;
+        }
+
+        public boolean isDll() {
+            return path.toLowerCase(java.util.Locale.ROOT).endsWith(".dll");
+        }
+    }
+
+    public static List<Item> list(File overrides, File gameDir) throws IOException {
+        Map<String, Entry> record = read(new File(new File(gameDir, STATE), RECORD));
+        Map<String, File> sources = new LinkedHashMap<>();
+        if (overrides.isDirectory()) collect(overrides, "", sources);
+        List<Item> items = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (Map.Entry<String, File> each : sources.entrySet()) {
+            String path = resolve(gameDir, place(gameDir, each.getKey()));
+            File source = each.getValue();
+            File target = new File(gameDir, path);
+            if (target.isDirectory() || path.equals(STATE) || path.startsWith(STATE + "/")
+                    || blockedByFile(gameDir, path)) {
+                items.add(new Item(each.getKey(), State.SKIPPED, false));
+                continue;
+            }
+            seen.add(path);
+            Entry entry = record.get(path);
+            boolean applied = entry != null && target.isFile()
+                && target.length() == entry.targetSize && target.lastModified() == entry.targetTime
+                && entry.sourceSize == source.length() && entry.sourceTime == source.lastModified();
+            items.add(new Item(path, applied ? State.APPLIED : State.PENDING,
+                entry != null ? entry.original : target.isFile()));
+        }
+        for (Map.Entry<String, Entry> each : record.entrySet()) {
+            if (!seen.contains(each.getKey()))
+                items.add(new Item(each.getKey(), State.LEAVING, each.getValue().original));
+        }
+        items.sort((a, b) -> a.path.compareToIgnoreCase(b.path));
+        return items;
+    }
+
+    // Wine takes its own build of a system DLL - dinput8, version, winmm, dxgi -
+    // over a file of that name beside the game unless told otherwise, so a proxy
+    // DLL laid down here would sit unused. Every DLL the record holds is named
+    // native-first; the value is the launcher's alone, so it is replaced whole
+    // and removed when no DLL is left.
+    public static final String DLL_OVERRIDES_KEY = "WINEDLLOVERRIDES";
+
+    public static String withDllOverrides(String envVars, File gameDir) throws IOException {
+        Map<String, Entry> record = read(new File(new File(gameDir, STATE), RECORD));
+        return withDllOverrides(envVars, record.keySet());
+    }
+
+    static String withDllOverrides(String envVars, java.util.Collection<String> paths) {
+        java.util.TreeSet<String> names = new java.util.TreeSet<>();
+        for (String path : paths) {
+            String name = path.substring(path.lastIndexOf('/') + 1).toLowerCase(java.util.Locale.ROOT);
+            if (name.endsWith(".dll") && name.length() > 4 && name.indexOf(' ') < 0)
+                names.add(name.substring(0, name.length() - 4));
+        }
+        com.winlator.core.EnvVars vars = new com.winlator.core.EnvVars(envVars == null ? "" : envVars);
+        if (names.isEmpty()) vars.remove(DLL_OVERRIDES_KEY);
+        else vars.put(DLL_OVERRIDES_KEY, String.join(",", names) + "=n,b");
+        return vars.toString();
+    }
+
+    // DD1/dll/Darkest.exe/x.dll asks for a folder where the game has a
     // file; there is no such place to put it.
     private static boolean blockedByFile(File gameDir, String path) {
         File parent = new File(gameDir, path).getParentFile();
@@ -182,6 +259,21 @@ public final class DD1Overrides {
             if (child.isDirectory()) collect(child, path + "/", into);
             else if (child.isFile()) into.put(path, child);
         }
+    }
+
+    // Where a file in the folder goes in the game. A DLL put straight into the
+    // folder, or into the folder of any Darkest.exe (_windows/win64 is what a PC
+    // guide says), goes beside the Darkest.exe that runs; anything else keeps its
+    // path.
+    static String place(File gameDir, String path) {
+        if (!path.toLowerCase(java.util.Locale.ROOT).endsWith(".dll")) return path;
+        int slash = path.lastIndexOf('/');
+        String folder = slash < 0 ? "" : path.substring(0, slash);
+        if (slash >= 0 && !DD1Game.isExecutableFolder(folder)) return path;
+        String running = DD1Game.executableFolder(gameDir);
+        if (running == null) return path;
+        String name = path.substring(slash + 1);
+        return running.isEmpty() ? name : running + "/" + name;
     }
 
     // Each step takes the game's spelling where an entry by that name exists in

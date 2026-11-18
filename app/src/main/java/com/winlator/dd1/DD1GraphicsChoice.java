@@ -13,9 +13,9 @@ import java.util.List;
 // Which drivers the game runs on, and who decided. Left alone the launcher reads
 // the GPU's name and picks the pair known to work on that family; a device the
 // automatic answer does not serve can be told directly, once, from the settings
-// screen. Only pairs that are known to go together are offered - the runtime
-// takes one driver for Vulkan and one for OpenGL, and most of the nine
-// combinations are answers to nobody's question.
+// screen. The presets are the pairs known to go together; the advanced section
+// takes any Vulkan driver with any OpenGL one, for people who know the runtime
+// from Winlator and want a pair the presets leave out.
 public abstract class DD1GraphicsChoice {
     private DD1GraphicsChoice() {}
 
@@ -31,10 +31,34 @@ public abstract class DD1GraphicsChoice {
         GraphicsDrivers.VORTEK + "," + GraphicsDrivers.VIRGL,
         GraphicsDrivers.VORTEK + "," + GraphicsDrivers.GLADIO));
 
+    // What the runtime takes, one of each, as "vulkan,opengl".
+    public static final List<String> VULKAN = Collections.unmodifiableList(Arrays.asList(
+        GraphicsDrivers.TURNIP, GraphicsDrivers.VORTEK));
+    public static final List<String> OPENGL = Collections.unmodifiableList(Arrays.asList(
+        GraphicsDrivers.GLADIO, GraphicsDrivers.ZINK, GraphicsDrivers.VIRGL));
+
+    public static boolean accepted(String pair) {
+        if (pair == null) return false;
+        String[] parts = pair.split(",", -1);
+        return parts.length == 2 && VULKAN.contains(parts[0]) && OPENGL.contains(parts[1]);
+    }
+
+    public static String pair(String vulkan, String opengl) {
+        return vulkan + "," + opengl;
+    }
+
+    public static String vulkanOf(String pair) {
+        return pair.substring(0, pair.indexOf(','));
+    }
+
+    public static String openglOf(String pair) {
+        return pair.substring(pair.indexOf(',') + 1);
+    }
+
     // Pure so it can be tested without a device: what was stored, and what the GPU
     // says it is.
     public static String resolve(String stored, String renderer) {
-        return stored != null && PAIRS.contains(stored)
+        return accepted(stored)
             ? stored : DD1GraphicsDriver.forRenderer(renderer);
     }
 
@@ -48,7 +72,7 @@ public abstract class DD1GraphicsChoice {
 
     public static void store(Context context, String pair) {
         preferences(context).edit().putString(KEY,
-            pair == null || !PAIRS.contains(pair) ? AUTOMATIC : pair).apply();
+            accepted(pair) ? pair : AUTOMATIC).apply();
     }
 
     private static SharedPreferences preferences(Context context) {

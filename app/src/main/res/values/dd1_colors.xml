@@ -2,4 +2,7 @@
 <resources>
     <color name="dd1_launcher_background">#141414</color>
     <color name="dd1_warning">#D9A441</color>
+    <color name="dd1_danger">#E5534B</color>
+    <color name="dd1_outline">#454C55</color>
+    <color name="dd1_accent_pressed">#0277BD</color>
 </resources>

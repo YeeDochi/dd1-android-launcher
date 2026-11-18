@@ -44,6 +44,13 @@
                 android:contentDescription="@string/dd1_menu"
                 android:src="@drawable/icon_action_bar_menu" />
 
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="12dp"
+                android:importantForAccessibility="no"
+                android:src="@mipmap/dd1_launcher" />
+
             <!-- Autosize truncates rather than shrinks when the width comes
                  from a weight, so the size comes from the screen bucket. -->
             <TextView
@@ -89,7 +96,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="28dp"
-                android:background="?attr/colorSecondarySurface"
+                android:background="@drawable/dd1_card_background"
                 android:ellipsize="end"
                 android:gravity="center"
                 android:maxLines="3"
@@ -98,7 +105,7 @@
                 android:textColor="?attr/colorPrimaryText"
                 android:textSize="15sp" />
 
-            <Button
+            <Button style="@style/DD1Button"
                 android:id="@+id/BTPrimaryAction"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
@@ -222,7 +229,7 @@
                 android:textColorHint="?attr/colorSecondaryText"
                 android:visibility="gone" />
 
-            <Button
+            <Button style="@style/DD1Button"
                 android:id="@+id/BTSteamCode"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
@@ -254,7 +261,7 @@
                 android:textColorHint="?attr/colorSecondaryText"
                 android:visibility="gone" />
 
-            <Button
+            <Button style="@style/DD1Button"
                 android:id="@+id/BTSteamCredentials"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
@@ -271,7 +278,7 @@
                 android:textColor="?attr/colorPrimaryText"
                 android:visibility="gone" />
 
-            <Button
+            <Button style="@style/DD1Button"
                 android:id="@+id/BTDownload"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
@@ -332,7 +339,7 @@
 
 
 
-            <Button
+            <Button style="@style/DD1Button"
                 android:id="@+id/BTRetryDownload"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
@@ -358,7 +365,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:background="?attr/colorSecondarySurface"
+            android:background="@drawable/dd1_card_background"
             android:minHeight="120dp"
             android:scrollbars="vertical">
 
@@ -381,7 +388,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
-            <Button
+            <Button style="@style/DD1ButtonSecondary"
                 android:id="@+id/BTCancelDownload"
                 android:layout_width="0dp"
                 android:layout_weight="1"
@@ -389,7 +396,7 @@
                 android:text="@string/cancel"
                 android:visibility="gone" />
 
-            <Button
+            <Button style="@style/DD1ButtonSecondary"
                 android:id="@+id/BTSteamSignOut"
                 android:layout_width="0dp"
                 android:layout_weight="1"

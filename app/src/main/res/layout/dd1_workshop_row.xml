@@ -4,6 +4,7 @@
      menu, so it is never one stray tap away. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     style="@style/DD1Card" android:layout_marginTop="6dp" android:gravity="center_vertical"
+    android:minHeight="80dp"
     android:orientation="horizontal" android:paddingTop="8dp" android:paddingBottom="8dp">
     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
         android:layout_weight="1" android:orientation="vertical">
@@ -11,11 +12,14 @@
             android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
             android:textColor="?attr/colorPrimaryText" android:textSize="14sp"
             android:textStyle="bold" />
+        <!-- Its room is kept with no chips in it, so every row is the same height. -->
         <LinearLayout android:id="@+id/LLWorkshopChips" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="4dp"
+            android:minHeight="28dp"
             android:orientation="horizontal" />
     </LinearLayout>
     <Button android:id="@+id/BTWorkshopUpdate" style="@style/DD1Action"
+        android:minHeight="0dp" android:paddingTop="6dp" android:paddingBottom="6dp"
         android:text="@string/dd1_workshop_update" android:visibility="gone" />
     <Switch android:id="@+id/SWWorkshopEnabled" android:layout_width="wrap_content"
         android:layout_height="wrap_content" android:layout_marginStart="8dp"

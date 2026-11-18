@@ -27,6 +27,8 @@
             android:text="@string/dd1_workshop_tab_store" />
         <TextView android:id="@+id/BTWorkshopTabInstalled" style="@style/DD1Tab"
             android:text="@string/dd1_workshop_tab_installed" />
+        <TextView android:id="@+id/BTWorkshopTabDll" style="@style/DD1Tab"
+            android:text="@string/dd1_workshop_tab_dll" />
     </LinearLayout>
 
     <View android:layout_width="match_parent" android:layout_height="1dp"
@@ -90,13 +92,13 @@
                 android:text="@string/dd1_workshop_import" />
             <Button android:id="@+id/BTWorkshopInstalledRefresh" style="@style/DD1Action"
                 android:text="@string/dd1_workshop_refresh" />
-            <Button android:id="@+id/BTWorkshopSync" android:layout_width="wrap_content"
+            <Button style="@style/DD1Button" android:id="@+id/BTWorkshopSync" android:layout_width="wrap_content"
                 android:layout_height="40dp" android:layout_marginStart="8dp"
                 android:text="@string/dd1_workshop_sync" android:textSize="13sp"
                 android:visibility="gone" />
         </LinearLayout>
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" android:background="?attr/colorSecondarySurface"
+            android:layout_marginTop="4dp" android:background="@drawable/dd1_card_background"
             android:gravity="center_vertical" android:orientation="horizontal"
             android:paddingStart="12dp">
             <TextView android:id="@+id/TVWorkshopDropFolder" style="@style/DD1Meta"
@@ -127,6 +129,32 @@
                 <LinearLayout android:id="@+id/LLWorkshopList" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:orientation="vertical" />
             </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+
+    <!-- DD1/overrides: files laid over the game at Play, DLLs mostly. Listed
+         with where each one stands; the folder itself is where they are put. -->
+    <LinearLayout android:id="@+id/LLWorkshopDll" android:layout_width="match_parent"
+        android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical"
+        android:visibility="gone">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp" android:gravity="center_vertical"
+            android:minHeight="44dp" android:orientation="horizontal">
+            <TextView android:id="@+id/TVWorkshopDllSummary" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1"
+                android:textColor="?attr/colorPrimaryText" android:textSize="15sp" />
+            <Button android:id="@+id/BTWorkshopDllOpen" style="@style/DD1Action"
+                android:text="@string/dd1_workshop_dll_open" />
+            <Button android:id="@+id/BTWorkshopDllRefresh" style="@style/DD1Action"
+                android:text="@string/dd1_workshop_refresh" />
+        </LinearLayout>
+        <TextView android:id="@+id/TVWorkshopDllHint" style="@style/DD1Meta"
+            android:layout_marginTop="4dp" android:background="@drawable/dd1_card_background"
+            android:padding="12dp" />
+        <ScrollView android:layout_width="match_parent" android:layout_height="0dp"
+            android:layout_weight="1">
+            <LinearLayout android:id="@+id/LLWorkshopDllList" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:orientation="vertical" />
         </ScrollView>
     </LinearLayout>
 </LinearLayout>

@@ -137,8 +137,34 @@ public final class DD1CloudSaves {
         return true;
     }
 
+    // Why the last upload stopped, in Steam's words where Steam gave one, for the
+    // saves screen: "sync failed" alone sent people turning things off and on.
+    private volatile String lastFailure;
+
+    public String lastFailure() {
+        return lastFailure;
+    }
+
     public boolean upload(File root, List<DD1SaveSummary.Entry> files) {
-        if (!uploadable(files)) return false;
+        return upload(root, files, java.util.Collections.emptyList());
+    }
+
+    // stale: the slot's files that the cloud has and this phone does not
+    // (DD1SaveSlots.staleInCloud). They are named to Steam with the batch, as its
+    // own client does, and deleted only once every file has gone up - a batch
+    // that stops halfway must not leave the cloud with less than it had.
+    public boolean upload(File root, List<DD1SaveSummary.Entry> files, List<String> stale) {
+        return upload(root, files, stale, null);
+    }
+
+    // sent: told the count of files that have gone up, after each one.
+    public boolean upload(File root, List<DD1SaveSummary.Entry> files, List<String> stale,
+            java.util.function.IntConsumer sent) {
+        lastFailure = null;
+        if (!uploadable(files)) {
+            lastFailure = "nothing safe to send";
+            return false;
+        }
         List<String> names = new ArrayList<>();
         for (DD1SaveSummary.Entry file : files) names.add(file.path);
 
@@ -150,9 +176,11 @@ public final class DD1CloudSaves {
                         .setAppid(DD1SteamEvents.APP_ID)
                         .setMachineName("DD1 Android")
                         .addAllFilesToUpload(names)
+                        .addAllFilesToDelete(stale)
                         .build()).runBlock();
             if (begun.getResult() != EResult.OK) {
                 Log.e("DD1Cloud", "Upload batch refused: " + begun.getResult());
+                lastFailure = "Steam refused the upload: " + begun.getResult();
                 return false;
             }
             batch = begun.getBody().getBatchId();
@@ -161,14 +189,27 @@ public final class DD1CloudSaves {
         }
         catch (Exception refused) {
             Log.e("DD1Cloud", "Upload batch refused", refused);
+            lastFailure = "Steam did not answer: " + refused.getMessage();
             return false;
         }
 
         boolean allDone = true;
+        int count = 0;
         for (DD1SaveSummary.Entry file : files) {
             if (!send(root, file, batch)) {
                 allDone = false;
+                if (lastFailure == null) lastFailure = "could not send " + file.path;
                 break;
+            }
+            if (sent != null) sent.accept(++count);
+        }
+        if (allDone) {
+            for (String path : stale) {
+                if (!delete(path, batch)) {
+                    allDone = false;
+                    lastFailure = "could not remove " + path + " from the cloud";
+                    break;
+                }
             }
         }
         try {
@@ -184,6 +225,26 @@ public final class DD1CloudSaves {
             return false;
         }
         return allDone;
+    }
+
+    private boolean delete(String path, long batch) {
+        try {
+            EResult result = cloudService.clientDeleteFile(
+                in.dragonbra.javasteam.protobufs.steamclient.SteammessagesCloudSteamclient
+                    .CCloud_ClientDeleteFile_Request.newBuilder()
+                    .setAppid(DD1SteamEvents.APP_ID)
+                    .setFilename(path)
+                    .setIsExplicitDelete(true)
+                    .setUploadBatchId(batch)
+                    .build()).runBlock().getResult();
+            Log.i("DD1Cloud", "Delete " + path + " -> " + result);
+            // Already gone is what was asked for.
+            return result == EResult.OK || result == EResult.FileNotFound;
+        }
+        catch (Exception failed) {
+            Log.e("DD1Cloud", "Delete failed: " + path, failed);
+            return false;
+        }
     }
 
     private boolean send(File root, DD1SaveSummary.Entry file, long batch) {
@@ -208,13 +269,17 @@ public final class DD1CloudSaves {
             if (begun.getResult() != EResult.OK) {
                 Log.e("DD1Cloud", "Begin refused: " + file.path
                     + " result=" + begun.getResult());
+                lastFailure = "Steam refused " + file.path + ": " + begun.getResult();
                 return false;
             }
             opened = true;
             FileUploadInfo info = new FileUploadInfo(begun.getBody());
             // An encrypted upload needs a key exchange this launcher does not do.
             // Guessing at it would write rubbish into the player's cloud.
-            if (info.getEncryptFile()) return false;
+            if (info.getEncryptFile()) {
+                lastFailure = "Steam asked for an encrypted upload, which the launcher does not do";
+                return false;
+            }
 
             Log.i("DD1Cloud", "Begin " + file.path + " size=" + content.length
                 + " blocks=" + info.getBlockRequests().size());
@@ -286,10 +351,12 @@ public final class DD1CloudSaves {
                     .setFilename(path)
                     .build()).runBlock();
         if (transferSucceeded && !(response.getResult() == EResult.OK
-                && response.getBody().getFileCommitted()))
+                && response.getBody().getFileCommitted())) {
+            lastFailure = "Steam did not keep " + path + ": " + response.getResult();
             Log.e("DD1Cloud", "Commit rejected: " + path
                 + " result=" + response.getResult()
                 + " committed=" + response.getBody().getFileCommitted());
+        }
         return response.getResult();
     }
 

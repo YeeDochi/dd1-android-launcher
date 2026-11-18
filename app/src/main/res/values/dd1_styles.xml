@@ -2,7 +2,25 @@
 <resources>
     <!-- The app theme is dark but leaves dialogs on AppCompat's light default,
          which puts a grey title on white. -->
-    <style name="DD1Dialog" parent="Theme.AppCompat.Dialog.Alert" />
+    <style name="DD1Dialog" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/dd1_dialog_background</item>
+        <item name="colorAccent">#4FB3E8</item>
+        <item name="android:textColorPrimary">#FAFAFA</item>
+        <item name="android:textColorSecondary">#B8BEC6</item>
+        <item name="android:textColorAlertDialogListItem">#FAFAFA</item>
+        <item name="colorControlNormal">#9E9E9E</item>
+        <item name="android:windowMinWidthMajor">55%</item>
+        <item name="android:windowMinWidthMinor">80%</item>
+        <item name="buttonBarPositiveButtonStyle">@style/DD1DialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/DD1DialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/DD1DialogButton</item>
+    </style>
+
+    <style name="DD1DialogButton" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
+        <item name="android:textColor">#4FB3E8</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">15sp</item>
+    </style>
 
     <!-- The home screen already says what a block of information looks like: the
          secondary surface with room around the text. The pushed screens borrow
@@ -11,8 +29,8 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">8dp</item>
-        <item name="android:background">?attr/colorSecondarySurface</item>
-        <item name="android:padding">12dp</item>
+        <item name="android:background">@drawable/dd1_card_background</item>
+        <item name="android:padding">14dp</item>
     </style>
 
     <style name="DD1SectionTitle">
@@ -51,5 +69,21 @@
         <item name="android:minWidth">0dp</item>
         <item name="android:textColor">?attr/colorAccent</item>
         <item name="android:textSize">13sp</item>
+    </style>
+
+    <!-- The action a card exists for: filled, rounded, white on the accent. -->
+    <style name="DD1Button" parent="Widget.AppCompat.Button.Borderless">
+        <item name="android:layout_height">48dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:background">@drawable/dd1_button_filled</item>
+        <item name="android:textColor">@color/dd1_button_text</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
+    <style name="DD1ButtonSecondary" parent="DD1Button">
+        <item name="android:background">@drawable/dd1_button_outline</item>
+        <item name="android:textColor">?attr/colorPrimaryText</item>
     </style>
 </resources>

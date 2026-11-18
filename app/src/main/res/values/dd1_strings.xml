@@ -9,7 +9,10 @@
     <string name="dd1_status_profile_error">Unable to prepare the runtime profile</string>
     <string name="dd1_play">Play</string>
     <string name="dd1_create_profile">Create profile</string>
-    <string name="dd1_install_channel">Game download</string>
+    <string name="dd1_install_channel">Downloads and sync</string>
+    <string name="dd1_notification_title_workshop">Workshop mod sync</string>
+    <string name="dd1_notification_title_sign_in">Steam sign-in</string>
+    <string name="dd1_workshop_sync_notification">Getting Workshop mods</string>
     <string name="dd1_notification_title">Game download</string>
     <string name="dd1_install_downloading">Downloading Darkest Dungeon</string>
     <string name="dd1_install_signing_in">Signing in to Steam</string>
@@ -49,8 +52,6 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_saves_cloud_unknown">Steam has not answered yet.</string>
     <string name="dd1_saves_none">No saves here.</string>
     <string name="dd1_saves_played">%.1f min</string>
-    <string name="dd1_saves_upload">Send up</string>
-    <string name="dd1_saves_download">Get</string>
     <string name="dd1_saves_replace_title">Replace this save</string>
     <string name="dd1_saves_replace">On this device: %1$s\n\nFrom the cloud: %2$s\n\nThe save on this device is snapshotted first.</string>
     <string name="dd1_saves_progress">%1$d/%2$d files</string>
@@ -60,21 +61,73 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_saves_no_snapshot">No snapshot could be taken; nothing was sent</string>
     <string name="dd1_saves_asking">Waiting for your choice</string>
     <string name="dd1_saves_kept_local">Kept the save on this device</string>
-    <string name="dd1_saves_replaced">%1$s replaced</string>
+    <string name="dd1_saves_replaced">%1$s is now on this device</string>
     <string name="dd1_saves_restore_title">Go back to this snapshot</string>
     <string name="dd1_saves_restore">Every save on this device becomes what it was at %1$s. What is there now is snapshotted first, so this can be undone.</string>
     <string name="dd1_saves_restored">Went back to %1$s</string>
     <string name="dd1_saves_restore_failed">Could not go back</string>
+    <string name="dd1_saves_log">Transfer record</string>
+    <string name="dd1_saves_log_title">Transfer record</string>
+    <string name="dd1_saves_busy">Wait for the save transfer that is running to finish</string>
+    <string name="dd1_saves_status_up">%1$s → Steam Cloud  %2$d/%3$d</string>
+    <string name="dd1_saves_status_down">Steam Cloud → %1$s  %2$d/%3$d</string>
+    <string name="dd1_saves_status_backup">Copying the saves to storage</string>
+    <string name="dd1_saves_tab_manage">Saves</string>
+    <string name="dd1_saves_refresh">Refresh</string>
+    <string name="dd1_saves_list">Saves</string>
+    <string name="dd1_saves_upload">↑ Upload to the cloud</string>
+    <string name="dd1_saves_download">↓ Get it on this device</string>
+    <string name="dd1_saves_slot">Slot %1$d</string>
+    <string name="dd1_saves_snapshots_hint">Taken by itself before every upload and download. Tap one to go back to it.</string>
+    <string name="dd1_saves_state_same">Same</string>
+    <string name="dd1_saves_state_different">Different</string>
+    <string name="dd1_saves_state_cloud_only">Cloud only</string>
+    <string name="dd1_saves_state_local_only">This device only</string>
+    <string name="dd1_saves_advice_same">Both sides hold the same save.</string>
+    <string name="dd1_saves_advice_local_newer">This device saved it more recently (%1$s).</string>
+    <string name="dd1_saves_advice_cloud_newer">The cloud has the more recent save (%1$s).</string>
+    <string name="dd1_saves_advice_local_only">Not in the cloud. Upload it to carry on from another device.</string>
+    <string name="dd1_saves_advice_cloud_only">Not on this device. Get it to carry on here.</string>
+    <string name="dd1_saves_none_anywhere">No saves on this device or in the cloud.</string>
+    <string name="dd1_saves_none_here_cloud_unknown">No saves on this device, and the cloud has not answered yet.</string>
+    <string name="dd1_saves_log_details">Details</string>
+    <string name="dd1_saves_log_summary">Summary</string>
+    <string name="dd1_saves_history_empty">Nothing transferred yet.</string>
+    <string name="dd1_saves_delete_short">Delete</string>
+    <string name="dd1_saves_delete">Delete from this device</string>
+    <string name="dd1_saves_delete_title">Delete this save?</string>
+    <string name="dd1_saves_delete_message_cloud">%1$s (slot %2$d) is deleted from this device. A snapshot is taken first, and the copy in Steam Cloud stays.</string>
+    <string name="dd1_saves_delete_message_only">%1$s (slot %2$d) is deleted from this device, and it is not in Steam Cloud. A snapshot is taken first, so the Snapshots tab can bring it back.</string>
+    <string name="dd1_saves_status_delete">Deleting from this device</string>
+    <string name="dd1_saves_deleted">Deleted from this device</string>
+    <string name="dd1_saves_delete_failed">Could not delete it completely; the snapshot taken before has it</string>
     <string name="dd1_saves_snapshots">Snapshots</string>
     <string name="dd1_saves_backup">Copy to storage</string>
     <string name="dd1_saves_backup_done">Saves copied to %1$s</string>
     <string name="dd1_saves_backup_failed">The saves could not be copied out</string>
     <string name="dd1_saves_backup_denied">Storage permission is needed to copy the saves out</string>
-    <string name="dd1_saves_sent">Sent %1$d files</string>
+    <string name="dd1_saves_sent">%1$s uploaded to the cloud (%2$d files)</string>
     <string name="dd1_saves_send_failed">Steam did not take the save</string>
     <string name="dd1_saves_get_failed">The save did not come down whole</string>
     <string name="dd1_workshop">Mod manager</string>
     <string name="dd1_workshop_tab_store">Workshop</string>
+    <string name="dd1_workshop_tab_dll">DLL mods</string>
+    <string name="dd1_workshop_tab_dll_count">DLL mods (%1$d)</string>
+    <string name="dd1_workshop_dll_open">Open folder</string>
+    <string name="dd1_workshop_dll_summary">%1$d in use, %2$d waiting for Play</string>
+    <string name="dd1_workshop_dll_empty">No DLL mods</string>
+    <string name="dd1_workshop_dll_hint">Put a DLL straight into DD1/dll and it goes beside the Darkest.exe the game runs when you press Play; a _windows/win64 folder from a PC guide works too. Other game files are laid over the game at the same path (DD1/dll/scripts/...). A DLL here is loaded ahead of Wine\'s own copy. Take a file out and the game\'s own comes back on the next Play.</string>
+    <string name="dd1_workshop_dll_no_access">Storage access is needed to read DD1/dll.</string>
+    <string name="dd1_workshop_dll_applied">In use</string>
+    <string name="dd1_workshop_dll_pending">Applied on the next Play</string>
+    <string name="dd1_workshop_dll_leaving">Taken out - removed on the next Play</string>
+    <string name="dd1_workshop_dll_skipped">Cannot go there - a folder or file of the game is in the way</string>
+    <string name="dd1_workshop_dll_replaces">replaces a game file, kept aside</string>
+    <string name="dd1_workshop_dll_native">loaded ahead of Wine\'s own</string>
+    <string name="dd1_workshop_unsubscribed_removed">Removed %1$d mods you unsubscribed from</string>
+    <string name="dd1_workshop_sync_started">Synchronising %1$d Workshop mods</string>
+    <string name="dd1_workshop_sync_done">Workshop mods are up to date</string>
+    <string name="dd1_workshop_sync_failed">Workshop mods could not be synchronised; open the mod manager for details</string>
     <string name="dd1_workshop_tab_installed">Installed</string>
     <string name="dd1_workshop_search_hint">Search Workshop or paste a URL / ID</string>
     <string name="dd1_workshop_search">Search</string>
@@ -112,10 +165,10 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_workshop_mods_in_game">Mods folder: %1$s. Mods put here work straight away.</string>
     <string name="dd1_workshop_folder_open">Open folder</string>
     <string name="dd1_workshop_import">Import ZIP</string>
-    <string name="dd1_workshop_drop_folder">Mods put in %1$s are added and removed with the folder.</string>
-    <string name="dd1_workshop_folder_change">Change</string>
-    <string name="dd1_workshop_folder_change_title">Change the mod folder</string>
-    <string name="dd1_workshop_folder_change_message">Local mods the current folder installed will be removed, and the new folder read in their place. Workshop mods are not affected.</string>
+    <string name="dd1_workshop_drop_folder">DD1 folder: %1$s · mods put in %2$s arrive and leave with the folder.</string>
+    <string name="dd1_workshop_folder_change">Change DD1 folder</string>
+    <string name="dd1_workshop_folder_change_title">Change the DD1 folder</string>
+    <string name="dd1_workshop_folder_change_message">The launcher makes a mods folder and a dll folder inside the one you choose: mods go in mods, DLLs and replacement game files in dll. Local mods installed from the current folder are removed and the mods in the new one are read instead. Workshop mods stay.</string>
     <string name="dd1_workshop_folder_unusable">That folder cannot be used as a mod folder. Choose one on internal storage or a memory card.</string>
     <string name="dd1_workshop_heading_local">Local mods</string>
     <string name="dd1_workshop_heading_steam">Steam Workshop</string>
@@ -161,11 +214,11 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_box64_performance">Faster instruction translation</string>
     <string name="dd1_box64_performance_hint">Lets box64 skip checks it normally makes while turning the game’s x86 code into ARM. It can crash or corrupt the picture on some scenes; turn it back off if anything looks wrong. Applies on the next launch.</string>
     <string name="dd1_cpu_budget">Processor cores</string>
-    <string name="dd1_cpu_budget_hint">The game has no frame limit, so it renders as fast as the cores let it and spends the battery doing it. Holding it off the fastest cores costs speed and buys back running time. Applies on the next launch.</string>
+    <string name="dd1_cpu_budget_hint">The game works as fast as the cores let it and spends the battery doing it. Holding it off the fastest cores costs speed and buys back running time. Applies on the next launch.</string>
     <string name="dd1_game_location">Game location</string>
     <string name="dd1_game_location_app">Inside the app</string>
     <string name="dd1_game_location_storage">Phone storage (DD1/game)</string>
-    <string name="dd1_game_location_hint">The game is kept inside the app, where it loads quickly. Mods go in DD1/mods, and replacement files and DLLs in DD1/overrides; both are brought in when you press Play. A game still in phone storage (DD1/game) is moved inside, which copies about 4 GB and needs that much free space for a while.</string>
+    <string name="dd1_game_location_hint">The game is kept inside the app, where it loads quickly. Mods go in DD1/mods, and replacement files and DLLs in DD1/dll; both are brought in when you press Play. A game still in phone storage (DD1/game) is moved inside, which copies about 4 GB and needs that much free space for a while.</string>
     <string name="dd1_game_location_here_storage">Phone storage · %1$s</string>
     <string name="dd1_game_location_here_app">Inside the app</string>
     <string name="dd1_game_location_to_storage">Move to phone storage</string>
@@ -186,9 +239,9 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_busy">Another download or a Workshop sync is running. Try again when it has finished.</string>
     <string name="dd1_storage_found_game">The game is already in phone storage (DD1/game), so nothing needs downloading.</string>
     <string name="dd1_storage_needed">The game is in phone storage, so this needs storage access.</string>
-    <string name="dd1_storage_denied">Without storage access the game is downloaded inside the app. Mods in DD1/mods and files in DD1/overrides cannot be read until access is granted.</string>
+    <string name="dd1_storage_denied">Without storage access the game is downloaded inside the app. Mods in DD1/mods and files in DD1/dll cannot be read until access is granted.</string>
     <string name="dd1_game_files_in_app_title">The game is inside the app</string>
-    <string name="dd1_game_files_in_app_message">File managers cannot reach the app\'s own storage. Files put in DD1/overrides are laid over the game each time you press Play, in the same folders: DD1/overrides/_windows/win64/example.dll lands beside Darkest.exe. Take a file out and the game\'s own comes back. Mods go in DD1/mods.</string>
+    <string name="dd1_game_files_in_app_message">File managers cannot reach the app\'s own storage. Files put in DD1/dll are laid over the game each time you press Play, in the same folders: DD1/dll/_windows/win64/example.dll lands beside Darkest.exe. Take a file out and the game\'s own comes back. Mods go in DD1/mods.</string>
     <string name="dd1_game_files_move">Move to phone storage</string>
     <string name="dd1_game_files_windows">Windows file manager</string>
     <string name="dd1_game_files_find">Open %1$s in a file manager.</string>
@@ -197,9 +250,9 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_move_no_room">Not enough free space to move the game inside the app. It needs about %1$.1f GB free; free some space and tap the notice on the home screen to try again.</string>
     <string name="dd1_status_ready_storage">The game is in phone storage (DD1/game), where loading can take minutes. Tap here to move it into the app.</string>
     <string name="dd1_storage_slow_title">Move the game into the app?</string>
-    <string name="dd1_storage_slow_message">In phone storage every scene change reads thousands of files through Android\'s storage layer and can take many minutes. Inside the app it takes seconds. Moving copies about 4 GB, then removes the old copy, which also takes a few minutes. Saves are not affected. Mods move to DD1/mods, and files that replace game files go in DD1/overrides.</string>
-    <string name="dd1_game_files_overrides">Open DD1/overrides</string>
-    <string name="dd1_storage_needed_overrides">DD1/overrides is in phone storage, so this needs storage access.</string>
+    <string name="dd1_storage_slow_message">In phone storage every scene change reads thousands of files through Android\'s storage layer and can take many minutes. Inside the app it takes seconds. Moving copies about 4 GB, then removes the old copy, which also takes a few minutes. Saves are not affected. Mods move to DD1/mods, and files that replace game files go in DD1/dll.</string>
+    <string name="dd1_game_files_overrides">Open DD1/dll</string>
+    <string name="dd1_storage_needed_overrides">DD1/dll is in phone storage, so this needs storage access.</string>
     <string name="dd1_state_clearing_old">Game moved. Removing the old copy (%1$d files so far). Keep the app open until this finishes.</string>
     <string name="dd1_refresh_rate">Screen refresh rate</string>
     <string name="dd1_refresh_rate_hint">The panel draws at 120 Hz whatever the game is doing. Halving it while the game runs saves power on the screen itself and leaves the game alone.</string>
@@ -207,6 +260,13 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
         <item>All cores</item>
         <item>Without the fastest core</item>
         <item>Efficiency cores only</item>
+    </string-array>
+    <string name="dd1_frame_limit">Frame limit</string>
+    <string name="dd1_frame_limit_hint">How many pictures a second the game draws. The game is turn-based, so 30 keeps the phone cooler and the battery longer; with no limit, menus and loading screens draw hundreds a second for nothing. Applies from the next Play, with the Gladio drivers.</string>
+    <string-array name="dd1_frame_limits">
+        <item>30 FPS</item>
+        <item>60 FPS</item>
+        <item>No limit</item>
     </string-array>
     <string-array name="dd1_refresh_rates">
         <item>Whatever the phone chooses</item>
@@ -233,7 +293,7 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_graphics_vortek_gladio">Exynos and others, faster (Vortek + Gladio)</string>
     <string name="dd1_graphics_vortek_gladio_hint">The same Xclipse and Mali devices, and faster, but on many of them it leaves the picture black.</string>
     <string name="dd1_graphics_vortek_zink">Snapdragon, built-in driver (Vortek + Zink)</string>
-    <string name="dd1_graphics_vortek_zink_hint">Draws with the Qualcomm driver the device ships instead of Turnip. Try it on the newest Snapdragon parts where Turnip stutters badly, such as the Galaxy S26 Ultra (Adreno 840). Tried on few devices so far.</string>
+    <string name="dd1_graphics_vortek_zink_hint">Draws with the Qualcomm driver the device ships instead of Turnip. Try it where Turnip draws a broken picture or none. Tried on few devices so far.</string>
     <string name="dd1_diagnostic_logs">Save diagnostic logs</string>
     <string name="dd1_vulkan_driver">Your own Vulkan driver</string>
     <string name="dd1_vulkan_driver_hint">Used only when the graphics driver chosen above includes Vortek. Loads an AdrenoTools driver file you downloaded (a zip, such as a Turnip build for Adreno 8xx) in place of the device driver. The launcher ships no driver, so only use a file from a source you trust. If the game draws nothing, go back to the device driver. Takes effect the next time you press Play.</string>
@@ -247,6 +307,15 @@ Files Steam does not ship, such as a DLL you added, are not removed. If one of t
     <string name="dd1_show_fps_hint">Puts frames per second and GPU, CPU and memory use over the game. With these numbers beside a report of stutter, the cause is much easier to find. Takes effect the next time you press Play.</string>
     <string name="dd1_diagnostic_logs_hint">While the game runs, what Wine and box64 print goes to DD1/logs/wine-log.txt and a description of the device and settings to DD1/logs/device.txt, and what the app and the graphics driver log to DD1/logs/logcat.txt. Attach both to a bug report - they are often the only way to see what went wrong on a device we do not have. The run before is kept under the same names with -previous. It can slow the game a little, so leave it off unless you need it. Takes effect the next time you press Play.</string>
     <string name="dd1_graphics_driver_hint">Takes effect the next time you press Play. If a change makes things worse, come back and set Automatic.</string>
+    <string name="dd1_graphics_advanced_show">Advanced ▸</string>
+    <string name="dd1_graphics_advanced_hide">Advanced ▾</string>
+    <string name="dd1_graphics_advanced_hint">Pick the Vulkan driver and the way OpenGL is drawn yourself, as in Winlator. A pair the presets do not name shows above as Custom. The game draws with OpenGL, so the Vulkan driver matters only under Zink.</string>
+    <string name="dd1_graphics_vulkan">Vulkan driver</string>
+    <string name="dd1_graphics_opengl">OpenGL</string>
+    <string name="dd1_graphics_custom">Custom</string>
+    <string name="dd1_graphics_custom_hint">Chosen in Advanced. If the game will not draw, go back to Automatic.</string>
+    <string name="dd1_graphics_vulkan_turnip">Turnip</string>
+    <string name="dd1_graphics_vulkan_vortek">Vortek (the device driver)</string>
     <string name="dd1_graphics_same_as_auto">what Automatic picks</string>
     <string name="dd1_sticky_keys">SHIFT\n+CTRL</string>
     <string name="dd1_sticky_keys_on">ON</string>

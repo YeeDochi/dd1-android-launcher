@@ -49,6 +49,23 @@ public final class DD1SaveSlots {
         return files;
     }
 
+    // What the cloud holds for a slot that the slot here no longer has. The game
+    // writes persist.raid.json, persist.map.json and the loading screen only
+    // during an expedition and deletes them on the way home; an upload that left
+    // the cloud's copies in place handed a PC a hamlet save with the last
+    // dungeon still attached. Root files are never in it (filesOf).
+    public static List<String> staleInCloud(DD1CloudListing listing, String slot,
+            Set<String> namesAtRoot, java.util.Collection<String> local) {
+        List<String> stale = new ArrayList<>();
+        if (!listing.known()) return stale;
+        Set<String> kept = new java.util.HashSet<>();
+        for (String path : local) kept.add(path.toLowerCase(java.util.Locale.ROOT));
+        for (DD1SaveSummary.Entry file : filesOf(listing, slot, namesAtRoot)) {
+            if (!kept.contains(file.path.toLowerCase(java.util.Locale.ROOT))) stale.add(file.path);
+        }
+        return stale;
+    }
+
     // What the tree's own root holds, by name. The caller reads it once and hands
     // it in, because deciding this per file would stat the directory per file.
     public static Set<String> namesAtRoot(File filesDir) {

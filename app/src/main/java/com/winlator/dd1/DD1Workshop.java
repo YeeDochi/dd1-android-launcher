@@ -326,12 +326,17 @@ public final class DD1Workshop {
         return removed;
     }
 
-    public static void removeUnsubscribed(File filesDir, Collection<Long> subscribedIds)
+    // How many went, so the person can be told an unsubscribe reached the phone.
+    public static int removeUnsubscribed(File filesDir, Collection<Long> subscribedIds)
             throws IOException {
+        int removed = 0;
         for (Mod mod : scan(filesDir)) {
-            if (mod.publishedFileId != 0 && !subscribedIds.contains(mod.publishedFileId))
+            if (mod.publishedFileId != 0 && !subscribedIds.contains(mod.publishedFileId)) {
                 delete(filesDir, mod.directoryName, mod.disabled);
+                removed++;
+            }
         }
+        return removed;
     }
 
     private static Mod read(File directory, boolean disabled) {

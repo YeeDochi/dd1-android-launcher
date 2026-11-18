@@ -1,6 +1,7 @@
 package com.winlator.dd1;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -71,6 +72,30 @@ public class DD1SaveSlotsTest {
 
         assertEquals(2, DD1SaveSlots.filesOf(listing, "profile_0",
             Collections.<String>emptySet()).size());
+    }
+
+    // Back in the hamlet the game has deleted the expedition's files; an upload
+    // has to take them out of the cloud too, or a PC gets the hamlet save with
+    // the old dungeon attached. Root files and other slots are never touched.
+    @Test
+    public void filesTheSlotNoLongerHasAreStaleInTheCloud() {
+        DD1CloudListing listing = DD1CloudListing.of(1L, Arrays.asList(
+            entry("profile_0/persist.game.json"),
+            entry("profile_0/persist.raid.json"),
+            entry("profile_0/persist.map.json"),
+            entry("profile_0/steam_init.json"),
+            entry("profile_1/persist.raid.json")));
+
+        assertEquals(Arrays.asList("profile_0/persist.raid.json", "profile_0/persist.map.json"),
+            DD1SaveSlots.staleInCloud(listing, "profile_0",
+                Collections.singleton("steam_init.json"),
+                Collections.singletonList("profile_0/Persist.Game.json")));
+    }
+
+    @Test
+    public void anUnknownCloudHasNothingStale() {
+        assertTrue(DD1SaveSlots.staleInCloud(DD1CloudListing.unknown(), "profile_0",
+            Collections.<String>emptySet(), Collections.<String>emptyList()).isEmpty());
     }
 
     private static DD1SaveSummary.Entry entry(String path) {

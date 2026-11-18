@@ -51,7 +51,7 @@
         android:layout_marginTop="4dp"
         android:visibility="gone" />
 
-    <Button
+    <Button style="@style/DD1ButtonSecondary"
         android:id="@+id/BTDlcFetch"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -59,7 +59,7 @@
         android:text="@string/dd1_dlc_fetch"
         android:visibility="gone" />
 
-    <Button
+    <Button style="@style/DD1Button"
         android:id="@+id/BTDlcApply"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

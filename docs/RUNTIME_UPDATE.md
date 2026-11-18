@@ -85,9 +85,15 @@ On arm64 the wait now spins on `isb` for up to 50 microseconds, timed by the
 generic timer, then sleeps 100 microseconds per turn as upstream did after its
 500 yields. Other architectures keep upstream's loop.
 
-Only the renderer side lives in this repository. The guest side of the same
-handshake is Gladio's `libGL` in the rootfs archive, a binary that still
-yields.
+`cpp/winlator/include/ring_buffer.h` and `cpp/winlator/src/ring_buffer.c`,
+marked `dd1`: a reader that has spun 200 microseconds sets
+`RING_STATUS_DD1_READER_SLEEPS` and sleeps on the ring's tail with a futex,
+and `RingBuffer_setTail` wakes it. A reader sleeps only once the writer has set
+`RING_STATUS_DD1_WRITER_WAKES`, which the launcher's own Gladio client does
+(`docs/gladio-client`); Vortek's client is upstream's and never sets it, so its
+rings keep `busyWait` above. Both files are the same as the client's, so a new
+Gladio release means re-applying `docs/gladio-client/dd1.patch` to it, on both
+sides of the ring.
 
 ## Procedure
 
@@ -109,7 +115,7 @@ yields.
 
 ## Rule
 
-Do not edit upstream files beyond the two edits above. If the launcher needs behaviour the runtime does not
+Do not edit upstream files beyond the edits above. If the launcher needs behaviour the runtime does not
 offer, add it in `com.winlator.dd1` and use the runtime's existing entry points:
 `XServerDisplayActivity` accepts `container_id` and `exec_path` intent extras, and
 containers carry per-game settings.

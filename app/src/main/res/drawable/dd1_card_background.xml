@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Every block of information on the launcher's screens: the secondary surface
+     with soft corners, so a screen reads as cards rather than a grid of slabs. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/colorSecondarySurface" />
+    <corners android:radius="12dp" />
+</shape>

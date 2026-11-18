@@ -1,7 +1,11 @@
 package com.winlator.dd1;
 
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.Gravity;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,7 +18,7 @@ import com.winlator.xenvironment.RootFSInstaller;
 
 // The launcher entry point. Winlator's own MainActivity stays untouched so the
 // runtime can be updated wholesale.
-public class DD1Activity extends AppCompatActivity {
+public class DD1Activity extends AppCompatActivity implements DD1Notices.Host {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,6 +56,48 @@ public class DD1Activity extends AppCompatActivity {
                 .replace(R.id.FLDD1Container, new DD1HomeFragment())
                 .commit();
         }
+    }
+
+    // Each screen binds the install service while it is shown, and a screen
+    // change stops the old one before the new one starts. In between nothing
+    // was bound, an idle service stopped, the Steam session closed with it, and
+    // the next screen signed in again from the stored token - on every visit to
+    // the settings. Bound here as well, the service lives as long as the
+    // launcher is on screen.
+    private final ServiceConnection keepService = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {}
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {}
+    };
+    private boolean serviceBound;
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        serviceBound = bindService(new Intent(this, DD1InstallService.class), keepService, BIND_AUTO_CREATE);
+        DD1Notices.attach(this);
+    }
+
+    @Override
+    public android.widget.LinearLayout noticeContainer() {
+        return findViewById(R.id.LLDD1Notices);
+    }
+
+    @Override
+    public android.app.Activity activity() {
+        return this;
+    }
+
+    @Override
+    protected void onStop() {
+        DD1Notices.detach(this);
+        if (serviceBound) {
+            unbindService(keepService);
+            serviceBound = false;
+        }
+        super.onStop();
     }
 
     @Override

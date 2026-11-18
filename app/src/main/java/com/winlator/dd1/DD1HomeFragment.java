@@ -122,7 +122,7 @@ public class DD1HomeFragment extends Fragment {
     }
 
     // The game goes inside the app. Storage access is still asked for first:
-    // mods and replacement files are dropped in DD1/mods and DD1/overrides, and
+    // mods and replacement files are dropped in DD1/mods and DD1/dll, and
     // without it DD1/game cannot be seen either, so a reinstall - or an install
     // from 0.1.13 or 0.1.14 - would download 4 GB over a game already there.
     // Found whole, that game is used where it is, and the home screen offers to
@@ -493,7 +493,7 @@ public class DD1HomeFragment extends Fragment {
 
     // In phone storage the game is a folder like any other, so it opens in the
     // phone's own file manager. Inside the app no file manager can reach it, so
-    // what opens is DD1/overrides, whose files are laid over the game at Play,
+    // what opens is DD1/dll, whose files are laid over the game at Play,
     // or the runtime's Windows file manager, which sees the game itself.
     private void openGameFiles() {
         Context context = requireContext();
@@ -701,7 +701,7 @@ public class DD1HomeFragment extends Fragment {
         password.getText().clear();
     }
 
-    // Mods dropped in DD1/mods and files in DD1/overrides are brought in first;
+    // Mods dropped in DD1/mods and files in DD1/dll are brought in first;
     // Play stays off meanwhile so a second press cannot start the game twice.
     private void launch(Activity activity, Container container, File executable) {
         if (installService == null) {
@@ -725,6 +725,17 @@ public class DD1HomeFragment extends Fragment {
 
         File gameDir = DD1GameLocation.gameDir(activity);
         mapGameDrive(activity, container);
+        DD1GladioClient.apply(activity, container);
+        try {
+            String envVars = DD1Overrides.withDllOverrides(container.getEnvVars(), gameDir);
+            if (!envVars.equals(container.getEnvVars())) {
+                container.setEnvVars(envVars);
+                container.saveData();
+            }
+        }
+        catch (java.io.IOException ignored) {
+            // No record to read: the game starts with what it had.
+        }
         DD1Diagnostics.beforePlay(activity, container);
 
         File system32 = new File(container.getRootDir(), ".wine/drive_c/windows/system32");

@@ -48,7 +48,8 @@ public final class DD1WorkshopFragment extends Fragment {
 
     private DD1InstallService service;
     private boolean bound;
-    private boolean storeTab = true;
+    private static final int TAB_STORE = 0, TAB_INSTALLED = 1, TAB_DLL = 2;
+    private int tab = TAB_STORE;
     // What the two lists were last built from. A snapshot that only moved a
     // progress figure must not rebuild them: rebuilding drops the scroll position
     // and takes the card out from under a finger that was aiming at it.
@@ -126,8 +127,16 @@ public final class DD1WorkshopFragment extends Fragment {
         ((TextView)view.findViewById(R.id.TVScreenTitle)).setText(R.string.dd1_workshop);
         view.findViewById(R.id.BTScreenBack).setOnClickListener(v ->
             requireActivity().getSupportFragmentManager().popBackStack());
-        view.findViewById(R.id.BTWorkshopTabStore).setOnClickListener(v -> showTab(true));
-        view.findViewById(R.id.BTWorkshopTabInstalled).setOnClickListener(v -> showTab(false));
+        view.findViewById(R.id.BTWorkshopTabStore).setOnClickListener(v -> showTab(TAB_STORE));
+        view.findViewById(R.id.BTWorkshopTabInstalled).setOnClickListener(v -> showTab(TAB_INSTALLED));
+        view.findViewById(R.id.BTWorkshopTabDll).setOnClickListener(v -> {
+            showTab(TAB_DLL);
+            loadDll();
+        });
+        view.findViewById(R.id.BTWorkshopDllOpen).setOnClickListener(v ->
+            DD1Overrides.open(requireContext()));
+        view.findViewById(R.id.BTWorkshopDllRefresh).setOnClickListener(v -> loadDll());
+        ((TextView)view.findViewById(R.id.TVWorkshopDllHint)).setText(R.string.dd1_workshop_dll_hint);
 
         Spinner sort = view.findViewById(R.id.SPWorkshopSort);
         sort.setAdapter(new ArrayAdapter<>(requireContext(),
@@ -192,7 +201,8 @@ public final class DD1WorkshopFragment extends Fragment {
                 Manifest.permission.WRITE_EXTERNAL_STORAGE});
         view.findViewById(R.id.BTWorkshopImport).setOnClickListener(v ->
             importZip.launch(new String[] {"*/*"}));
-        showTab(true);
+        showTab(TAB_STORE);
+        loadDll();
     }
 
     @Override
@@ -228,20 +238,108 @@ public final class DD1WorkshopFragment extends Fragment {
             .getText().toString(), SORTS[Math.max(0, Math.min(SORTS.length - 1, position))], more);
     }
 
-    private void showTab(boolean store) {
-        storeTab = store;
+    private void showTab(int shown) {
+        tab = shown;
         View view = getView();
         if (view == null) return;
-        view.findViewById(R.id.LLWorkshopStore).setVisibility(store ? View.VISIBLE : View.GONE);
-        view.findViewById(R.id.LLWorkshopInstalled).setVisibility(store ? View.GONE : View.VISIBLE);
-        TextView storeTabView = view.findViewById(R.id.BTWorkshopTabStore);
-        TextView installedTabView = view.findViewById(R.id.BTWorkshopTabInstalled);
-        storeTabView.setSelected(store);
-        installedTabView.setSelected(!store);
-        storeTabView.setTextColor(themeColor(store
-            ? R.attr.colorPrimaryText : R.attr.colorSecondaryText));
-        installedTabView.setTextColor(themeColor(store
-            ? R.attr.colorSecondaryText : R.attr.colorPrimaryText));
+        int[] panes = {R.id.LLWorkshopStore, R.id.LLWorkshopInstalled, R.id.LLWorkshopDll};
+        int[] tabs = {R.id.BTWorkshopTabStore, R.id.BTWorkshopTabInstalled, R.id.BTWorkshopTabDll};
+        for (int i = 0; i < panes.length; i++) {
+            view.findViewById(panes[i]).setVisibility(i == shown ? View.VISIBLE : View.GONE);
+            TextView tabView = view.findViewById(tabs[i]);
+            tabView.setSelected(i == shown);
+            tabView.setTextColor(themeColor(i == shown
+                ? R.attr.colorPrimaryText : R.attr.colorSecondaryText));
+        }
+    }
+
+    // The dll folder, read off the main thread: a folder of DLLs is small, but
+    // shared storage answers slowly.
+    private void loadDll() {
+        android.content.Context context = getContext();
+        if (context == null) return;
+        android.content.Context app = context.getApplicationContext();
+        images.execute(() -> {
+            java.util.List<DD1Overrides.Item> items;
+            try {
+                items = DD1Overrides.list(DD1Overrides.folder(app), DD1GameLocation.gameDir(app));
+            }
+            catch (Exception error) {
+                items = null;
+            }
+            java.util.List<DD1Overrides.Item> result = items;
+            View view = getView();
+            if (view != null) view.post(() -> renderDll(result));
+        });
+    }
+
+    private void renderDll(java.util.List<DD1Overrides.Item> items) {
+        View view = getView();
+        if (view == null || !isAdded()) return;
+        TextView summary = view.findViewById(R.id.TVWorkshopDllSummary);
+        TextView tabView = view.findViewById(R.id.BTWorkshopTabDll);
+        LinearLayout list = view.findViewById(R.id.LLWorkshopDllList);
+        list.removeAllViews();
+        if (items == null) {
+            summary.setText(R.string.dd1_workshop_dll_no_access);
+            tabView.setText(R.string.dd1_workshop_tab_dll);
+            return;
+        }
+        int inUse = 0, waiting = 0, files = 0;
+        for (DD1Overrides.Item item : items) {
+            if (item.state == DD1Overrides.State.LEAVING) continue;
+            files++;
+            if (item.state == DD1Overrides.State.APPLIED) inUse++;
+            else if (item.state == DD1Overrides.State.PENDING) waiting++;
+        }
+        tabView.setText(files == 0 ? getString(R.string.dd1_workshop_tab_dll)
+            : getString(R.string.dd1_workshop_tab_dll_count, files));
+        summary.setText(items.isEmpty() ? getString(R.string.dd1_workshop_dll_empty)
+            : getString(R.string.dd1_workshop_dll_summary, inUse, waiting));
+        float density = getResources().getDisplayMetrics().density;
+        int pad = Math.round(12 * density);
+        for (DD1Overrides.Item item : items) {
+            LinearLayout row = new LinearLayout(requireContext());
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setPadding(pad, pad / 2, pad, pad / 2);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            params.topMargin = Math.round(6 * density);
+            row.setLayoutParams(params);
+            row.setBackgroundResource(R.drawable.dd1_card_background);
+
+            TextView name = new TextView(requireContext());
+            name.setText(item.path);
+            name.setTextColor(themeColor(R.attr.colorPrimaryText));
+            name.setTextSize(15);
+            row.addView(name);
+
+            StringBuilder line = new StringBuilder(getString(stateText(item.state)));
+            if (item.state != DD1Overrides.State.SKIPPED && item.state != DD1Overrides.State.LEAVING) {
+                if (item.isDll()) line.append(" · ").append(getString(R.string.dd1_workshop_dll_native));
+                if (item.replacesGameFile)
+                    line.append(" · ").append(getString(R.string.dd1_workshop_dll_replaces));
+            }
+            TextView state = new TextView(requireContext());
+            state.setText(line);
+            state.setTextSize(12);
+            state.setTextColor(item.state == DD1Overrides.State.APPLIED
+                ? themeColor(R.attr.colorAccent)
+                : item.state == DD1Overrides.State.SKIPPED
+                ? ContextCompat.getColor(requireContext(), R.color.dd1_warning)
+                : themeColor(R.attr.colorSecondaryText));
+            row.addView(state);
+            list.addView(row);
+        }
+    }
+
+    private static int stateText(DD1Overrides.State state) {
+        switch (state) {
+            case APPLIED: return R.string.dd1_workshop_dll_applied;
+            case LEAVING: return R.string.dd1_workshop_dll_leaving;
+            case SKIPPED: return R.string.dd1_workshop_dll_skipped;
+            default: return R.string.dd1_workshop_dll_pending;
+        }
     }
 
     private int themeColor(int attr) {
@@ -293,7 +391,7 @@ public final class DD1WorkshopFragment extends Fragment {
         if (view == null) return;
         renderStore(view, snapshot);
         renderInstalled(view, snapshot);
-        showTab(storeTab);
+        showTab(tab);
     }
 
     private void renderStore(View view, DD1WorkshopSnapshot snapshot) {
@@ -413,7 +511,8 @@ public final class DD1WorkshopFragment extends Fragment {
             folderAction.setText(R.string.dd1_workshop_folder_open);
         }
         else if (service != null) {
-            folder.setText(getString(R.string.dd1_workshop_drop_folder, service.dropFolder()));
+            folder.setText(getString(R.string.dd1_workshop_drop_folder,
+                DD1Folders.base(requireContext()), service.dropFolder()));
             folderAction.setText(R.string.dd1_workshop_folder_change);
         }
         folderAction.setEnabled(!syncing);

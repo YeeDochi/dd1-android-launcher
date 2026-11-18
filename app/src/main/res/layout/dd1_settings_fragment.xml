@@ -72,6 +72,15 @@
                     <TextView android:id="@+id/TVRefreshRateHint" style="@style/DD1Meta"
                         android:layout_marginTop="4dp" android:text="@string/dd1_refresh_rate_hint" />
                 </LinearLayout>
+                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                    <TextView style="@style/DD1SectionTitle" android:layout_marginTop="0dp"
+                        android:text="@string/dd1_frame_limit" />
+                    <RadioGroup android:id="@+id/RGFrameLimit" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                        android:orientation="horizontal" />
+                    <TextView style="@style/DD1Meta"
+                        android:layout_marginTop="4dp" android:text="@string/dd1_frame_limit_hint" />
+                </LinearLayout>
             </LinearLayout>
 
             <!-- Graphics -->
@@ -87,10 +96,54 @@
                         android:textIsSelectable="true" />
                     <TextView android:id="@+id/TVGraphicsDriverHint" style="@style/DD1Meta"
                         android:layout_marginTop="4dp" android:text="@string/dd1_graphics_driver_hint" />
-                    <RadioGroup android:id="@+id/RGGraphicsDriver" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:layout_marginTop="8dp" />
+                    <Spinner android:id="@+id/SPGraphicsDriver" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                        android:minWidth="360dp" android:minHeight="44dp"
+                        android:background="@drawable/dd1_dropdown_background"
+                        android:paddingStart="12dp" android:paddingEnd="44dp"
+                        android:spinnerMode="dropdown" />
+                    <TextView android:id="@+id/TVGraphicsDriverChoiceHint" style="@style/DD1Meta"
+                        android:layout_marginTop="4dp" />
+                    <TextView android:id="@+id/TVGraphicsAdvanced" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                        android:minHeight="36dp" android:gravity="center_vertical"
+                        android:textColor="?attr/colorAccent" android:textSize="13sp"
+                        android:background="?android:attr/selectableItemBackground" />
+                    <LinearLayout android:id="@+id/LLGraphicsAdvanced" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:orientation="vertical"
+                        android:visibility="gone">
+                        <TextView style="@style/DD1Meta" android:layout_marginTop="4dp"
+                            android:text="@string/dd1_graphics_advanced_hint" />
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp" android:gravity="center_vertical"
+                            android:orientation="horizontal">
+                            <TextView android:layout_width="160dp" android:layout_height="wrap_content"
+                                android:textColor="?attr/colorPrimaryText" android:textSize="14sp"
+                                android:text="@string/dd1_graphics_vulkan" />
+                            <Spinner android:id="@+id/SPGraphicsVulkan" android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" android:minWidth="240dp"
+                                android:minHeight="44dp"
+                                android:background="@drawable/dd1_dropdown_background"
+                                android:paddingStart="12dp" android:paddingEnd="44dp"
+                                android:spinnerMode="dropdown" />
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp" android:gravity="center_vertical"
+                            android:orientation="horizontal">
+                            <TextView android:layout_width="160dp" android:layout_height="wrap_content"
+                                android:textColor="?attr/colorPrimaryText" android:textSize="14sp"
+                                android:text="@string/dd1_graphics_opengl" />
+                            <Spinner android:id="@+id/SPGraphicsOpenGL" android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" android:minWidth="240dp"
+                                android:minHeight="44dp"
+                                android:background="@drawable/dd1_dropdown_background"
+                                android:paddingStart="12dp" android:paddingEnd="44dp"
+                                android:spinnerMode="dropdown" />
+                        </LinearLayout>
+                    </LinearLayout>
                 </LinearLayout>
-                <LinearLayout style="@style/DD1Card" android:orientation="vertical">
+                <LinearLayout android:id="@+id/LLVulkanDriverCard" style="@style/DD1Card"
+                    android:orientation="vertical" android:visibility="gone">
                     <TextView style="@style/DD1SectionTitle" android:layout_marginTop="0dp"
                         android:text="@string/dd1_vulkan_driver" />
                     <TextView android:id="@+id/TVVulkanDriver" android:layout_width="match_parent"
@@ -156,7 +209,7 @@
                         <Button android:id="@+id/BTGameLocationOpen" style="@style/DD1Action"
                             android:text="@string/dd1_workshop_folder_open"
                             android:visibility="gone" />
-                        <Button android:id="@+id/BTGameLocationMove"
+                        <Button style="@style/DD1Button" android:id="@+id/BTGameLocationMove"
                             android:layout_width="wrap_content" android:layout_height="40dp"
                             android:layout_marginStart="8dp" android:textSize="13sp" />
                     </LinearLayout>

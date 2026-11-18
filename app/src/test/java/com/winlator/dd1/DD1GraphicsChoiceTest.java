@@ -36,6 +36,22 @@ public class DD1GraphicsChoiceTest {
             DD1GraphicsChoice.resolve("turnip,turnip", "Mali-G720"));
     }
 
+    // The advanced section: any Vulkan driver with any OpenGL one, including a
+    // pair no preset names.
+    @Test
+    public void anyVulkanWithAnyOpenGLIsAccepted() {
+        for (String vulkan : DD1GraphicsChoice.VULKAN)
+            for (String opengl : DD1GraphicsChoice.OPENGL) {
+                String pair = DD1GraphicsChoice.pair(vulkan, opengl);
+                assertEquals(pair, DD1GraphicsChoice.resolve(pair, "Mali-G720"));
+                assertEquals(vulkan, DD1GraphicsChoice.vulkanOf(pair));
+                assertEquals(opengl, DD1GraphicsChoice.openglOf(pair));
+            }
+        assertEquals("turnip,virgl", DD1GraphicsChoice.resolve("turnip,virgl", "Mali-G720"));
+        assertEquals("vortek,virgl", DD1GraphicsChoice.resolve("gladio,turnip", "Mali-G720"));
+        assertEquals("vortek,virgl", DD1GraphicsChoice.resolve("turnip,gladio,zink", "Mali-G720"));
+    }
+
     @Test
     public void everyOfferedPairIsAcceptedBack() {
         for (String pair : DD1GraphicsChoice.PAIRS)

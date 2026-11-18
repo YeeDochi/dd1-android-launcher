@@ -155,7 +155,7 @@ public class DD1OverridesTest {
 
         DD1Overrides.Result result = DD1Overrides.apply(overrides, game);
         assertEquals(Collections.singletonList("scripts/hero.lua/inner.txt"), result.skipped);
-        assertEquals(Collections.singletonList("proxy.dll"), result.applied);
+        assertEquals(Collections.singletonList("_windows/win64/proxy.dll"), result.applied);
         assertEquals("original", read(new File(game, "scripts/hero.lua")));
     }
 
@@ -210,6 +210,68 @@ public class DD1OverridesTest {
         File overrides = folder.newFolder("overrides");
         write(new File(overrides, ".nomedia"), "");
         assertFalse(DD1Overrides.apply(overrides, game).changed());
+    }
+
+    // The launcher runs _windowsnosteam/win64/Darkest.exe. A DLL dropped loose in
+    // the folder, or where a PC guide says (_windows/win64), has to end up beside
+    // that one or the game never sees it; other files keep their path.
+    @Test
+    public void aDllGoesBesideTheDarkestExeThatRuns() throws IOException {
+        File game = game();
+        write(new File(game, "_windowsnosteam/win64/Darkest.exe"), "MZ");
+        File overrides = folder.newFolder("dll");
+        write(new File(overrides, "winmm.dll"), "a");
+        write(new File(overrides, "_windows/win64/version.dll"), "b");
+        write(new File(overrides, "scripts/hero.lua"), "c");
+
+        DD1Overrides.apply(overrides, game);
+        assertEquals("a", read(new File(game, "_windowsnosteam/win64/winmm.dll")));
+        assertEquals("b", read(new File(game, "_windowsnosteam/win64/version.dll")));
+        assertFalse(new File(game, "_windows/win64/version.dll").exists());
+        assertEquals("c", read(new File(game, "scripts/hero.lua")));
+        assertEquals("_windowsnosteam/win64/winmm.dll",
+            DD1Overrides.list(overrides, game).get(1).path);
+    }
+
+    // The DLL tab: what is in the folder, where each one stands, and what left.
+    @Test
+    public void theListSaysWhereEachFileStands() throws IOException {
+        File game = game();
+        File overrides = folder.newFolder("dll");
+        write(new File(overrides, "_windows/win64/proxy.dll"), "dll");
+        write(new File(overrides, "scripts/hero.lua"), "edited");
+
+        java.util.List<DD1Overrides.Item> before = DD1Overrides.list(overrides, game);
+        assertEquals(2, before.size());
+        for (DD1Overrides.Item item : before) assertEquals(DD1Overrides.State.PENDING, item.state);
+
+        DD1Overrides.apply(overrides, game);
+        java.util.List<DD1Overrides.Item> after = DD1Overrides.list(overrides, game);
+        assertEquals("_windows/win64/proxy.dll", after.get(0).path);
+        assertEquals(DD1Overrides.State.APPLIED, after.get(0).state);
+        assertTrue(after.get(0).isDll());
+        assertFalse(after.get(0).replacesGameFile);
+        assertEquals(DD1Overrides.State.APPLIED, after.get(1).state);
+        assertTrue(after.get(1).replacesGameFile);
+
+        new File(overrides, "_windows/win64/proxy.dll").delete();
+        java.util.List<DD1Overrides.Item> gone = DD1Overrides.list(overrides, game);
+        assertEquals(DD1Overrides.State.LEAVING, gone.get(0).state);
+    }
+
+    // Wine keeps its own system DLL over one of the same name beside the game
+    // unless told; every laid-down DLL is told, and the value goes when they do.
+    @Test
+    public void everyLaidDownDllIsLoadedNativeFirst() throws IOException {
+        assertEquals("dinput8,version=n,b", new com.winlator.core.EnvVars(
+            DD1Overrides.withDllOverrides("WINEESYNC=1", Arrays.asList(
+                "_windows/win64/Version.dll", "_windows/win64/dinput8.dll", "scripts/hero.lua")))
+            .get("WINEDLLOVERRIDES"));
+        com.winlator.core.EnvVars none = new com.winlator.core.EnvVars(
+            DD1Overrides.withDllOverrides("WINEESYNC=1 WINEDLLOVERRIDES=old=n,b",
+                Collections.singletonList("scripts/hero.lua")));
+        assertFalse(none.has("WINEDLLOVERRIDES"));
+        assertEquals("1", none.get("WINEESYNC"));
     }
 
     private File game() throws IOException {

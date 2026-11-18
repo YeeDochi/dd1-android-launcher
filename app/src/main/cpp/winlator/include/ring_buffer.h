@@ -13,11 +13,16 @@ typedef struct RingBuffer {
     void* buffer;
     void* sharedData;
     uint32_t bufferSize;
+    /* dd1: this side has told the reader it wakes it (see ring_buffer.c) */
+    bool dd1Advertised;
 } RingBuffer;
 
 #define RING_STATUS_IDLE (1u<<0)
 #define RING_STATUS_EXIT (1u<<1)
 #define RING_STATUS_WAIT (1u<<2)
+/* dd1: the writer wakes a sleeping reader; the reader is asleep on tail */
+#define RING_STATUS_DD1_WRITER_WAKES (1u<<29)
+#define RING_STATUS_DD1_READER_SLEEPS (1u<<30)
 
 extern void RingBuffer_setHead(RingBuffer* ring, uint32_t head);
 extern uint32_t RingBuffer_getHead(RingBuffer* ring);

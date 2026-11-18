@@ -8,7 +8,10 @@
     <string name="dd1_status_profile_error">런타임 프로필을 준비하지 못했습니다</string>
     <string name="dd1_play">플레이</string>
     <string name="dd1_create_profile">프로필 만들기</string>
-    <string name="dd1_install_channel">게임 다운로드</string>
+    <string name="dd1_install_channel">다운로드와 동기화</string>
+    <string name="dd1_notification_title_workshop">창작마당 모드 동기화</string>
+    <string name="dd1_notification_title_sign_in">Steam 로그인</string>
+    <string name="dd1_workshop_sync_notification">창작마당 모드를 받는 중</string>
     <string name="dd1_notification_title">게임 다운로드</string>
     <string name="dd1_install_downloading">Darkest Dungeon 다운로드 중</string>
     <string name="dd1_install_signing_in">Steam 로그인 중</string>
@@ -48,8 +51,6 @@
     <string name="dd1_saves_cloud_unknown">Steam이 아직 응답하지 않았습니다.</string>
     <string name="dd1_saves_none">세이브가 없습니다.</string>
     <string name="dd1_saves_played">%.1f분</string>
-    <string name="dd1_saves_upload">올리기</string>
-    <string name="dd1_saves_download">가져오기</string>
     <string name="dd1_saves_replace_title">이 세이브를 바꿉니다</string>
     <string name="dd1_saves_replace">이 기기: %1$s\n\n클라우드: %2$s\n\n이 기기의 세이브는 먼저 스냅샷으로 남습니다.</string>
     <string name="dd1_saves_progress">%1$d/%2$d 파일</string>
@@ -59,21 +60,73 @@
     <string name="dd1_saves_no_snapshot">스냅샷을 남길 수 없어 아무것도 보내지 않았습니다</string>
     <string name="dd1_saves_asking">선택을 기다립니다</string>
     <string name="dd1_saves_kept_local">이 기기의 세이브를 그대로 두었습니다</string>
-    <string name="dd1_saves_replaced">%1$s을(를) 바꿨습니다</string>
+    <string name="dd1_saves_replaced">%1$s을(를) 이 기기로 받았습니다</string>
     <string name="dd1_saves_restore_title">이 스냅샷으로 되돌립니다</string>
     <string name="dd1_saves_restore">이 기기의 모든 세이브가 %1$s 시점으로 돌아갑니다. 지금 상태는 먼저 스냅샷으로 남으니 이 되돌리기도 되돌릴 수 있습니다.</string>
     <string name="dd1_saves_restored">%1$s 시점으로 되돌렸습니다</string>
     <string name="dd1_saves_restore_failed">되돌릴 수 없었습니다</string>
+    <string name="dd1_saves_log">전송 기록</string>
+    <string name="dd1_saves_log_title">전송 기록</string>
+    <string name="dd1_saves_busy">진행 중인 세이브 작업이 끝날 때까지 기다려 주세요</string>
+    <string name="dd1_saves_status_up">%1$s → Steam 클라우드  %2$d/%3$d</string>
+    <string name="dd1_saves_status_down">Steam 클라우드 → %1$s  %2$d/%3$d</string>
+    <string name="dd1_saves_status_backup">세이브를 저장공간으로 복사하는 중</string>
+    <string name="dd1_saves_tab_manage">세이브 관리</string>
+    <string name="dd1_saves_refresh">새로고침</string>
+    <string name="dd1_saves_list">세이브 목록</string>
+    <string name="dd1_saves_upload">↑ 클라우드로 올리기</string>
+    <string name="dd1_saves_download">↓ 이 기기로 받기</string>
+    <string name="dd1_saves_slot">슬롯 %1$d</string>
+    <string name="dd1_saves_snapshots_hint">올리기와 받기 전에 자동으로 남긴 스냅샷입니다. 누르면 그 시점으로 되돌립니다.</string>
+    <string name="dd1_saves_state_same">같음</string>
+    <string name="dd1_saves_state_different">다름</string>
+    <string name="dd1_saves_state_cloud_only">클라우드에만</string>
+    <string name="dd1_saves_state_local_only">이 기기에만</string>
+    <string name="dd1_saves_advice_same">양쪽에 같은 세이브가 있습니다.</string>
+    <string name="dd1_saves_advice_local_newer">이 기기 쪽이 더 최근에 저장됐습니다 (%1$s).</string>
+    <string name="dd1_saves_advice_cloud_newer">클라우드 쪽이 더 최근에 저장됐습니다 (%1$s).</string>
+    <string name="dd1_saves_advice_local_only">클라우드에 없습니다. 올려 두면 다른 기기에서 이어서 할 수 있습니다.</string>
+    <string name="dd1_saves_advice_cloud_only">이 기기에 없습니다. 받으면 여기서 이어서 할 수 있습니다.</string>
+    <string name="dd1_saves_none_anywhere">이 기기와 클라우드 어디에도 세이브가 없습니다.</string>
+    <string name="dd1_saves_none_here_cloud_unknown">이 기기에 세이브가 없고, 클라우드는 아직 응답이 없습니다.</string>
+    <string name="dd1_saves_log_details">자세히</string>
+    <string name="dd1_saves_log_summary">요약</string>
+    <string name="dd1_saves_history_empty">아직 전송한 기록이 없습니다.</string>
+    <string name="dd1_saves_delete_short">지우기</string>
+    <string name="dd1_saves_delete">이 기기에서 지우기</string>
+    <string name="dd1_saves_delete_title">이 세이브를 지울까요?</string>
+    <string name="dd1_saves_delete_message_cloud">%1$s(슬롯 %2$d)을(를) 이 기기에서 지웁니다. 지우기 전에 스냅샷을 남기고, Steam 클라우드의 사본은 그대로 둡니다.</string>
+    <string name="dd1_saves_delete_message_only">%1$s(슬롯 %2$d)을(를) 이 기기에서 지웁니다. 이 세이브는 Steam 클라우드에 없습니다. 지우기 전에 스냅샷을 남기니 스냅샷 탭에서 되돌릴 수 있습니다.</string>
+    <string name="dd1_saves_status_delete">이 기기에서 지우는 중</string>
+    <string name="dd1_saves_deleted">이 기기에서 지웠습니다</string>
+    <string name="dd1_saves_delete_failed">다 지우지 못했습니다. 지우기 전에 남긴 스냅샷에 그대로 있습니다</string>
     <string name="dd1_saves_snapshots">스냅샷</string>
     <string name="dd1_saves_backup">저장공간으로 복사</string>
     <string name="dd1_saves_backup_done">%1$s에 세이브를 복사했습니다</string>
     <string name="dd1_saves_backup_failed">세이브를 복사하지 못했습니다</string>
     <string name="dd1_saves_backup_denied">세이브를 내보내려면 저장공간 권한이 필요합니다</string>
-    <string name="dd1_saves_sent">%1$d개 파일을 보냈습니다</string>
+    <string name="dd1_saves_sent">%1$s을(를) 클라우드에 올렸습니다 (%2$d개 파일)</string>
     <string name="dd1_saves_send_failed">Steam이 세이브를 받지 않았습니다</string>
     <string name="dd1_saves_get_failed">세이브를 온전히 받지 못했습니다</string>
     <string name="dd1_workshop">모드 관리자</string>
     <string name="dd1_workshop_tab_store">Workshop</string>
+    <string name="dd1_workshop_tab_dll">DLL 모드</string>
+    <string name="dd1_workshop_tab_dll_count">DLL 모드 (%1$d)</string>
+    <string name="dd1_workshop_dll_open">폴더 열기</string>
+    <string name="dd1_workshop_dll_summary">%1$d개 사용 중, %2$d개 다음 플레이 때 적용</string>
+    <string name="dd1_workshop_dll_empty">DLL 모드 없음</string>
+    <string name="dd1_workshop_dll_hint">DLL은 DD1/dll에 그대로 넣으면 플레이를 누를 때 게임이 실행하는 Darkest.exe 옆에 들어갑니다. PC 안내처럼 _windows/win64 폴더째 넣어도 됩니다. 다른 게임 파일은 게임 폴더의 같은 위치에 덮어써집니다(예: DD1/dll/scripts/...). 여기 넣은 DLL은 Wine에 들어 있는 같은 이름의 DLL보다 먼저 쓰입니다. 파일을 빼면 다음 플레이 때 원래대로 돌아갑니다.</string>
+    <string name="dd1_workshop_dll_no_access">DD1/dll를 읽으려면 저장소 권한이 필요합니다.</string>
+    <string name="dd1_workshop_dll_applied">사용 중</string>
+    <string name="dd1_workshop_dll_pending">다음 플레이 때 적용</string>
+    <string name="dd1_workshop_dll_leaving">폴더에서 빠짐 - 다음 플레이 때 원래대로</string>
+    <string name="dd1_workshop_dll_skipped">넣을 수 없음 - 게임의 폴더나 파일과 겹칩니다</string>
+    <string name="dd1_workshop_dll_replaces">게임 파일을 대신함, 원본은 따로 보관</string>
+    <string name="dd1_workshop_dll_native">Wine 내장 DLL보다 먼저 쓰임</string>
+    <string name="dd1_workshop_unsubscribed_removed">구독 취소한 창작마당 모드 %1$d개를 지웠습니다</string>
+    <string name="dd1_workshop_sync_started">창작마당 모드 %1$d개를 동기화합니다</string>
+    <string name="dd1_workshop_sync_done">창작마당 모드 동기화를 마쳤습니다</string>
+    <string name="dd1_workshop_sync_failed">창작마당 모드를 동기화하지 못했습니다. 모드 관리자에서 확인해 주세요</string>
     <string name="dd1_workshop_tab_installed">내 모드</string>
     <string name="dd1_workshop_search_hint">Workshop 검색 또는 URL / ID 붙여넣기</string>
     <string name="dd1_workshop_search">검색</string>
@@ -111,10 +164,10 @@
     <string name="dd1_workshop_mods_in_game">모드 폴더: %1$s · 여기에 넣으면 바로 적용됩니다.</string>
     <string name="dd1_workshop_folder_open">폴더 열기</string>
     <string name="dd1_workshop_import">ZIP 가져오기</string>
-    <string name="dd1_workshop_drop_folder">%1$s 에 넣은 모드는 폴더와 함께 추가되고 사라집니다.</string>
-    <string name="dd1_workshop_folder_change">변경</string>
-    <string name="dd1_workshop_folder_change_title">모드 폴더 변경</string>
-    <string name="dd1_workshop_folder_change_message">지금 폴더가 설치한 로컬 모드는 제거되고, 그 자리에 새 폴더를 읽습니다. 창작마당 모드는 그대로입니다.</string>
+    <string name="dd1_workshop_drop_folder">DD1 폴더: %1$s · 모드는 %2$s 에 넣으면 폴더와 함께 추가되고 사라집니다.</string>
+    <string name="dd1_workshop_folder_change">DD1 폴더 변경</string>
+    <string name="dd1_workshop_folder_change_title">DD1 폴더 변경</string>
+    <string name="dd1_workshop_folder_change_message">고른 폴더 안에 mods와 dll 폴더를 만들어 씁니다. 모드는 mods에, DLL과 바꿀 게임 파일은 dll에 넣으면 됩니다. 지금 폴더에서 설치한 로컬 모드는 제거되고 새 폴더의 mods를 읽습니다. 창작마당 모드는 그대로입니다.</string>
     <string name="dd1_workshop_folder_unusable">그 폴더는 모드 폴더로 쓸 수 없습니다. 내부 저장공간이나 메모리 카드의 폴더를 고르십시오.</string>
     <string name="dd1_workshop_heading_local">로컬 모드</string>
     <string name="dd1_workshop_heading_steam">스팀 창작마당</string>
@@ -160,11 +213,11 @@
     <string name="dd1_box64_performance">명령어 번역 빠르게</string>
     <string name="dd1_box64_performance_hint">box64가 게임의 x86 코드를 ARM으로 바꾸면서 평소 하던 검사를 건너뜁니다. 일부 장면에서 튕기거나 화면이 깨질 수 있으니 이상하면 다시 끄십시오. 다음 실행부터 적용됩니다.</string>
     <string name="dd1_cpu_budget">프로세서 코어</string>
-    <string name="dd1_cpu_budget_hint">게임에 프레임 제한이 없어서 코어가 허락하는 만큼 그리고, 그만큼 배터리를 씁니다. 빠른 코어를 안 쓰게 하면 속도를 내주고 사용 시간을 돌려받습니다. 다음 실행부터 적용됩니다.</string>
+    <string name="dd1_cpu_budget_hint">게임은 코어가 허락하는 만큼 빨리 계산하고, 그만큼 배터리를 씁니다. 빠른 코어를 안 쓰게 하면 속도를 내주고 사용 시간을 돌려받습니다. 다음 실행부터 적용됩니다.</string>
     <string name="dd1_game_location">게임 위치</string>
     <string name="dd1_game_location_app">앱 내부</string>
     <string name="dd1_game_location_storage">내부 저장공간 (DD1/game)</string>
-    <string name="dd1_game_location_hint">게임은 로딩이 빠른 앱 안에 둡니다. 모드는 DD1/mods에, 바꿀 게임 파일과 DLL은 DD1/overrides에 넣으면 플레이를 누를 때 들어갑니다. 게임이 아직 내부 저장공간(DD1/game)에 있으면 앱 안으로 옮기는데, 약 4 GB를 복사하므로 그만큼의 여유 공간이 잠시 필요합니다.</string>
+    <string name="dd1_game_location_hint">게임은 로딩이 빠른 앱 안에 둡니다. 모드는 DD1/mods에, 바꿀 게임 파일과 DLL은 DD1/dll에 넣으면 플레이를 누를 때 들어갑니다. 게임이 아직 내부 저장공간(DD1/game)에 있으면 앱 안으로 옮기는데, 약 4 GB를 복사하므로 그만큼의 여유 공간이 잠시 필요합니다.</string>
     <string name="dd1_game_location_here_storage">내부 저장공간 · %1$s</string>
     <string name="dd1_game_location_here_app">앱 내부</string>
     <string name="dd1_game_location_to_storage">내부 저장공간으로 옮기기</string>
@@ -185,9 +238,9 @@
     <string name="dd1_busy">다른 다운로드나 창작마당 동기화가 진행 중입니다. 끝난 뒤에 다시 눌러 주세요.</string>
     <string name="dd1_storage_found_game">내부 저장공간(DD1/game)에 게임이 이미 있어서 받지 않아도 됩니다.</string>
     <string name="dd1_storage_needed">게임이 내부 저장공간에 있어서 저장소 권한이 필요합니다.</string>
-    <string name="dd1_storage_denied">저장소 권한이 없어서 게임을 앱 안에 받습니다. 권한을 주기 전까지는 DD1/mods의 모드와 DD1/overrides의 파일을 읽을 수 없습니다.</string>
+    <string name="dd1_storage_denied">저장소 권한이 없어서 게임을 앱 안에 받습니다. 권한을 주기 전까지는 DD1/mods의 모드와 DD1/dll의 파일을 읽을 수 없습니다.</string>
     <string name="dd1_game_files_in_app_title">게임이 앱 안에 있습니다</string>
-    <string name="dd1_game_files_in_app_message">앱 안의 파일은 파일 관리자로 볼 수 없습니다. DD1/overrides에 넣은 파일은 플레이를 누를 때마다 게임의 같은 위치에 덮어씌워집니다. 예를 들어 DD1/overrides/_windows/win64/example.dll은 Darkest.exe 옆에 들어갑니다. 파일을 빼면 게임의 원래 파일로 돌아갑니다. 모드는 DD1/mods에 넣으면 됩니다.</string>
+    <string name="dd1_game_files_in_app_message">앱 안의 파일은 파일 관리자로 볼 수 없습니다. DD1/dll에 넣은 파일은 플레이를 누를 때마다 게임의 같은 위치에 덮어씌워집니다. 예를 들어 DD1/dll/_windows/win64/example.dll은 Darkest.exe 옆에 들어갑니다. 파일을 빼면 게임의 원래 파일로 돌아갑니다. 모드는 DD1/mods에 넣으면 됩니다.</string>
     <string name="dd1_game_files_move">내부 저장공간으로 옮기기</string>
     <string name="dd1_game_files_windows">윈도우 파일 관리자</string>
     <string name="dd1_game_files_find">파일 관리자에서 %1$s 폴더를 여세요.</string>
@@ -196,9 +249,9 @@
     <string name="dd1_move_no_room">게임을 앱 안으로 옮길 공간이 부족합니다. 약 %1$.1f GB가 필요합니다. 공간을 비운 뒤 홈 화면의 안내를 누르면 다시 옮깁니다.</string>
     <string name="dd1_status_ready_storage">게임이 내부 저장공간(DD1/game)에 있어 로딩이 몇 분씩 걸릴 수 있습니다. 여기를 누르면 앱 안으로 옮깁니다.</string>
     <string name="dd1_storage_slow_title">게임을 앱 안으로 옮길까요?</string>
-    <string name="dd1_storage_slow_message">내부 저장공간에서는 장면이 바뀔 때마다 안드로이드 저장소 계층을 거쳐 파일 수천 개를 읽어서 로딩이 수 분에서 길게는 수십 분 걸립니다. 앱 안에서는 몇 초면 됩니다. 약 4 GB를 복사한 다음 이전 위치의 파일을 지우는데, 지우는 데도 몇 분 걸립니다. 세이브는 영향받지 않습니다. 옮긴 뒤 모드는 DD1/mods에, 게임 파일을 바꾸는 파일은 DD1/overrides에 넣으면 됩니다.</string>
-    <string name="dd1_game_files_overrides">DD1/overrides 열기</string>
-    <string name="dd1_storage_needed_overrides">DD1/overrides는 내부 저장공간에 있어서 저장소 권한이 필요합니다.</string>
+    <string name="dd1_storage_slow_message">내부 저장공간에서는 장면이 바뀔 때마다 안드로이드 저장소 계층을 거쳐 파일 수천 개를 읽어서 로딩이 수 분에서 길게는 수십 분 걸립니다. 앱 안에서는 몇 초면 됩니다. 약 4 GB를 복사한 다음 이전 위치의 파일을 지우는데, 지우는 데도 몇 분 걸립니다. 세이브는 영향받지 않습니다. 옮긴 뒤 모드는 DD1/mods에, 게임 파일을 바꾸는 파일은 DD1/dll에 넣으면 됩니다.</string>
+    <string name="dd1_game_files_overrides">DD1/dll 열기</string>
+    <string name="dd1_storage_needed_overrides">DD1/dll는 내부 저장공간에 있어서 저장소 권한이 필요합니다.</string>
     <string name="dd1_state_clearing_old">게임을 옮겼습니다. 이전 위치의 파일을 지우는 중입니다 (지금까지 %1$d개). 끝날 때까지 앱을 끄지 마세요.</string>
     <string name="dd1_refresh_rate">화면 주사율</string>
     <string name="dd1_refresh_rate_hint">패널은 게임과 무관하게 120Hz로 그립니다. 게임 중에만 절반으로 낮추면 화면 자체가 쓰는 전력이 줄고 게임에는 영향이 없습니다.</string>
@@ -206,6 +259,13 @@
         <item>전체 코어</item>
         <item>가장 빠른 코어 제외</item>
         <item>효율 코어만</item>
+    </string-array>
+    <string name="dd1_frame_limit">프레임 제한</string>
+    <string name="dd1_frame_limit_hint">게임이 1초에 그리는 장 수입니다. 턴제 게임이라 30이면 발열과 배터리 소모가 줄어듭니다. 제한이 없으면 메뉴와 로딩 화면에서도 1초에 수백 장을 그립니다. 다음 플레이부터, Gladio 드라이버에서 적용됩니다.</string>
+    <string-array name="dd1_frame_limits">
+        <item>30 FPS</item>
+        <item>60 FPS</item>
+        <item>제한 없음</item>
     </string-array>
     <string-array name="dd1_refresh_rates">
         <item>기기 기본값</item>
@@ -232,7 +292,7 @@
     <string name="dd1_graphics_vortek_gladio">엑시노스·그 외 기기 · 빠름 (Vortek + Gladio)</string>
     <string name="dd1_graphics_vortek_gladio_hint">같은 Xclipse·Mali 기기용이고 더 빠르지만, 이걸로는 화면이 검게 나오는 기기가 많습니다.</string>
     <string name="dd1_graphics_vortek_zink">스냅드래곤 기기 · 기기 드라이버 (Vortek + Zink)</string>
-    <string name="dd1_graphics_vortek_zink_hint">Turnip 대신 기기에 들어 있는 Qualcomm 드라이버로 그립니다. 갤럭시 S26 Ultra(Adreno 840)처럼 Turnip에서 끊김이 심한 최신 스냅드래곤에서 시도해 보십시오. 아직 시험한 기기가 적습니다.</string>
+    <string name="dd1_graphics_vortek_zink_hint">Turnip 대신 기기에 들어 있는 Qualcomm 드라이버로 그립니다. Turnip으로 화면이 깨지거나 안 나오는 기기에서 시도해 보십시오. 아직 시험한 기기가 적습니다.</string>
     <string name="dd1_diagnostic_logs">진단 로그 저장</string>
     <string name="dd1_vulkan_driver">직접 넣은 Vulkan 드라이버</string>
     <string name="dd1_vulkan_driver_hint">Vortek이 들어간 그래픽 드라이버를 고른 경우에만 쓰입니다. 기기 드라이버 대신 직접 받은 AdrenoTools 드라이버 파일(zip, 예: Adreno 8xx용 Turnip)을 불러옵니다. 런처에는 드라이버가 들어 있지 않으니 믿을 수 있는 곳에서 받은 파일만 넣으십시오. 게임 화면이 안 나오면 기기 드라이버로 되돌리십시오. 다음에 플레이를 누를 때 적용됩니다.</string>
@@ -246,6 +306,15 @@
     <string name="dd1_show_fps_hint">게임 화면 위에 초당 프레임 수와 GPU·CPU·메모리 사용량을 띄웁니다. 끊김을 제보할 때 이 숫자가 함께 있으면 원인을 찾기 쉽습니다. 다음에 플레이를 누를 때 적용됩니다.</string>
     <string name="dd1_diagnostic_logs_hint">게임을 실행하는 동안 Wine과 box64가 남기는 기록을 DD1/logs/wine-log.txt에, 기기와 설정 정보를 DD1/logs/device.txt에, 앱과 그래픽 드라이버가 남기는 시스템 기록을 DD1/logs/logcat.txt에 저장합니다. 문제를 제보할 때 두 파일을 함께 올려 주시면 원인을 찾는 데 큰 도움이 됩니다. 직전 실행의 기록은 -previous가 붙은 이름으로 남습니다. 게임이 조금 느려질 수 있으니 필요할 때만 켜십시오. 다음에 플레이를 누를 때 적용됩니다.</string>
     <string name="dd1_graphics_driver_hint">다음에 플레이를 누를 때 적용됩니다. 바꿔서 더 나빠지면 다시 들어와 자동으로 되돌리십시오.</string>
+    <string name="dd1_graphics_advanced_show">고급 설정 ▸</string>
+    <string name="dd1_graphics_advanced_hide">고급 설정 ▾</string>
+    <string name="dd1_graphics_advanced_hint">Winlator처럼 Vulkan 드라이버와 OpenGL 방식을 직접 고릅니다. 프리셋에 없는 조합은 위에 \"직접 고름\"으로 표시됩니다. 이 게임은 OpenGL로 그리므로 Vulkan 드라이버는 Zink일 때만 영향이 있습니다.</string>
+    <string name="dd1_graphics_vulkan">Vulkan 드라이버</string>
+    <string name="dd1_graphics_opengl">OpenGL 방식</string>
+    <string name="dd1_graphics_custom">직접 고름</string>
+    <string name="dd1_graphics_custom_hint">고급 설정에서 고른 조합입니다. 게임 화면이 안 나오면 자동으로 되돌리십시오.</string>
+    <string name="dd1_graphics_vulkan_turnip">Turnip</string>
+    <string name="dd1_graphics_vulkan_vortek">Vortek (기기 드라이버)</string>
     <string name="dd1_graphics_same_as_auto">자동이 고르는 것</string>
     <string name="dd1_sticky_keys">SHIFT\n+CTRL</string>
     <string name="dd1_sticky_keys_on">ON</string>

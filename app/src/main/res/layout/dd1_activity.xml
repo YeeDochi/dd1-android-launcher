@@ -6,28 +6,73 @@
     android:layout_height="match_parent">
 
     <FrameLayout
-        android:id="@+id/FLDD1Container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="?attr/colorPrimarySurface" />
+        android:layout_height="match_parent">
+
+        <FrameLayout
+            android:id="@+id/FLDD1Container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="?attr/colorPrimarySurface" />
+
+        <!-- DD1Notices: cards stack here, bottom right, over every screen. -->
+        <LinearLayout
+            android:id="@+id/LLDD1Notices"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="24dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:gravity="end"
+            android:orientation="vertical" />
+    </FrameLayout>
 
     <LinearLayout
         android:id="@+id/LLDD1Drawer"
         android:layout_width="280dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="?attr/colorSecondarySurface"
+        android:background="@drawable/dd1_drawer_background"
         android:orientation="vertical"
-        android:paddingTop="24dp">
+        android:paddingTop="8dp"
+        android:paddingBottom="12dp">
 
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="16dp"
-            android:text="@string/dd1_app_name"
-            android:textColor="?attr/colorPrimaryText"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="12dp">
+
+            <ImageView
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="12dp"
+                android:importantForAccessibility="no"
+                android:src="@mipmap/dd1_launcher" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/dd1_app_name"
+                android:textColor="?attr/colorPrimaryText"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- The name is not one of the places to go. -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="8dp"
+            android:background="@color/dd1_outline" />
 
         <Button
             android:id="@+id/BTDrawerDlc"

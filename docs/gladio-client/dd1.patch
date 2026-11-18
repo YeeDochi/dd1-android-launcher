@@ -1,0 +1,509 @@
+diff --git a/include/events.h b/include/events.h
+index 0b5ad24..de640b1 100755
+--- a/include/events.h
++++ b/include/events.h
+@@ -6,6 +6,9 @@
+ #include <errno.h>
+ #include <threads.h>
+ #include <sys/eventfd.h>
++#include <sys/prctl.h>
++#include <unistd.h>
++#include <stdint.h>
+ 
+ #define EVENT_RESULT_SUCCESS 0
+ #define EVENT_RESULT_TIMEOUT 1
+@@ -85,6 +88,34 @@ static inline int waitForEvents(int* fds, int numFds, bool waitAll, int timeoutM
+     return EVENT_RESULT_SUCCESS;
+ }
+ 
++/* dd1: as in the renderer (winlator/include/events.h). thrd_yield() parks
++ * the caller behind any other runnable thread under the EEVDF scheduler
++ * (Linux 6.6+), which stretched every round trip to the renderer. Spin on the
++ * CPU's pause for up to 2 ms, timed by the generic timer, then sleep with a
++ * 1 ns timer slack so the sleep ends when asked. */
++#define BUSY_WAIT_SPIN_US 2000
++#if defined(__aarch64__)
++static inline void busyWait(uint32_t* iter) {
++    uint64_t ticks, frequency;
++    __asm__ volatile("mrs %0, cntvct_el0" : "=r"(ticks));
++    uint32_t now = (uint32_t)ticks;
++    if (*iter == 0) {
++        *iter = now | 1;
++        return;
++    }
++    __asm__ volatile("mrs %0, cntfrq_el0" : "=r"(frequency));
++    if ((uint32_t)(now - *iter) < frequency * BUSY_WAIT_SPIN_US / 1000000) {
++        __asm__ volatile("isb" ::: "memory");
++        return;
++    }
++    static __thread bool slackSet = false;
++    if (!slackSet) {
++        prctl(PR_SET_TIMERSLACK, 1UL, 0, 0, 0);
++        slackSet = true;
++    }
++    usleep(20);
++}
++#else
+ static inline void busyWait(uint32_t* iter) {
+     (*iter)++;
+     if (*iter < BUSY_WAIT_MAX_ITER) {
+@@ -92,5 +123,6 @@ static inline void busyWait(uint32_t* iter) {
+     }
+     else usleep(BUSY_WAIT_SLEEP_US);
+ }
++#endif
+ 
+ #endif
+\ No newline at end of file
+diff --git a/include/gl_context.h b/include/gl_context.h
+index c5e8162..086c8b4 100644
+--- a/include/gl_context.h
++++ b/include/gl_context.h
+@@ -26,6 +26,8 @@ typedef struct GLContext {
+     GLXContext glxContext;
+     CommandBuffer commandBuffer;
+     uint8_t lockCount;
++    /* dd1: buffer updates whose acknowledgement has not been read yet */
++    int pendingAcks;
+ } GLContext;
+ 
+ typedef struct AttributePair {
+diff --git a/include/gladio.h b/include/gladio.h
+index 34f82e7..98009bc 100755
+--- a/include/gladio.h
++++ b/include/gladio.h
+@@ -42,8 +42,32 @@
+     } \
+     while (0)
+ 
++/* dd1: a buffer update (flush, BufferSubData, BufferData) used to wait for the
++ * renderer's acknowledgement before returning - a full round trip per update,
++ * hundreds per frame. The renderer answers every update in order, so the
++ * client counts them instead and reads the acknowledgements later: before the
++ * next real reply (replies arrive in order), before it writes to shared buffer
++ * memory again (the renderer may still be copying from it), and before
++ * anything that waits on the socket rather than the ring. */
++#define GL_DEFERRED_ACK_LIMIT 4096
++#define GL_DRAIN_ACKS() \
++    do { \
++        while (currentGLContext && currentGLContext->pendingAcks > 0) { \
++            if (!gl_recv(currentGLContext->clientRing, NULL, &inputBuffer)) { currentGLContext->pendingAcks = 0; break; } \
++            currentGLContext->pendingAcks--; \
++        } \
++    } \
++    while (0)
++
++#define GL_RECV_DEFERRED() \
++    do { \
++        if (++currentGLContext->pendingAcks >= GL_DEFERRED_ACK_LIMIT) GL_DRAIN_ACKS(); \
++    } \
++    while (0)
++
+ #define GL_RECV_CHECKED(...) \
+     do { \
++        GL_DRAIN_ACKS(); \
+         if (!gl_recv(currentGLContext->clientRing, NULL, &inputBuffer)) { \
+             GL_CALL_UNLOCK(); \
+             return __VA_OPT__(GL_FALSE); \
+diff --git a/include/ring_buffer.h b/include/ring_buffer.h
+index 2be62be..dd5054e 100755
+--- a/include/ring_buffer.h
++++ b/include/ring_buffer.h
+@@ -13,11 +13,16 @@ typedef struct RingBuffer {
+     void* buffer;
+     void* sharedData;
+     uint32_t bufferSize;
++    /* dd1: this side has told the reader it wakes it (see ring_buffer.c) */
++    bool dd1Advertised;
+ } RingBuffer;
+ 
+ #define RING_STATUS_IDLE (1u<<0)
+ #define RING_STATUS_EXIT (1u<<1)
+ #define RING_STATUS_WAIT (1u<<2)
++/* dd1: the writer wakes a sleeping reader; the reader is asleep on tail */
++#define RING_STATUS_DD1_WRITER_WAKES (1u<<29)
++#define RING_STATUS_DD1_READER_SLEEPS (1u<<30)
+ 
+ extern void RingBuffer_setHead(RingBuffer* ring, uint32_t head);
+ extern uint32_t RingBuffer_getHead(RingBuffer* ring);
+diff --git a/src/gl_calls.c b/src/gl_calls.c
+index 03b07e3..1f38b80 100755
+--- a/src/gl_calls.c
++++ b/src/gl_calls.c
+@@ -3,6 +3,88 @@
+ 
+ #define MSG_DEBUG_UNIMPLEMENTED_GLCALL "gladio: unimplemented call %s"
+ 
++/* dd1: uniform and attribute locations do not change until the program is
++ * linked again, but every query was a round trip to the renderer - 71% of the
++ * game's main thread on a Galaxy S26 Ultra (Darkest Dungeon asks every frame).
++ * Remembered per context, program and name; a link or a delete of the program
++ * forgets its entries. */
++typedef struct LocationCacheEntry {
++    GLContext* context;
++    GLuint program;
++    bool attrib;
++    GLint location;
++    char* name;
++} LocationCacheEntry;
++
++static LocationCacheEntry* locationCache = NULL;
++static int locationCacheCapacity = 0;
++static int locationCacheCount = 0;
++
++static unsigned int locationHash(GLContext* context, GLuint program, bool attrib, const char* name) {
++    unsigned int h = 2166136261u ^ (unsigned int)(uintptr_t)context ^ (program * 16777619u) ^ (attrib ? 0x9e3779b9u : 0u);
++    for (const unsigned char* c = (const unsigned char*)name; *c; c++) h = (h ^ *c) * 16777619u;
++    return h;
++}
++
++static LocationCacheEntry* locationCacheFind(GLuint program, bool attrib, const char* name, bool* found) {
++    *found = false;
++    if (locationCacheCapacity == 0) return NULL;
++    unsigned int i = locationHash(currentGLContext, program, attrib, name) & (locationCacheCapacity - 1);
++    while (locationCache[i].name) {
++        LocationCacheEntry* e = &locationCache[i];
++        if (e->context == currentGLContext && e->program == program && e->attrib == attrib && strcmp(e->name, name) == 0) {
++            *found = true;
++            return e;
++        }
++        i = (i + 1) & (locationCacheCapacity - 1);
++    }
++    return &locationCache[i];
++}
++
++static void locationCacheRebuild(int capacity, bool dropProgram, GLuint program) {
++    LocationCacheEntry* old = locationCache;
++    int oldCapacity = locationCacheCapacity;
++    locationCacheCapacity = capacity;
++    locationCache = calloc(locationCacheCapacity, sizeof(LocationCacheEntry));
++    locationCacheCount = 0;
++    for (int i = 0; i < oldCapacity; i++) {
++        if (!old[i].name) continue;
++        if (dropProgram && old[i].program == program) {
++            free(old[i].name);
++            continue;
++        }
++        unsigned int j = locationHash(old[i].context, old[i].program, old[i].attrib, old[i].name) & (locationCacheCapacity - 1);
++        while (locationCache[j].name) j = (j + 1) & (locationCacheCapacity - 1);
++        locationCache[j] = old[i];
++        locationCacheCount++;
++    }
++    free(old);
++}
++
++static void locationCachePut(GLuint program, bool attrib, const char* name, GLint location) {
++    if ((locationCacheCount + 1) * 2 > locationCacheCapacity)
++        locationCacheRebuild(locationCacheCapacity ? locationCacheCapacity * 2 : 1024, false, 0);
++    bool found;
++    LocationCacheEntry* e = locationCacheFind(program, attrib, name, &found);
++    if (found) {
++        e->location = location;
++        return;
++    }
++    e->context = currentGLContext;
++    e->program = program;
++    e->attrib = attrib;
++    e->location = location;
++    e->name = strdup(name);
++    locationCacheCount++;
++}
++
++/* Rebuilt without the program's entries: open addressing cannot blank slots
++ * out of the middle of a probe chain. */
++static void locationCacheForget(GLuint program) {
++    if (locationCacheCount == 0) return;
++    locationCacheRebuild(locationCacheCapacity, true, program);
++}
++
+ pthread_mutex_t gl_call_mutex = PTHREAD_MUTEX_INITIALIZER;
+ 
+ void glAccum(GLenum op, GLfloat value) {
+@@ -463,6 +545,7 @@ void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage
+         return;
+     }
+ 
++    GL_DRAIN_ACKS();
+     if (data) memcpy(buffer->mappedData, data, size);
+     if (target != GL_PIXEL_UNPACK_BUFFER) {
+         ArrayBuffer_rewind(&outputBuffer);
+@@ -470,7 +553,7 @@ void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage
+         ArrayBuffer_putInt(&outputBuffer, size);
+         ArrayBuffer_putInt(&outputBuffer, usage);
+         GL_SEND_CHECKED(REQUEST_CODE_GL_BUFFER_DATA, outputBuffer.buffer, outputBuffer.size);
+-        GL_RECV_CHECKED();
++        GL_RECV_DEFERRED();
+     }
+     GL_CALL_UNLOCK();
+ }
+@@ -490,6 +573,7 @@ void glBufferStorage(GLenum target, GLsizeiptr size, const void* data, GLbitfiel
+     ArrayBuffer_rewind(&outputBuffer);
+     ArrayBuffer_putInt(&outputBuffer, target);
+     ArrayBuffer_putInt(&outputBuffer, size);
++    GL_DRAIN_ACKS();
+     ArrayBuffer_putInt(&outputBuffer, flags);
+     GL_SEND_CHECKED(REQUEST_CODE_GL_BUFFER_STORAGE, outputBuffer.buffer, outputBuffer.size);
+     
+@@ -524,6 +608,7 @@ void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void
+         return;
+     }
+ 
++    GL_DRAIN_ACKS();
+     if (data) memcpy(buffer->mappedData + offset, data, size);
+     if (target != GL_PIXEL_UNPACK_BUFFER) {
+         ArrayBuffer_rewind(&outputBuffer);
+@@ -531,7 +616,7 @@ void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void
+         ArrayBuffer_putInt(&outputBuffer, offset);
+         ArrayBuffer_putInt(&outputBuffer, size);
+         GL_SEND_CHECKED(REQUEST_CODE_GL_BUFFER_SUB_DATA, outputBuffer.buffer, outputBuffer.size);
+-        GL_RECV_CHECKED();
++        GL_RECV_DEFERRED();
+     }
+     GL_CALL_UNLOCK();
+ }
+@@ -1252,12 +1337,14 @@ void glDeleteLists(GLuint list, GLsizei range) {
+ 
+ void glDeleteObjectARB(GLhandleARB obj) {
+     GL_CALL_LOCK();
++    locationCacheForget((GLuint)obj);
+     gl_send(currentGLContext->serverRing, REQUEST_CODE_GL_DELETE_OBJECT_ARB, &obj, sizeof(GLhandleARB));
+     GL_CALL_UNLOCK();
+ }
+ 
+ void glDeleteProgram(GLuint program) {
+     GL_CALL_LOCK();
++    locationCacheForget(program);
+     if (program == currentGLContext->clientState->program) currentGLContext->clientState->program = 0;
+     gl_send(currentGLContext->serverRing, REQUEST_CODE_GL_DELETE_PROGRAM, &program, sizeof(GLuint));
+     GL_CALL_UNLOCK();
+@@ -1890,7 +1977,13 @@ void glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length)
+     ArrayBuffer_putInt(&outputBuffer, offset);
+     ArrayBuffer_putInt(&outputBuffer, length);
+     GL_SEND_CHECKED(REQUEST_CODE_GL_FLUSH_MAPPED_BUFFER_RANGE, outputBuffer.buffer, outputBuffer.size);
+-    GL_RECV_CHECKED();
++    /* dd1: a persistent mapping is written to while still mapped, so its
++     * flush stays synchronous; any other is only written again after a new
++     * map, which drains first. */
++    if (buffer->access & GL_MAP_PERSISTENT_BIT) {
++        GL_RECV_CHECKED();
++    }
++    else GL_RECV_DEFERRED();
+     GL_CALL_UNLOCK();
+ }
+ 
+@@ -2280,12 +2373,20 @@ void glGetAttachedShaders(GLuint program, GLsizei maxCount, GLsizei* count, GLui
+ 
+ GLint glGetAttribLocation(GLuint program, const GLchar* name) {
+     GL_CALL_LOCK();
++    bool found;
++    LocationCacheEntry* cached = locationCacheFind(program, true, name, &found);
++    if (found) {
++        GLint location = cached->location;
++        GL_CALL_UNLOCK();
++        return location;
++    }
+     ArrayBuffer_rewind(&outputBuffer);
+     ArrayBuffer_putInt(&outputBuffer, program);
+     ArrayBuffer_putBytes(&outputBuffer, name, strlen(name) + 1);
+     GL_SEND_CHECKED(REQUEST_CODE_GL_GET_ATTRIB_LOCATION, outputBuffer.buffer, outputBuffer.size, GL_RETURN);
+     GL_RECV_CHECKED(GL_RETURN);
+     GLint result = ArrayBuffer_getInt(&inputBuffer);
++    locationCachePut(program, true, name, result);
+     GL_CALL_UNLOCK();
+     return result;
+ }
+@@ -3064,12 +3165,20 @@ void glGetUniformIndices(GLuint program, GLsizei uniformCount, const GLchar* con
+ 
+ GLint glGetUniformLocation(GLuint program, const GLchar* name) {
+     GL_CALL_LOCK();
++    bool found;
++    LocationCacheEntry* cached = locationCacheFind(program, false, name, &found);
++    if (found) {
++        GLint location = cached->location;
++        GL_CALL_UNLOCK();
++        return location;
++    }
+     ArrayBuffer_rewind(&outputBuffer);
+     ArrayBuffer_putInt(&outputBuffer, program);
+     ArrayBuffer_putBytes(&outputBuffer, name, strlen(name) + 1);
+     GL_SEND_CHECKED(REQUEST_CODE_GL_GET_UNIFORM_LOCATION, outputBuffer.buffer, outputBuffer.size, GL_RETURN);
+     GL_RECV_CHECKED(GL_RETURN);
+     GLint result = ArrayBuffer_getInt(&inputBuffer);
++    locationCachePut(program, false, name, result);
+     GL_CALL_UNLOCK();
+     return result;
+ }
+@@ -3467,6 +3576,7 @@ void glLineWidth(GLfloat width) {
+ 
+ void glLinkProgram(GLuint program) {
+     GL_CALL_LOCK();
++    locationCacheForget(program);
+     gl_send(currentGLContext->serverRing, REQUEST_CODE_GL_LINK_PROGRAM, &program, sizeof(GLuint));
+     GL_CALL_UNLOCK();
+ }
+@@ -3555,6 +3665,7 @@ void* glMapBufferARB(GLenum target, GLenum access) {
+ 
+ void* glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access) {
+     GL_CALL_LOCK();
++    GL_DRAIN_ACKS();
+     GLBuffer* buffer = GLBuffer_getBound(target);
+     if (!buffer || buffer->mapped) {
+         GL_CALL_UNLOCK();
+diff --git a/src/glx_calls.c b/src/glx_calls.c
+index b70fed6..37a9eef 100755
+--- a/src/glx_calls.c
++++ b/src/glx_calls.c
+@@ -1,3 +1,6 @@
++#include <time.h>
++#include <errno.h>
++#include <stdlib.h>
+ #include "gladio.h"
+ #include "gl_context.h"
+ 
+@@ -311,6 +314,7 @@ Bool glXMakeCurrent(Display* dpy, GLXDrawable drawable, GLXContext ctx) {
+         }
+     }
+     else {
++        GL_DRAIN_ACKS();
+         destroyGLContextForCallingThread();
+         GLX_CALL_UNLOCK();
+         return true;
+@@ -428,7 +432,34 @@ void glXSelectEvent(Display* dpy, GLXDrawable draw, unsigned long event_mask) {
+     println(MSG_DEBUG_UNIMPLEMENTED_GLXCALL, "glXSelectEvent");
+ }
+ 
++/* dd1: frame limit, see patch_ring.py */
++static uint64_t dd1FrameNs = UINT64_MAX;
++static uint64_t dd1NextFrame = 0;
++
++static void dd1PaceFrame(void) {
++    if (dd1FrameNs == UINT64_MAX) {
++        const char* value = getenv("DD1_FPS_LIMIT");
++        int fps = value ? atoi(value) : 60;
++        dd1FrameNs = fps > 0 ? 1000000000ULL / fps : 0;
++    }
++    if (dd1FrameNs == 0) return;
++
++    struct timespec ts;
++    clock_gettime(CLOCK_MONOTONIC, &ts);
++    uint64_t now = (uint64_t)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
++    if (dd1NextFrame > now) {
++        ts.tv_sec = dd1NextFrame / 1000000000ULL;
++        ts.tv_nsec = dd1NextFrame % 1000000000ULL;
++        while (clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL) == EINTR);
++        dd1NextFrame += dd1FrameNs;
++    }
++    /* late by less than a frame: keep the cadence; later: start again from now */
++    else if (now - dd1NextFrame < dd1FrameNs) dd1NextFrame += dd1FrameNs;
++    else dd1NextFrame = now + dd1FrameNs;
++}
++
+ void glXSwapBuffers(Display* dpy, GLXDrawable drawable) {
++    dd1PaceFrame();
+     GL_CALL_LOCK();
+     int drawableId = (int)drawable;
+     GL_SEND_CHECKED(REQUEST_CODE_SWAP_DISPLAY_BUFFERS, &drawableId, sizeof(int));
+diff --git a/src/ring_buffer.c b/src/ring_buffer.c
+index f607ba2..3157b0e 100755
+--- a/src/ring_buffer.c
++++ b/src/ring_buffer.c
+@@ -7,6 +7,9 @@
+ #include <stddef.h>
+ #include <pthread.h>
+ #include <sys/mman.h>
++#include <sys/syscall.h>
++#include <linux/futex.h>
++#include <time.h>
+ 
+ #include "ring_buffer.h"
+ #include "time_utils.h"
+@@ -35,8 +38,45 @@ uint32_t RingBuffer_getHead(RingBuffer* ring) {
+     return atomic_load_explicit(ring->head, memory_order_acquire);
+ }
+ 
++/* dd1: the reader of a ring used to poll it - spin, then yield or sleep 20 us
++ * at a time - for as long as the other side had nothing to say, which on a
++ * game drawing at 60 FPS is most of every frame on two cores. Now a reader
++ * that has waited RING_SPIN_NS sets READER_SLEEPS and sleeps on the tail word
++ * with a futex; the writer, after moving the tail, clears that bit and wakes
++ * it. The store of the tail and the load of the status are both seq_cst, as
++ * are the reader's setting of the bit and its load of the tail, so either the
++ * writer sees the bit or the reader sees the new tail - and the futex itself
++ * refuses to sleep if the tail has moved.
++ *
++ * A reader only sleeps once the writer has said it wakes (WRITER_WAKES, set on
++ * its first write). The renderer also serves Vortek, whose client is not ours
++ * and never wakes anybody; for it the old wait is kept. The sleep is bounded,
++ * so a missed wake costs time, not a hang. */
++#define RING_SPIN_NS 200000ULL
++#define RING_SLEEP_NS 20000000L
++
++static inline uint64_t ringNow(void) {
++    struct timespec ts;
++    clock_gettime(CLOCK_MONOTONIC, &ts);
++    return (uint64_t)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
++}
++
++static inline void ringRelax(void) {
++#if defined(__aarch64__)
++    __asm__ volatile("isb" ::: "memory");
++#endif
++}
++
+ void RingBuffer_setTail(RingBuffer* ring, uint32_t tail) {
+-    return atomic_store_explicit(ring->tail, tail, memory_order_release);
++    if (!ring->dd1Advertised) {
++        atomic_fetch_or_explicit(ring->status, RING_STATUS_DD1_WRITER_WAKES, memory_order_seq_cst);
++        ring->dd1Advertised = true;
++    }
++    atomic_store_explicit(ring->tail, tail, memory_order_seq_cst);
++    if (atomic_load_explicit(ring->status, memory_order_seq_cst) & RING_STATUS_DD1_READER_SLEEPS) {
++        atomic_fetch_and_explicit(ring->status, ~RING_STATUS_DD1_READER_SLEEPS, memory_order_seq_cst);
++        syscall(SYS_futex, (uint32_t*)ring->tail, FUTEX_WAKE, 1, NULL, NULL, 0);
++    }
+ }
+ 
+ uint32_t RingBuffer_getTail(RingBuffer* ring) {
+@@ -148,14 +188,36 @@ void RingBuffer_free(RingBuffer* ring) {
+ }
+ 
+ bool RingBuffer_waitForRead(RingBuffer* ring, uint32_t size) {
+-    uint32_t busyWaitIter = 0;
+-    do {
+-        if (RingBuffer_size(ring) >= size) break;
+-        busyWait(&busyWaitIter);
++    if (RingBuffer_size(ring) >= size) return true;
++    if (!RingBuffer_hasStatus(ring, RING_STATUS_DD1_WRITER_WAKES)) {
++        uint32_t busyWaitIter = 0;
++        do {
++            if (RingBuffer_size(ring) >= size) break;
++            busyWait(&busyWaitIter);
++            if (RingBuffer_hasStatus(ring, RING_STATUS_EXIT)) return false;
++        }
++        while (1);
++        return true;
++    }
++
++    uint64_t spinUntil = ringNow() + RING_SPIN_NS;
++    uint32_t polls = 0;
++    while (1) {
++        if (RingBuffer_size(ring) >= size) return true;
+         if (RingBuffer_hasStatus(ring, RING_STATUS_EXIT)) return false;
++        if ((++polls & 31) != 0 || ringNow() < spinUntil) {
++            ringRelax();
++            continue;
++        }
++
++        atomic_fetch_or_explicit(ring->status, RING_STATUS_DD1_READER_SLEEPS, memory_order_seq_cst);
++        uint32_t tail = atomic_load_explicit(ring->tail, memory_order_seq_cst);
++        if (tail - RingBuffer_getHead(ring) < size && !RingBuffer_hasStatus(ring, RING_STATUS_EXIT)) {
++            struct timespec timeout = {0, RING_SLEEP_NS};
++            syscall(SYS_futex, (uint32_t*)ring->tail, FUTEX_WAIT, tail, &timeout, NULL, 0);
++        }
++        atomic_fetch_and_explicit(ring->status, ~RING_STATUS_DD1_READER_SLEEPS, memory_order_seq_cst);
+     }
+-    while (1);
+-    return true;
+ }
+ 
+ bool RingBuffer_waitForWrite(RingBuffer* ring, uint32_t size) {

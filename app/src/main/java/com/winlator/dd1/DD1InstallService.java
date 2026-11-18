@@ -166,7 +166,8 @@ public final class DD1InstallService extends Service {
                 HashSet<Long> subscribedIds = new HashSet<>();
                 for (ModSyncPlan.Subscribed item : subscriptions)
                     subscribedIds.add(item.publishedFileId);
-                DD1Workshop.removeUnsubscribed(gameRoot(), subscribedIds);
+                int removed = DD1Workshop.removeUnsubscribed(gameRoot(), subscribedIds);
+                if (removed > 0) toast(getString(R.string.dd1_workshop_unsubscribed_removed, removed), DD1Notices.Kind.SUCCESS);
                 publishWorkshop(joinedWorkshop());
             }
             catch (Exception cleanupError) {
@@ -292,9 +293,13 @@ public final class DD1InstallService extends Service {
     public synchronized void syncWorkshop() {
         if (busy() || !workshopSnapshot.syncable()) return;
         List<ModSyncPlan.Subscribed> items = new ArrayList<>(workshopSnapshot.syncItems());
+        // It may start with no screen of its own open - right after signing in -
+        // so it says so where the person is.
+        toast(getString(R.string.dd1_workshop_sync_started, items.size()), DD1Notices.Kind.INFO);
         cancelled = false;
         syncingWorkshop = true;
-        keepAlive(R.string.dd1_install_downloading);
+        notificationTitle = R.string.dd1_notification_title_workshop;
+        keepAlive(R.string.dd1_workshop_sync_notification);
         worker.execute(() -> runWorkshop(items));
     }
 
@@ -360,13 +365,8 @@ public final class DD1InstallService extends Service {
     // Where a mod dropped from a computer goes. App data is reachable by no file
     // manager and a folder has no path to mount into the game, so this is a plain
     // public folder that gets copied in.
-    public static File defaultDropFolder() {
-        return new File(android.os.Environment.getExternalStorageDirectory(), "DD1/mods");
-    }
-
     public File dropFolder() {
-        String chosen = preferences().getString("mods_folder", null);
-        return chosen == null ? defaultDropFolder() : new File(chosen);
+        return DD1Folders.mods(this);
     }
 
     // With the game in phone storage its own mods folder is a public one, so a mod
@@ -374,7 +374,7 @@ public final class DD1InstallService extends Service {
     // picked themselves is still synchronised: they asked for it.
     public boolean modsInGame() {
         return DD1GameLocation.STORAGE.equals(DD1GameLocation.chosen(this))
-            && preferences().getString("mods_folder", null) == null;
+            && !DD1Folders.chosenByHand(this);
     }
 
     public File modsFolder() {
@@ -402,7 +402,8 @@ public final class DD1InstallService extends Service {
                 publishWorkshop(joinedWorkshop().failed(reason(error)));
                 return;
             }
-            preferences().edit().putString("mods_folder", chosen.getPath()).apply();
+            // The chosen folder is the DD1 folder: mods/ and dll/ are made in it.
+            DD1Folders.choose(this, chosen);
             publishWorkshop(joinedWorkshop());
             syncImportFolder();
         });
@@ -506,7 +507,7 @@ public final class DD1InstallService extends Service {
     }
 
     // Before Play: what was dropped in DD1/mods since the mods screen was last
-    // open is brought in, and DD1/overrides is laid over the game, so a mod or a
+    // open is brought in, and DD1/dll is laid over the game, so a mod or a
     // DLL put in place with a file manager applies on this launch rather than
     // after a visit to a screen. Both need storage access; without it the game
     // starts as it is. The worker runs it when it is free, so the copy cannot
@@ -521,7 +522,7 @@ public final class DD1InstallService extends Service {
                     if (folder.isDirectory()) syncModFolder(DocumentFile.fromFile(folder), false);
                 }
                 try {
-                    DD1Overrides.Result result = DD1Overrides.apply(DD1Overrides.folder(),
+                    DD1Overrides.Result result = DD1Overrides.apply(DD1Overrides.folder(this),
                         DD1GameLocation.gameDir(this));
                     for (String path : result.applied) log.append("Override laid down: " + path);
                     for (String path : result.restored) log.append("Override removed: " + path);
@@ -597,11 +598,13 @@ public final class DD1InstallService extends Service {
     }
 
     public void startQr() {
+        notificationTitle = R.string.dd1_notification_title_sign_in;
         keepAlive(R.string.dd1_install_signing_in);
         steam.startQr();
     }
 
     public void startCredentials(String account, String password) {
+        notificationTitle = R.string.dd1_notification_title_sign_in;
         keepAlive(R.string.dd1_install_signing_in);
         steam.startCredentials(account, password);
     }
@@ -733,6 +736,7 @@ public final class DD1InstallService extends Service {
         int job = ++downloadJob;
         cancelled = false;
         downloadingGame = true;
+        notificationTitle = R.string.dd1_notification_title;
         keepAlive(R.string.dd1_install_downloading);
         publish(downloadSnapshot(0, 0, 0, getString(R.string.dd1_state_starting), null));
         return job;
@@ -776,6 +780,59 @@ public final class DD1InstallService extends Service {
     public DD1CloudSaves cloudSaves() {
         return new DD1CloudSaves(steam.cloud(), steam.cloudService());
     }
+
+    // Read once as soon as the account is in, so the saves screen opens on an
+    // answer instead of a spinner; the screen still asks again for itself.
+    private volatile DD1CloudListing cloudListing = DD1CloudListing.unknown();
+
+    private final java.util.Map<String, DD1SaveSlot> cloudSlotNames =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    public java.util.Map<String, DD1SaveSlot> cachedCloudSlots() {
+        return cloudSlotNames;
+    }
+
+    public DD1CloudListing cachedCloudListing() {
+        return cloudListing;
+    }
+
+    public void rememberCloudListing(DD1CloudListing listing) {
+        if (listing.known()) cloudListing = listing;
+    }
+
+    private void prefetchCloud() {
+        new Thread(() -> {
+            for (int i = 0; i < 4; i++) {
+                DD1CloudListing listing = cloudSaves().list();
+                if (listing.known() && !listing.files().isEmpty()) {
+                    cloudListing = listing;
+                    // The estate names too, one small file per slot.
+                    for (String slot : DD1SaveSlots.cloudSlotNames(listing)) {
+                        DD1SaveSlot named = DD1SaveSlot.of(slot,
+                            cloudSaves().fetch(slot + "/persist.game.json"));
+                        if (named != null) cloudSlotNames.put(slot, named);
+                    }
+                    return;
+                }
+                try {
+                    Thread.sleep(3000L);
+                }
+                catch (InterruptedException stop) {
+                    return;
+                }
+            }
+        }, "dd1-cloud-prefetch").start();
+    }
+
+    // The launcher's own card at the bottom right, not Android's toast.
+    private void toast(String text, DD1Notices.Kind kind) {
+        DD1Notices.show(text, kind);
+    }
+
+    // Once a session: the Workshop is read, and synchronised if anything is
+    // missing, as soon as the account is in, rather than when the mod screen is
+    // first opened.
+    private boolean startupPrefetched;
 
     // A PC session can leave a dozen new subscriptions waiting. They are fetched
     // one after another, and the notification carries the queue position so a
@@ -842,9 +899,11 @@ public final class DD1InstallService extends Service {
                 DD1Workshop.scan(gameRoot())).withBrowse(workshopBrowse,
                     workshopSnapshot.query, workshopSnapshot.sort, workshopSnapshot.page,
                     workshopSnapshot.total, false, workshopSnapshot.browseError));
+            if (!cancelled) toast(getString(R.string.dd1_workshop_sync_done), DD1Notices.Kind.SUCCESS);
         }
         catch (Throwable error) {
             publishWorkshop(joinedWorkshop().failed(reason(error)));
+            toast(getString(R.string.dd1_workshop_sync_failed), DD1Notices.Kind.WARNING);
         }
         finally {
             syncingWorkshop = false;
@@ -1146,7 +1205,12 @@ public final class DD1InstallService extends Service {
     private void publishFromSteam(DD1InstallSnapshot value) {
         if (busy() && !value.phase.interruptsDownload()) return;
         publish(value);
-        if (value.phase == DD1InstallPhase.READY_TO_INSTALL
+        if (value.phase == DD1InstallPhase.READY_TO_INSTALL && !startupPrefetched) {
+            startupPrefetched = true;
+            prefetchCloud();
+            refreshWorkshop();
+        }
+        else if (value.phase == DD1InstallPhase.READY_TO_INSTALL
                 && workshopListener != null
                 && workshopSnapshot.phase == DD1WorkshopSnapshot.Phase.LOADING)
             refreshWorkshop();
@@ -1197,12 +1261,16 @@ public final class DD1InstallService extends Service {
 
     // A download that runs for an hour is watched from the shade more than from
     // the screen, so it carries the same bar.
+    // What the shade's title names: the game, the Workshop, or signing in -
+    // a mod sync said "Game download".
+    private volatile int notificationTitle = R.string.dd1_notification_title;
+
     private Notification notification(String text, int percent) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.mipmap.dd1_launcher)
             // One UI folds a title that repeats the app label into the header and
             // drops the text line with it, so this one names the work instead.
-            .setContentTitle(getString(R.string.dd1_notification_title))
+            .setContentTitle(getString(notificationTitle))
             .setContentText(text)
             .setContentIntent(PendingIntent.getActivity(this, 0,
                 new Intent(this, DD1Activity.class), PendingIntent.FLAG_UPDATE_CURRENT))

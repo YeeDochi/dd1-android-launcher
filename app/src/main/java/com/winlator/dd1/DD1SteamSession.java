@@ -120,13 +120,16 @@ public final class DD1SteamSession implements Closeable {
         main.postDelayed(this::abandonRestore, 25_000);
     }
 
+    // Slow is not refused: a phone on a poor connection, or one that had just
+    // woken, took longer than this and lost its sign-in for it. The token is
+    // kept, so the next start tries it again; only Steam saying no clears it
+    // (onLoggedOn).
     private void abandonRestore() {
         if (!restoring || closed) return;
         restoring = false;
-        tokens.clear();
         expectedDisconnect = true;
         client.disconnect();
-        publish(events.sessionExpired());
+        publish(events.failed("Steam did not answer the saved sign-in in time; it is kept and tried again on the next start"));
     }
 
     public void startCredentials(String account, String password) {

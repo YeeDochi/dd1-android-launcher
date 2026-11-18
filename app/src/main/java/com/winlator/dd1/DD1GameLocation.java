@@ -17,7 +17,7 @@ import java.io.OutputStream;
 // On an S22 and an S25+ a scene change took minutes, up to twenty (issue #4),
 // against seconds inside the app. So the game stays inside the app, and what a
 // person has to reach goes outside on its own: mods in DD1/mods, copied in, and
-// replacement files and DLLs in DD1/overrides, laid over the game at Play
+// replacement files and DLLs in DD1/dll, laid over the game at Play
 // (DD1Overrides).
 //
 // What moves is everything that describes the install: the game tree, the

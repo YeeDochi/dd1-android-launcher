@@ -51,6 +51,17 @@ edits**, except:
 - `busyWait` in `cpp/winlator/include/events.h`, marked `dd1`: the renderers'
   ring-buffer wait spins briefly instead of yielding, which the EEVDF
   scheduler punishes (issue #5); `docs/RUNTIME_UPDATE.md` explains it
+- `cpp/winlator/include/ring_buffer.h` and `src/ring_buffer.c`, marked `dd1`:
+  a ring's reader sleeps on a futex and its writer wakes it, when the writer
+  is the launcher's own Gladio client
+
+The game's `libGL` is not the rootfs's: `DD1GladioClient` unpacks a patched
+Gladio client (`assets/dd1/gladio-client.tzst`, source and build in
+`docs/gladio-client`) and puts it first on the library path for the `gladio`
+driver pairs. It caches uniform locations, reads buffer acknowledgements late,
+sleeps instead of yielding, and caps the frame rate (`DD1_FPS_LIMIT`, the frame
+limit setting). That took the S26 Ultra from ~20 to 60 FPS in combat (issue
+#5); a rebuilt asset needs `DD1GladioClient.MARKER` bumped.
 
 `docs/RUNTIME_UPDATE.md` describes how to take a new Winlator release. If the
 launcher needs behaviour the runtime does not offer, add it in
@@ -128,8 +139,12 @@ and a dungeon or the hamlet opens thousands - minutes per scene change on an S22
 and an S25+ (issue #4), seconds inside the app. A title-screen timing (27s against
 40s) hid it. So what a person must reach goes outside on its own: mods in
 `DD1/mods`, copied in when Play is pressed and when the mod screen opens, and
-replacement files and DLLs in `DD1/overrides`, laid over the game at Play with the
-originals kept and put back (`DD1Overrides`). The choice is made once and
+replacement files and DLLs in `DD1/dll`, laid over the game at Play with the
+originals kept and put back (`DD1Overrides`), each DLL named native-first in
+`WINEDLLOVERRIDES` - Wine otherwise keeps its own build of a system DLL. `DD1/`
+is the DD1 folder a person can move on the mod manager; `DD1Folders` makes
+`mods/` and `dll/` inside it, still reads a mods folder chosen before there was
+one, and moves an old `DD1/overrides` to `DD1/dll`. The choice is made once and
 remembered (`DD1GameLocation.chosen`); a whole game already in `DD1/game` is used
 where it is until the next start moves it inside (`DD1HomeFragment.moveInsideIfLeftOutside`); the settings no longer offer a move out. With the game in storage
 and no custom mods folder, `DD1/game/mods` is the mods folder and the `DD1/mods`
